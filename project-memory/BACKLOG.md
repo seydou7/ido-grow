@@ -1,18 +1,23 @@
 # Backlog
 
-This backlog is extracted from the client sources. It records requested capabilities, not approved implementation design or completed work. Ordering within a section is not a delivery commitment.
+This backlog records source-backed capabilities and Sprint 00 discovery work. Capability entries are requirements rather than approved implementation design; Sprint 00 entries carry their current delivery status. Ordering within a section is not a delivery commitment.
 
 ## Sprint 00 — discovery and foundation
 
-- Finalise the hemp product taxonomy.
-- Define the structured quality data model.
-- Define roles and permissions.
-- Define the first transaction workflow.
-- Obtain formal approval for technical architecture.
-- Produce and audit wireframes for required experiences.
-- Define API conventions after architecture approval.
-- Complete a data-protection assessment.
-- Audit any existing product or implementation before development.
+- **PENDING:** Finalise the hemp product taxonomy.
+- **PENDING:** Define the structured quality data model.
+- **PENDING:** Define roles and permissions.
+- **PENDING:** Define the first transaction workflow.
+- **COMPLETE:** Initial technical architecture approved in DEC-001; later choices explicitly left TBD remain pending.
+- **PENDING:** Produce and audit wireframes for required experiences.
+- **PENDING:** Define API conventions consistent with DEC-001.
+- **PENDING:** Complete a data-protection assessment.
+- **COMPLETE:** Audit the existing Fiber Connect product or implementation before development; see `sprints/sprint-00/LEGACY_AUDIT.md`.
+- **COMPLETE:** Complete the source-based legacy UX audit; see `sprints/sprint-00/LEGACY_UX_AUDIT.md`.
+- **PARTIAL:** Complete the legacy visual review. Route-by-route preparation exists, and sufficient human inspection established a broadly reusable visual brand direction and a need for substantial workflow redesign; detailed screen-by-screen review and final visual approval remain pending.
+- **COMPLETE:** Configure the Project Agent System and validate Party Mode through the successful functional smoke test.
+
+No Sprint 00 backlog item is currently recorded as **BLOCKED**. Unresolved inputs below remain open and may require client or human clarification before the affected work can be completed.
 
 ## MVP-required capabilities
 
@@ -107,14 +112,12 @@ This backlog is extracted from the client sources. It records requested capabili
 
 The client qualifies these exclusions with “unless a real transaction requires it”; no exception has yet been identified or approved.
 
-## Client recommendations awaiting decisions
+## Client technical recommendations and decision status
 
-- Modular monolith and proposed domain boundaries.
-- Suggested frontend, backend, database, queue, storage, search, vector, and authentication technologies.
-- Versioned REST APIs and example conventions.
-- Suggested team, infrastructure-as-code choices, deployment approach, and example match-score weighting.
-
-These are not implementation commitments.
+- **COMPLETE — Approved by DEC-001:** Next.js/React/TypeScript frontend, Tailwind CSS, shadcn/ui baseline, React Hook Form, TanStack Query, internationalization support, NestJS/TypeScript modular monolith, versioned REST API boundary, and PostgreSQL as the primary transactional system of record.
+- **COMPLETE — Approved constraint in DEC-001:** Object/file storage is required, but its vendor remains TBD. Queues and Redis are not part of the initial architecture and may be introduced later only for a concrete requirement.
+- **PENDING — Explicitly not decided by DEC-001:** Cloud provider, hosting provider, authentication provider, object-storage vendor, queue technology, LLM provider, payment provider, WhatsApp implementation details, observability vendor, CI/CD vendor, exact ORM, and exact API-documentation tooling.
+- **PENDING — Recommendations, not implementation commitments:** Suggested team structure, infrastructure-as-code choices, deployment details, search/vector additions, and example match-score weighting remain subject to their applicable requirements and approvals.
 
 ## Unresolved backlog inputs
 

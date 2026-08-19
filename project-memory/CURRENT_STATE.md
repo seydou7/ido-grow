@@ -1,16 +1,13 @@
 # Current State
 
-- **Phase:** Sprint 00 — Discovery and Foundation
-- **Application code:** Not started
-- **Client documents:** Imported
-- **Product requirements extraction:** Completed after this task
-- **Existing product audit:** Pending
-- **Architecture decision:** Approved — DEC-001
-- **UX audit:** Pending
-- **Project Agent System:** Configured
-- **Party Mode Skill:** Configured
-- **Core workflow Skills:** Configured
+- **ACTIVE — Phase:** Sprint 00 — Discovery and Foundation remains in progress.
+- **COMPLETE — Source of truth:** The two primary client documents in `docs/client/` are registered and their product requirements have been extracted into project memory.
+- **COMPLETE — Initial technical architecture:** DEC-001 is approved, current, and not superseded. It remains subordinate to primary client sources and later explicit client clarifications.
+- **COMPLETE — Legacy technical audit:** The existing Fiber Connect product was inspected read-only and documented in `sprints/sprint-00/LEGACY_AUDIT.md`.
+- **COMPLETE — Legacy UX audit:** The 42 existing user-facing routes and missing required workflow groups were audited from source in `sprints/sprint-00/LEGACY_UX_AUDIT.md`.
+- **PARTIAL — Legacy visual review:** `sprints/sprint-00/VISUAL_REVIEW.md` provides route-by-route review preparation. Sufficient human inspection established that the visual brand direction is broadly reusable and that the workflows require substantial redesign. Detailed rendered screen-by-screen review and final visual approval are not complete.
+- **COMPLETE — Project Agent System:** The Project Agent System and its six workflow Skills are configured. The Party Mode functional smoke test passed with Awa orchestration, independent specialist analysis, and no repository modifications from the test.
+- **PENDING — Application implementation:** Application implementation and dependency installation have not started and remain outside Sprint 00 scope.
+- **BLOCKED:** No work is currently recorded as blocked.
 
-The initial source-of-truth documentation has been extracted from the two primary client documents in `docs/client/`. DEC-001 now records the approved initial technical architecture as a project decision based on, but distinct from, the client’s recommended technical direction. No application implementation or dependency installation has started.
-
-Known ambiguities and source tensions remain recorded in `SOURCE_OF_TRUTH.md` and the relevant project-memory documents. Existing product audit and UX audit remain pending.
+Sprint 00 remains active while its pending discovery work is completed, including the hemp taxonomy, structured quality model, roles and permissions, first transaction workflow, wireframes and final visual review, API conventions, data-protection assessment, and unresolved client questions. Known ambiguities and source tensions remain unresolved and recorded in `SOURCE_OF_TRUTH.md` and the relevant project-memory documents.
