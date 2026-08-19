@@ -7,6 +7,9 @@
 - **Existing product audit:** Pending
 - **Architecture decision:** Approved — DEC-001
 - **UX audit:** Pending
+- **Project Agent System:** Configured
+- **Party Mode Skill:** Configured
+- **Core workflow Skills:** Configured
 
 The initial source-of-truth documentation has been extracted from the two primary client documents in `docs/client/`. DEC-001 now records the approved initial technical architecture as a project decision based on, but distinct from, the client’s recommended technical direction. No application implementation or dependency installation has started.
 
