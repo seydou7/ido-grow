@@ -5,9 +5,9 @@
 - **Client documents:** Imported
 - **Product requirements extraction:** Completed after this task
 - **Existing product audit:** Pending
-- **Architecture decision:** Pending formal approval
+- **Architecture decision:** Approved — DEC-001
 - **UX audit:** Pending
 
-The initial source-of-truth documentation has been extracted from the two primary client documents in `docs/client/`. No application implementation or dependency installation has started. Client recommendations have not been adopted as architecture decisions.
+The initial source-of-truth documentation has been extracted from the two primary client documents in `docs/client/`. DEC-001 now records the approved initial technical architecture as a project decision based on, but distinct from, the client’s recommended technical direction. No application implementation or dependency installation has started.
 
-Known ambiguities and source tensions are recorded in `SOURCE_OF_TRUTH.md` and the relevant project-memory documents. `ARCHITECTURE.md` and `DECISION_LOG.md` remain unchanged pending formal review and approval.
+Known ambiguities and source tensions remain recorded in `SOURCE_OF_TRUTH.md` and the relevant project-memory documents. Existing product audit and UX audit remain pending.
