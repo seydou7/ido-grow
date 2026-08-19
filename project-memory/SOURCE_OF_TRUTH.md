@@ -1,6 +1,8 @@
 # Source of Truth
 
-## Primary sources
+## Primary client sources
+
+All documents under `docs/client/*` are classified as **PRIMARY CLIENT SOURCES** unless explicitly reclassified through a later client clarification.
 
 The following original client documents are registered as **PRIMARY** sources:
 
@@ -8,6 +10,12 @@ The following original client documents are registered as **PRIMARY** sources:
 2. `docs/client/I Do Grow description.pdf` — concise client business vision and description of the intended ecosystem, accessibility, quality, DPP, matching, and long-term direction.
 
 Both documents must be retained unchanged as source evidence. Neither filename nor ordering above implies that one primary document overrides the other. Where they differ or appear inconsistent, the conflict must be recorded for client clarification.
+
+## Internal planning documents
+
+All documents under `docs/planning/*` are classified as **INTERNAL PLANNING DOCUMENTS**. They support planning and delivery but are not primary client sources or approved project decisions.
+
+Internal planning documents must never override original client documents, later explicit client clarifications, or approved project decisions.
 
 ## Authority order
 
