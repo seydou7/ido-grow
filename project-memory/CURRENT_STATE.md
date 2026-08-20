@@ -1,14 +1,19 @@
 # Current State
 
-- **ACTIVE — Phase:** Sprint 00 — Discovery and Foundation remains in progress.
-- **COMPLETE — Source of truth:** The two primary client documents in `docs/client/` are registered and their product requirements have been extracted into project memory.
-- **COMPLETE — Initial technical architecture:** DEC-001 is approved, current, and not superseded. It remains subordinate to primary client sources and later explicit client clarifications.
-- **COMPLETE — Legacy technical audit:** The existing Fiber Connect product was inspected read-only and documented in `sprints/sprint-00/LEGACY_AUDIT.md`.
-- **COMPLETE — Legacy UX audit:** The 42 existing user-facing routes and missing required workflow groups were audited from source in `sprints/sprint-00/LEGACY_UX_AUDIT.md`.
-- **COMPLETE — Sprint 00 visual review:** The Project Owner approved Option B and closed the visual-review requirement for Sprint 00 foundation purposes. `sprints/sprint-00/VISUAL_REVIEW.md` remains historical discovery evidence; its 42 legacy routes were not individually reviewed or approved. Final production visual design and validation remain future work.
-- **COMPLETE — MVP wireframes:** The 22 `REQUIRED_MVP` screen families in `sprints/sprint-00/MVP_WIREFRAMES.md` are the current target UX scope and complete as low-fidelity Sprint 00 evidence, not final production UI.
-- **COMPLETE — Project Agent System:** The Project Agent System and its six workflow Skills are configured. The Party Mode functional smoke test passed with Awa orchestration, independent specialist analysis, and no repository modifications from the test.
-- **NOT STARTED — Application implementation:** Application implementation and dependency installation have not started and remain outside Sprint 00 scope.
-- **BLOCKED:** No work is currently recorded as blocked.
+- **ACTIVE — Phase:** Sprint 00 — Discovery and Foundation remains in progress pending the final closure assessment.
+- **APPROVED — Sprint 00 foundations:** The Project Owner approved the committed Sprint 00 foundations as the basis for design and implementation. Business, commercial, legal, quality, authority and visibility rules explicitly marked **OPEN** remain unapproved and blocked until appropriate clarification.
+- **COMPLETE — Source, architecture and audits:** The source-of-truth foundation, DEC-001, legacy technical audit and legacy UX audit are complete; DEC-001 remains current and unchanged.
+- **COMPLETE — Hemp taxonomy:** The hemp taxonomy is complete as a Sprint 00 foundation; proof-transaction classification and operational rules remain OPEN.
+- **COMPLETE — Structured quality model:** The Lot/Inspection-centric quality foundation is complete; methods, thresholds, Grades, certificates, gates, authorities and remedies remain OPEN.
+- **COMPLETE — Roles & Permissions:** The server-enforced, tenant-aware, deny-by-default foundation is complete; mandates, authority and field visibility remain OPEN.
+- **COMPLETE — API conventions:** Provider-neutral API conventions consistent with DEC-001 are complete.
+- **COMPLETE — Data-protection assessment:** The preliminary assessment is complete without a compliance claim; legal/privacy review remains required and the DPIA requirement cannot yet be determined.
+- **COMPLETE — Client clarification pack:** The clarification artifact is complete; its client answers remain OPEN.
+- **COMPLETE — First MVP Transaction Workflow:** The committed 15-step scenario-generic, OPEN-gated workflow is approved for Sprint 00 foundation purposes; it does not approve a real transaction or unresolved operating rules.
+- **COMPLETE — MVP wireframes:** The 22 `REQUIRED_MVP` screen families are the current low-fidelity target UX scope, not final production UI.
+- **COMPLETE — Sprint 00 visual review:** Project Owner-approved Option B closed the visual-review requirement at foundation level; the 42 legacy routes and final production UI were not individually approved.
+- **COMPLETE — Conceptual DATA_MODEL synchronization:** The conceptual model reflects the approved foundations while preserving all operational and legal rules marked OPEN; no physical schema was created.
+- **COMPLETE — Project Agent System:** Thirteen Project Agents, six workflow Skills and the Party Mode smoke test are complete.
+- **NOT STARTED — Application implementation:** No application code, schema, migration or dependency installation has started.
 
-Sprint 00 remains active while the first transaction workflow, unresolved client questions, and remaining closure work are completed. Known ambiguities and source tensions remain unresolved and recorded in `SOURCE_OF_TRUTH.md` and the relevant project-memory documents.
+Sprint 00 remains **ACTIVE** until the final closure assessment confirms that its closure criteria are satisfied. OPEN client, business, domain, legal/privacy, authority and visibility rules continue to gate the affected implementation and first real transaction.

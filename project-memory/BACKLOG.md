@@ -4,20 +4,20 @@ This backlog records source-backed capabilities and Sprint 00 discovery work. Ca
 
 ## Sprint 00 — discovery and foundation
 
-- **PENDING:** Finalise the hemp product taxonomy.
-- **PENDING:** Define the structured quality data model.
-- **PENDING:** Define roles and permissions.
-- **PENDING:** Define the first transaction workflow.
+- **COMPLETE:** Finalise the hemp product taxonomy as an approved Sprint 00 foundation; proof-transaction classification and operational rules remain OPEN.
+- **COMPLETE:** Define the structured quality model as an approved Lot/Inspection-centric foundation; methods, thresholds, Grades, certificates, gates, authorities and remedies remain OPEN.
+- **COMPLETE:** Define roles and permissions as an approved server-enforced, tenant-aware, deny-by-default foundation; mandates, authority and field visibility remain OPEN.
+- **COMPLETE:** Define the approved scenario-generic, OPEN-gated First MVP Transaction Workflow; real transaction inputs and unresolved operating rules remain OPEN.
 - **COMPLETE:** Initial technical architecture approved in DEC-001; later choices explicitly left TBD remain pending.
 - **COMPLETE:** Produce and audit low-fidelity wireframes for the 22 `REQUIRED_MVP` screen families; final production UI design and validation remain future work.
-- **PENDING:** Define API conventions consistent with DEC-001.
-- **PENDING:** Complete a data-protection assessment.
+- **COMPLETE:** Define provider-neutral API conventions consistent with DEC-001; workflow-specific contracts remain gated by approved business rules.
+- **COMPLETE:** Complete the preliminary data-protection assessment without a compliance claim; legal/privacy work and the DPIA determination remain OPEN.
 - **COMPLETE:** Audit the existing Fiber Connect product or implementation before development; see `sprints/sprint-00/LEGACY_AUDIT.md`.
 - **COMPLETE:** Complete the source-based legacy UX audit; see `sprints/sprint-00/LEGACY_UX_AUDIT.md`.
 - **COMPLETE:** Close the visual review for Sprint 00 foundation purposes through Project Owner-approved Option B. The legacy route-by-route approval was superseded for planning purposes and remains historical evidence; final production visual design and validation are deferred.
 - **COMPLETE:** Configure the Project Agent System and validate Party Mode through the successful functional smoke test.
 
-No Sprint 00 backlog item is currently recorded as **BLOCKED**. Unresolved inputs below remain open and may require client or human clarification before the affected work can be completed.
+The committed Sprint 00 foundations are approved for design and implementation. Unresolved inputs below remain **OPEN** and block only the affected implementation or first real transaction until the appropriate client, business, domain, legal/privacy or authority clarification is approved. Sprint 00 itself remains active pending its final closure assessment.
 
 ## MVP-required capabilities
 
