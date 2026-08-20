@@ -16,3 +16,6 @@
 - Created and approved the 15-step scenario-generic, OPEN-gated First MVP Transaction Workflow; real transaction inputs and unresolved legal, commercial, quality, logistics, Settlement and DPP rules remain OPEN.
 - Recorded Project Owner approval of the committed Sprint 00 foundations as the basis for design and implementation, without approving any rule explicitly marked OPEN.
 - Synchronized the conceptual data model with the taxonomy, quality, access, workflow, API, privacy and wireframe foundations without creating a physical schema or implementation design.
+- Closed Sprint 00 — Discovery and Foundation after the final `sprint-close` assessment returned PASS, with Malick PASS, Ndeye CONSISTENT and Cheikh READY.
+- Transitioned to Sprint 01 — Platform Foundation as ACTIVE WITH GUARDRAILS; application implementation remains NOT STARTED pending its first authorised task.
+- Preserved all existing transition guardrails: approved foundations only, OPEN behavior blocked, non-binding Matches, assistive/human-controlled AI, no payment execution or escrow, and continuing legal/privacy, authority, visibility and provider gates.

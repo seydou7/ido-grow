@@ -1,8 +1,8 @@
 # Backlog
 
-This backlog records source-backed capabilities and Sprint 00 discovery work. Capability entries are requirements rather than approved implementation design; Sprint 00 entries carry their current delivery status. Ordering within a section is not a delivery commitment.
+This backlog records source-backed capabilities and sprint foundation work. Capability entries are requirements rather than approved implementation design; sprint entries carry their current delivery status. Ordering within a section is not a delivery commitment.
 
-## Sprint 00 — discovery and foundation
+## Sprint 00 — Discovery and Foundation — COMPLETE
 
 - **COMPLETE:** Finalise the hemp product taxonomy as an approved Sprint 00 foundation; proof-transaction classification and operational rules remain OPEN.
 - **COMPLETE:** Define the structured quality model as an approved Lot/Inspection-centric foundation; methods, thresholds, Grades, certificates, gates, authorities and remedies remain OPEN.
@@ -17,7 +17,13 @@ This backlog records source-backed capabilities and Sprint 00 discovery work. Ca
 - **COMPLETE:** Close the visual review for Sprint 00 foundation purposes through Project Owner-approved Option B. The legacy route-by-route approval was superseded for planning purposes and remains historical evidence; final production visual design and validation are deferred.
 - **COMPLETE:** Configure the Project Agent System and validate Party Mode through the successful functional smoke test.
 
-The committed Sprint 00 foundations are approved for design and implementation. Unresolved inputs below remain **OPEN** and block only the affected implementation or first real transaction until the appropriate client, business, domain, legal/privacy or authority clarification is approved. Sprint 00 itself remains active pending its final closure assessment.
+The final `sprint-close` assessment returned PASS. Sprint 00 is closed and complete. Its committed foundations are approved for design and implementation, while unresolved rules remain **OPEN** and continue to block only the affected implementation, first real transaction or production use until appropriately approved.
+
+## Sprint 01 — Platform Foundation — ACTIVE WITH GUARDRAILS
+
+Sprint 01 activates the already-defined MVP-required capability backlog below without adding or redefining scope. Application implementation remains **NOT STARTED** pending the first authorised Sprint 01 implementation task.
+
+Guardrails: build only from approved foundations; keep behavior marked **OPEN** blocked until approved; keep Matches non-binding and AI assistive/human-controlled; exclude payment execution and escrow; and preserve all legal/privacy, authority, visibility and provider gates.
 
 ## MVP-required capabilities
 
