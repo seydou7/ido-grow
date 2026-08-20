@@ -9,12 +9,12 @@ This backlog records source-backed capabilities and Sprint 00 discovery work. Ca
 - **PENDING:** Define roles and permissions.
 - **PENDING:** Define the first transaction workflow.
 - **COMPLETE:** Initial technical architecture approved in DEC-001; later choices explicitly left TBD remain pending.
-- **PENDING:** Produce and audit wireframes for required experiences.
+- **COMPLETE:** Produce and audit low-fidelity wireframes for the 22 `REQUIRED_MVP` screen families; final production UI design and validation remain future work.
 - **PENDING:** Define API conventions consistent with DEC-001.
 - **PENDING:** Complete a data-protection assessment.
 - **COMPLETE:** Audit the existing Fiber Connect product or implementation before development; see `sprints/sprint-00/LEGACY_AUDIT.md`.
 - **COMPLETE:** Complete the source-based legacy UX audit; see `sprints/sprint-00/LEGACY_UX_AUDIT.md`.
-- **PARTIAL:** Complete the legacy visual review. Route-by-route preparation exists, and sufficient human inspection established a broadly reusable visual brand direction and a need for substantial workflow redesign; detailed screen-by-screen review and final visual approval remain pending.
+- **COMPLETE:** Close the visual review for Sprint 00 foundation purposes through Project Owner-approved Option B. The legacy route-by-route approval was superseded for planning purposes and remains historical evidence; final production visual design and validation are deferred.
 - **COMPLETE:** Configure the Project Agent System and validate Party Mode through the successful functional smoke test.
 
 No Sprint 00 backlog item is currently recorded as **BLOCKED**. Unresolved inputs below remain open and may require client or human clarification before the affected work can be completed.
