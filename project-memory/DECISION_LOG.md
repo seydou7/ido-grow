@@ -108,3 +108,32 @@ Record important architectural and product decisions here. Previous decisions mu
 - Domain boundaries must be maintained inside the modular monolith.
 - Vendor and tooling choices listed as TBD require later evaluation or approval and must not be inferred from examples in client or planning documents.
 - This decision does not resolve unrelated product, UX, business-rule, hosting, security-provider, or integration ambiguities.
+
+## DEC-002 — Provisional Infrastructure and Hosting Direction
+
+- **Status:** Provisional — approved direction; deployment deferred
+- **Decision type:** Supplemental project decision
+- **Scope:** Infrastructure and hosting provider preference only. DEC-001 remains unchanged.
+
+### Decision
+
+- OVHcloud is the preferred infrastructure and hosting provider for now.
+- Deployment implementation is explicitly **DEFERRED**.
+- No exact OVHcloud product, service, region, topology, runtime, or deployment design is selected by this decision.
+
+### Explicitly not decided
+
+- Region and environment topology
+- Exact OVHcloud product or service
+- Container or runtime choice
+- Networking, ingress, domains, DNS, TLS, CDN, or WAF
+- Secrets implementation
+- CI/CD and deployment process
+- Observability
+- PostgreSQL provider, ORM, authentication provider, object-storage vendor, queue technology, LLM provider, payment provider, WhatsApp implementation, and API-documentation tooling
+
+### Consequences and constraints
+
+- Application-environment and deployment work remains deferred until the required implementation details are separately approved.
+- No infrastructure or deployment file is authorized by this decision.
+- Future infrastructure work must preserve DEC-001 and must not infer any still-TBD provider, product, topology, or process from the OVHcloud preference.

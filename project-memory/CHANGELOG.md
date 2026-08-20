@@ -19,3 +19,4 @@
 - Closed Sprint 00 — Discovery and Foundation after the final `sprint-close` assessment returned PASS, with Malick PASS, Ndeye CONSISTENT and Cheikh READY.
 - Transitioned to Sprint 01 — Platform Foundation as ACTIVE WITH GUARDRAILS; application implementation remains NOT STARTED pending its first authorised task.
 - Preserved all existing transition guardrails: approved foundations only, OPEN behavior blocked, non-binding Matches, assistive/human-controlled AI, no payment execution or escrow, and continuing legal/privacy, authority, visibility and provider gates.
+- Recorded DEC-002: OVHcloud is the provisional preferred infrastructure and hosting provider, while deployment and all exact OVHcloud product, region, topology, runtime, networking, domain, secrets, CI/CD, observability and process choices remain deferred and TBD.
