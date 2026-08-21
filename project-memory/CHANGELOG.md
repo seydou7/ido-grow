@@ -20,3 +20,4 @@
 - Transitioned to Sprint 01 — Platform Foundation as ACTIVE WITH GUARDRAILS; application implementation remains NOT STARTED pending its first authorised task.
 - Preserved all existing transition guardrails: approved foundations only, OPEN behavior blocked, non-binding Matches, assistive/human-controlled AI, no payment execution or escrow, and continuing legal/privacy, authority, visibility and provider gates.
 - Recorded DEC-002: OVHcloud is the provisional preferred infrastructure and hosting provider, while deployment and all exact OVHcloud product, region, topology, runtime, networking, domain, secrets, CI/CD, observability and process choices remain deferred and TBD.
+- Approved DEC-003: Auth0 Public Cloud with an EU tenant is the authentication provider, while NestJS retains all organisation, tenant and business authorization; authentication-policy and privacy details remain OPEN and privacy due diligence is required before real-data or production use.

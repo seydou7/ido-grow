@@ -137,3 +137,36 @@ Record important architectural and product decisions here. Previous decisions mu
 - Application-environment and deployment work remains deferred until the required implementation details are separately approved.
 - No infrastructure or deployment file is authorized by this decision.
 - Future infrastructure work must preserve DEC-001 and must not infer any still-TBD provider, product, topology, or process from the OVHcloud preference.
+
+## DEC-003 — Authentication Provider and Authorization Boundary
+
+- **Status:** Approved
+- **Decision type:** Supplemental project decision
+- **Scope:** Authentication provider and authentication-versus-authorization boundary only. DEC-001 and DEC-002 remain unchanged.
+
+### Decision
+
+- Auth0 Public Cloud with an EU tenant is the approved authentication provider for I Do Grow.
+- Auth0 may handle identity, authentication, sessions, MFA capability, and account recovery.
+- The I Do Grow NestJS backend remains authoritative for organisation and tenant context, memberships, roles and capabilities, assignments, represented-party capacity, approvals, field visibility, resource authorization, deny-by-default business authorization, and audit context.
+- Auth0 roles, organisation data, claims, or scopes must not directly grant I Do Grow business authority.
+
+### Explicitly still open
+
+- Login methods
+- Exact MFA factors, enforcement, and step-up rules
+- Registration, invitation, and verification policies
+- Session and token lifetimes, refresh, revocation, and related policies
+- Auth0 plan
+- Branding and custom domain
+- Email and SMS configuration
+- Environment and secrets implementation
+- Privacy due diligence, DPA, subprocessors, transfers, retention, deletion, export, and DPIA review
+- All unrelated DEC-001 and DEC-002 TBDs
+
+### Consequences and constraints
+
+- The authentication-provider TBD is resolved by this decision.
+- Authentication implementation may proceed only within the approved boundary and must not define or delegate business authorization rules.
+- Privacy due diligence remains required before real-data or production use.
+- This decision does not authorize deployment work or resolve any other provider, infrastructure, product, policy, or business-rule choice.

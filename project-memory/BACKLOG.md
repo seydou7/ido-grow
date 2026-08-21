@@ -29,7 +29,7 @@ Guardrails: build only from approved foundations; keep behavior marked **OPEN** 
 
 ### Platform, organisations, and access
 
-- **PARTIAL / DEFERRED:** The application foundation is established. OVHcloud is the preferred infrastructure and hosting provider for now; application-environment and deployment implementation remains **DEFERRED** pending selection of the exact OVHcloud product and the remaining deployment details. Authentication, file storage and the delivery pipeline remain gated by their separate TBD decisions.
+- **PARTIAL / DEFERRED:** The application foundation is established. OVHcloud is the preferred infrastructure and hosting provider for now; application-environment and deployment implementation remains **DEFERRED** pending selection of the exact OVHcloud product and the remaining deployment details. Auth0 Public Cloud with an EU tenant is approved under DEC-003 for authentication only, and implementation may proceed only within its backend-authoritative authorization boundary; authentication policies and privacy due diligence remain OPEN. File storage and the delivery pipeline remain gated by their separate TBD decisions.
 - Support organisations, sites, users, memberships, supplier/buyer organisation types, roles, permissions, verification, and onboarding.
 - Support multiple organisations with role-, ownership-, transaction-, sharing-, and marketplace-based access boundaries.
 - Record immutable audit history for critical trading records and additional controls for critical actions.
@@ -123,7 +123,8 @@ The client qualifies these exclusions with “unless a real transaction requires
 - **COMPLETE — Approved by DEC-001:** Next.js/React/TypeScript frontend, Tailwind CSS, shadcn/ui baseline, React Hook Form, TanStack Query, internationalization support, NestJS/TypeScript modular monolith, versioned REST API boundary, and PostgreSQL as the primary transactional system of record.
 - **COMPLETE — Approved constraint in DEC-001:** Object/file storage is required, but its vendor remains TBD. Queues and Redis are not part of the initial architecture and may be introduced later only for a concrete requirement.
 - **PROVISIONAL / DEFERRED — Supplemental DEC-002:** OVHcloud is the preferred infrastructure and hosting provider for now. Exact OVHcloud product, region, topology, runtime, networking, domains, secrets, CI/CD, observability and deployment process remain TBD; deployment implementation is deferred.
-- **PENDING — Explicitly not decided:** Authentication provider, object-storage vendor, queue technology, LLM provider, payment provider, WhatsApp implementation details, observability implementation/vendor, CI/CD implementation/vendor, exact ORM, and exact API-documentation tooling.
+- **APPROVED — Supplemental DEC-003:** Auth0 Public Cloud with an EU tenant is the authentication provider. NestJS retains authoritative organisation, tenant and business authorization; all listed authentication-policy and privacy details remain OPEN.
+- **PENDING — Explicitly not decided:** Object-storage vendor, queue technology, LLM provider, payment provider, WhatsApp implementation details, observability implementation/vendor, CI/CD implementation/vendor, exact ORM, and exact API-documentation tooling.
 - **PENDING — Recommendations, not implementation commitments:** Suggested team structure, infrastructure-as-code choices, deployment details, search/vector additions, and example match-score weighting remain subject to their applicable requirements and approvals.
 
 ## Unresolved backlog inputs
