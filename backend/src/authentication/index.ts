@@ -4,3 +4,4 @@ export type {
   AuthenticationIdentity,
   UnauthenticatedEvidence,
 } from "./contracts";
+export { AuthenticationModule } from "./authentication.module";

@@ -170,3 +170,36 @@ Record important architectural and product decisions here. Previous decisions mu
 - Authentication implementation may proceed only within the approved boundary and must not define or delegate business authorization rules.
 - Privacy due diligence remains required before real-data or production use.
 - This decision does not authorize deployment work or resolve any other provider, infrastructure, product, policy, or business-rule choice.
+
+## DEC-004 — Application-Managed Authentication and Prisma
+
+- **Status:** Approved — supersedes DEC-003
+- **Decision type:** Supplemental project decision
+- **Scope:** Authentication ownership and PostgreSQL ORM/data-access selection. DEC-001 and DEC-002 remain unchanged; DEC-003 remains preserved as historical decision evidence.
+
+### Decision
+
+- I Do Grow authentication is application-managed and controlled by the I Do Grow application.
+- No external authentication provider or service is used for the current product direction.
+- Prisma is the approved ORM and data-access layer for PostgreSQL.
+- The NestJS backend remains authoritative for authentication and for all organisation, tenant, membership, role, capability, assignment, represented-party, approval, field-visibility, resource and business authorization decisions.
+- DEC-003 — Authentication Provider and Authorization Boundary is superseded by this decision. Its historical text is not deleted or rewritten.
+- Deployment remains deferred under DEC-002. This decision selects neither a cloud PostgreSQL provider nor production infrastructure.
+
+### Explicitly still open or future work
+
+- Production MFA and step-up policy
+- Account recovery policy and workflow
+- Email-delivery provider and production communications
+- Registration, invitation and verification product rules
+- Final production password, session, lockout, monitoring and incident-response policies
+- Production secrets and deployment implementation
+- Privacy due diligence, retention, deletion, export and DPIA review
+- All unresolved organisation and business authorization rules
+
+### Consequences and constraints
+
+- Auth0-specific runtime code and dependencies must not remain active.
+- Provider-neutral authentication contracts may remain where they accurately represent internal application identity and sessions.
+- The initial implementation may establish a conservative local authentication baseline without claiming that its parameters are final production policy.
+- PostgreSQL remains the required database; SQLite is not an authorised substitute.

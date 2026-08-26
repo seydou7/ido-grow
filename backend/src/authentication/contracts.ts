@@ -1,6 +1,6 @@
 export type AuthenticationIdentity = Readonly<{
-  issuer: string;
-  subject: string;
+  userId: string;
+  email: string;
 }>;
 
 export type UnauthenticatedEvidence = Readonly<{

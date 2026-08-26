@@ -1,6 +1,6 @@
-export type ExternalIdentityReference = Readonly<{
-  issuer: string;
-  subject: string;
+export type AuthenticatedUser = Readonly<{
+  id: string;
+  email: string;
 }>;
 
 export type UnauthenticatedSession = Readonly<{
@@ -9,7 +9,7 @@ export type UnauthenticatedSession = Readonly<{
 
 export type AuthenticatedSession = Readonly<{
   status: "authenticated";
-  identity: ExternalIdentityReference;
+  user: AuthenticatedUser;
 }>;
 
 export type AuthenticationSession =

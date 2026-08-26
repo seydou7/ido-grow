@@ -1,4 +1,6 @@
 import { Module } from "@nestjs/common";
 
-@Module({})
+import { AuthenticationModule } from "./authentication";
+
+@Module({ imports: [AuthenticationModule] })
 export class AppModule {}

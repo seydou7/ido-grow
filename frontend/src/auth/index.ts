@@ -1,7 +1,7 @@
 export type {
+  AuthenticatedUser,
   AuthenticatedSession,
   AuthenticationAdapter,
   AuthenticationSession,
-  ExternalIdentityReference,
   UnauthenticatedSession,
 } from "./contracts";
