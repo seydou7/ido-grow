@@ -1,3 +1,5 @@
+import type { LoginSucceededAuditEvent } from "../audit";
+
 export type AuthenticationUserRecord = Readonly<{
   id: string;
   email: string;
@@ -6,6 +8,7 @@ export type AuthenticationUserRecord = Readonly<{
 }>;
 
 export type AuthenticationSessionRecord = Readonly<{
+  id: string;
   tokenHash: string;
   expiresAt: Date;
   revokedAt: Date | null;
@@ -22,9 +25,11 @@ export abstract class AuthenticationRepository {
   ): Promise<AuthenticationUserRecord | null>;
 
   abstract createSession(input: {
+    id: string;
     userId: string;
     tokenHash: string;
     expiresAt: Date;
+    auditEvent: LoginSucceededAuditEvent;
   }): Promise<void>;
 
   abstract findActiveSessionByTokenHash(
@@ -33,7 +38,8 @@ export abstract class AuthenticationRepository {
   ): Promise<AuthenticationSessionRecord | null>;
 
   abstract revokeSessionByTokenHash(
+    sessionId: string,
     tokenHash: string,
     revokedAt: Date,
-  ): Promise<void>;
+  ): Promise<boolean>;
 }

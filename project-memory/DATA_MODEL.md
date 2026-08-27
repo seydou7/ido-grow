@@ -114,12 +114,14 @@ The basic foundation may support Lot identity, origin, authorised Supplier infor
 ## Documents, audit and future Platform Agents
 
 - **Document / File:** A private-by-default evidence object with provenance, uploader/organisation, purpose, linked resource, verification/processing state and visibility context. Its storage vendor remains TBD.
-- **Audit Event:** An append-only critical-action record containing actor type, identity, role/capacity, acting organisation, represented party, resource/version, action/outcome, time, source/channel, reason, approval and relevant before/after summary.
+- **Audit Event:** An append-only critical-action record that may contain the applicable actor identity/context, target resource, action/outcome, time, correlation context and deliberately bounded metadata. Organisation, role/capacity, represented-party, approval and before/after context belong only where later authorised and supported; they are not inferred from authentication evidence.
 - **Platform Agent Proposal:** A structured, provenance-bearing draft or recommendation created through a controlled capability and linked to its initiating context, evidence, model/tool version, review and outcome.
 
 Future Platform Agents use allowlisted backend tools/services, receive minimum authorised context and have no independent business authority or direct database mutation capability. Human approval binds to an exact proposal and resource version where required.
 
-**OPEN:** Provider choices, retention, immutability mechanism, exact audit payloads, AI capability/provider rules and personal-data handling remain TBD or subject to legal/privacy review.
+The implemented AuditEvent foundation is currently limited to `authentication.login.succeeded`, `authentication.login.failed` and `authentication.logout.succeeded`. Its append-only guarantee is enforced through the application persistence interface and does not claim database-level cryptographic immutability. Failed-login metadata is deliberately sanitized, and actor and correlation context are server-derived.
+
+**OPEN:** Retention, privacy and personal-data handling, viewer authorization, the final event taxonomy, audit coverage beyond the current authentication foundation, stronger immutability mechanisms, provider choices and AI capability/provider rules remain TBD or subject to legal/privacy review.
 
 ## Core relationship summary
 

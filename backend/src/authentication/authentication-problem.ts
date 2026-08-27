@@ -15,7 +15,13 @@ type ProblemDetails = Readonly<{
 }>;
 
 export class AuthenticationProblem extends HttpException {
-  constructor(status: number, code: string, title: string, detail: string) {
+  constructor(
+    status: number,
+    code: string,
+    title: string,
+    detail: string,
+    readonly requestId?: string,
+  ) {
     super({ type: "about:blank", title, status, code, detail }, status);
   }
 }
@@ -36,7 +42,7 @@ export class AuthenticationProblemFilter implements ExceptionFilter {
     const response = context.getResponse<ProblemResponse>();
     const request = context.getRequest<ProblemRequest>();
     const problem = exception.getResponse() as ProblemDetails;
-    const requestId = randomUUID();
+    const requestId = exception.requestId ?? randomUUID();
 
     response.setHeader("X-Request-Id", requestId);
 

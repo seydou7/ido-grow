@@ -1,5 +1,9 @@
 import { Injectable } from "@nestjs/common";
 
+import {
+  AuditEventWriter,
+  type LoginSucceededAuditEvent,
+} from "../audit";
 import { PrismaService } from "../database";
 import {
   AuthenticationRepository,
@@ -9,7 +13,10 @@ import {
 
 @Injectable()
 export class PrismaAuthenticationRepository extends AuthenticationRepository {
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditEvents: AuditEventWriter,
+  ) {
     super();
   }
 
@@ -28,11 +35,18 @@ export class PrismaAuthenticationRepository extends AuthenticationRepository {
   }
 
   async createSession(input: {
+    id: string;
     userId: string;
     tokenHash: string;
     expiresAt: Date;
+    auditEvent: LoginSucceededAuditEvent;
   }): Promise<void> {
-    await this.prisma.session.create({ data: input });
+    const { auditEvent, ...session } = input;
+
+    await this.prisma.$transaction(async (transaction) => {
+      await transaction.session.create({ data: session });
+      await this.auditEvents.append(auditEvent, transaction);
+    });
   }
 
   findActiveSessionByTokenHash(
@@ -47,6 +61,7 @@ export class PrismaAuthenticationRepository extends AuthenticationRepository {
         user: { isActive: true },
       },
       select: {
+        id: true,
         tokenHash: true,
         expiresAt: true,
         revokedAt: true,
@@ -56,12 +71,21 @@ export class PrismaAuthenticationRepository extends AuthenticationRepository {
   }
 
   async revokeSessionByTokenHash(
+    sessionId: string,
     tokenHash: string,
     revokedAt: Date,
-  ): Promise<void> {
-    await this.prisma.session.updateMany({
-      where: { tokenHash, revokedAt: null },
+  ): Promise<boolean> {
+    const result = await this.prisma.session.updateMany({
+      where: {
+        id: sessionId,
+        tokenHash,
+        revokedAt: null,
+        expiresAt: { gt: revokedAt },
+        user: { isActive: true },
+      },
       data: { revokedAt },
     });
+
+    return result.count > 0;
   }
 }

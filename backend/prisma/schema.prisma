@@ -16,6 +16,26 @@ model User {
   updatedAt    DateTime     @updatedAt @db.Timestamptz(6)
   sessions     Session[]
   memberships  Membership[]
+  auditEvents  AuditEvent[]
+}
+
+model AuditEvent {
+  id            String   @id @default(uuid()) @db.Uuid
+  eventType     String   @db.VarChar(100)
+  outcome       String   @db.VarChar(32)
+  actorType     String   @db.VarChar(32)
+  actorUserId   String?  @db.Uuid
+  targetType    String   @db.VarChar(100)
+  targetId      String?  @db.VarChar(128)
+  correlationId String   @db.Uuid
+  occurredAt    DateTime @db.Timestamptz(6)
+  metadata      Json     @default("{}") @db.JsonB
+  actorUser     User?    @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([actorUserId, occurredAt])
+  @@index([eventType, occurredAt])
+  @@index([correlationId])
+  @@index([targetType, targetId])
 }
 
 model Organisation {

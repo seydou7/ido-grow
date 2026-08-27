@@ -4,6 +4,10 @@ import request from "supertest";
 
 import { AppModule } from "../src/app.module";
 import {
+  type AuthenticationAuditEvent,
+  AuditEventWriter,
+} from "../src/audit";
+import {
   AuthenticationRepository,
   type AuthenticationSessionRecord,
   type AuthenticationUserRecord,
@@ -16,6 +20,10 @@ import {
 } from "../src/organisations/organisations.repository";
 
 class TestAuthenticationRepository extends AuthenticationRepository {
+  constructor(private readonly auditEvents: TestAuditEventWriter) {
+    super();
+  }
+
   users = new Map<string, AuthenticationUserRecord>();
   sessions = new Map<string, AuthenticationSessionRecord>();
 
@@ -27,14 +35,21 @@ class TestAuthenticationRepository extends AuthenticationRepository {
   }
 
   async createSession(input: {
+    id: string;
     userId: string;
     tokenHash: string;
     expiresAt: Date;
+    auditEvent: Extract<
+      AuthenticationAuditEvent,
+      { eventType: "authentication.login.succeeded" }
+    >;
   }): Promise<void> {
     const user = [...this.users.values()].find(({ id }) => id === input.userId);
     if (!user) throw new Error("Missing test user");
 
+    await this.auditEvents.append(input.auditEvent);
     this.sessions.set(input.tokenHash, {
+      id: input.id,
       tokenHash: input.tokenHash,
       expiresAt: input.expiresAt,
       revokedAt: null,
@@ -56,11 +71,27 @@ class TestAuthenticationRepository extends AuthenticationRepository {
   }
 
   async revokeSessionByTokenHash(
+    sessionId: string,
     tokenHash: string,
     revokedAt: Date,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const session = this.sessions.get(tokenHash);
-    if (session) this.sessions.set(tokenHash, { ...session, revokedAt });
+    if (!session || session.id !== sessionId || session.revokedAt !== null) {
+      return false;
+    }
+
+    this.sessions.set(tokenHash, { ...session, revokedAt });
+    return true;
+  }
+}
+
+class TestAuditEventWriter extends AuditEventWriter {
+  events: AuthenticationAuditEvent[] = [];
+  failure: Error | null = null;
+
+  async append(event: AuthenticationAuditEvent): Promise<void> {
+    if (this.failure) throw this.failure;
+    this.events.push(event);
   }
 }
 
@@ -78,10 +109,12 @@ describe("application-managed authentication (e2e)", () => {
   let app: INestApplication;
   let repository: TestAuthenticationRepository;
   let organisationsRepository: TestOrganisationsRepository;
+  let auditEvents: TestAuditEventWriter;
 
   beforeAll(async () => {
     process.env.IDO_GROW_RUNTIME_ENV = "local";
-    repository = new TestAuthenticationRepository();
+    auditEvents = new TestAuditEventWriter();
+    repository = new TestAuthenticationRepository(auditEvents);
     organisationsRepository = new TestOrganisationsRepository();
     repository.users.set("synthetic@example.test", {
       id: "4c74eb4d-f1c4-4dc8-8281-e7cd42447188",
@@ -95,11 +128,13 @@ describe("application-managed authentication (e2e)", () => {
       .useValue(repository)
       .overrideProvider(OrganisationsRepository)
       .useValue(organisationsRepository)
+      .overrideProvider(AuditEventWriter)
+      .useValue(auditEvents)
       .overrideProvider(PrismaService)
       .useValue({})
       .compile();
 
-    app = moduleRef.createNestApplication();
+    app = moduleRef.createNestApplication({ logger: false });
     app.setGlobalPrefix("api/v1");
     await app.init();
   });
@@ -114,6 +149,7 @@ describe("application-managed authentication (e2e)", () => {
   });
 
   it("does not reveal whether a user exists", async () => {
+    const auditCount = auditEvents.events.length;
     const wrongPassword = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
       .send({ email: "synthetic@example.test", password: "wrong-password" })
@@ -131,6 +167,25 @@ describe("application-managed authentication (e2e)", () => {
       requestId: "ignored",
     });
     expect(JSON.stringify(unknownUser.body)).not.toContain("unknown@example.test");
+    const failedEvents = auditEvents.events.slice(auditCount);
+    expect(failedEvents).toHaveLength(2);
+    expect(failedEvents).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          eventType: "authentication.login.failed",
+          actor: { type: "unauthenticated" },
+        }),
+      ]),
+    );
+    expect(JSON.stringify(failedEvents)).not.toMatch(
+      /synthetic@example|unknown@example|wrong-password/i,
+    );
+    expect(failedEvents[0]?.correlationId).toBe(
+      wrongPassword.headers["x-request-id"],
+    );
+    expect(failedEvents[1]?.correlationId).toBe(
+      unknownUser.headers["x-request-id"],
+    );
   });
 
   it("logs in with a secure local cookie and returns only safe identity", async () => {
@@ -152,6 +207,14 @@ describe("application-managed authentication (e2e)", () => {
     expect(JSON.stringify(response.body)).not.toMatch(/password|token|hash/i);
     expect([...repository.sessions.keys()][0]).toMatch(/^[0-9a-f]{64}$/);
     expect(cookie).not.toContain([...repository.sessions.keys()][0]);
+    expect(auditEvents.events.at(-1)).toMatchObject({
+      eventType: "authentication.login.succeeded",
+      actor: {
+        type: "user",
+        userId: "4c74eb4d-f1c4-4dc8-8281-e7cd42447188",
+      },
+      correlationId: response.headers["x-request-id"],
+    });
   });
 
   it("rejects a non-local browser origin before a state-changing login", async () => {
@@ -216,6 +279,48 @@ describe("application-managed authentication (e2e)", () => {
     expect(logoutResponse.headers["set-cookie"]?.[0]).toMatch(
       /^ido_grow_session=;/,
     );
+    await request(app.getHttpServer())
+      .get("/api/v1/auth/session")
+      .set("Cookie", cookie)
+      .expect(401);
+    expect(auditEvents.events.at(-1)).toMatchObject({
+      eventType: "authentication.logout.succeeded",
+      actor: {
+        type: "user",
+        userId: "4c74eb4d-f1c4-4dc8-8281-e7cd42447188",
+      },
+      correlationId: logoutResponse.headers["x-request-id"],
+    });
+  });
+
+  it("blocks login creation and preserves logout revocation when audit persistence fails", async () => {
+    const sessionCount = repository.sessions.size;
+    auditEvents.failure = new Error("audit unavailable");
+
+    const failedLogin = await request(app.getHttpServer())
+      .post("/api/v1/auth/login")
+      .set("Origin", "http://localhost:3000")
+      .send({ email: "synthetic@example.test", password: "correct-password" })
+      .expect(500);
+    expect(failedLogin.headers["set-cookie"]).toBeUndefined();
+    expect(repository.sessions.size).toBe(sessionCount);
+
+    auditEvents.failure = null;
+    const loginResponse = await login();
+    const cookie = loginResponse.headers["set-cookie"]?.[0];
+    if (!cookie) throw new Error("Missing test session cookie");
+
+    auditEvents.failure = new Error("audit unavailable");
+    const failedLogout = await request(app.getHttpServer())
+      .post("/api/v1/auth/logout")
+      .set("Origin", "http://localhost:3000")
+      .set("Cookie", cookie)
+      .expect(500);
+    expect(failedLogout.headers["set-cookie"]?.[0]).toMatch(
+      /^ido_grow_session=;/,
+    );
+
+    auditEvents.failure = null;
     await request(app.getHttpServer())
       .get("/api/v1/auth/session")
       .set("Cookie", cookie)

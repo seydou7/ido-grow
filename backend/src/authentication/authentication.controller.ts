@@ -9,6 +9,7 @@ import {
   UseFilters,
   UseInterceptors,
 } from "@nestjs/common";
+import { randomUUID } from "node:crypto";
 
 import { AuthenticationNoStoreInterceptor } from "./authentication-no-store.interceptor";
 import { AuthenticationProblemFilter } from "./authentication-problem";
@@ -23,6 +24,7 @@ import {
 } from "./runtime-config";
 
 type CookieResponse = {
+  setHeader(name: string, value: string): void;
   cookie(
     name: string,
     value: string,
@@ -47,11 +49,14 @@ export class AuthenticationController {
     @Headers("origin") origin: string | undefined,
     @Res({ passthrough: true }) response: CookieResponse,
   ) {
+    const correlationId = randomUUID();
+    response.setHeader("X-Request-Id", correlationId);
     assertAllowedStateChangingOrigin(origin);
     const credentials = parseLoginCredentials(body);
     const result = await this.authentication.login(
       credentials.email,
       credentials.password,
+      correlationId,
     );
 
     response.cookie(SESSION_COOKIE_NAME, result.rawToken, sessionCookieOptions());
@@ -70,9 +75,16 @@ export class AuthenticationController {
     @Headers("origin") origin: string | undefined,
     @Res({ passthrough: true }) response: CookieResponse,
   ): Promise<void> {
+    const correlationId = randomUUID();
+    response.setHeader("X-Request-Id", correlationId);
     assertAllowedStateChangingOrigin(origin);
-    await this.authentication.logout(readSessionToken(cookieHeader));
-
-    response.clearCookie(SESSION_COOKIE_NAME, clearSessionCookieOptions());
+    try {
+      await this.authentication.logout(
+        readSessionToken(cookieHeader),
+        correlationId,
+      );
+    } finally {
+      response.clearCookie(SESSION_COOKIE_NAME, clearSessionCookieOptions());
+    }
   }
 }

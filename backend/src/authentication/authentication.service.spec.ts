@@ -1,3 +1,7 @@
+import {
+  type AuthenticationAuditEvent,
+  AuditEventWriter,
+} from "../audit";
 import { AuthenticationProblem } from "./authentication-problem";
 import {
   AuthenticationRepository,
@@ -25,6 +29,10 @@ class FixedClock extends Clock {
 }
 
 class InMemoryAuthenticationRepository extends AuthenticationRepository {
+  constructor(private readonly auditEvents: InMemoryAuditEventWriter) {
+    super();
+  }
+
   users = new Map<string, AuthenticationUserRecord>();
   sessions = new Map<string, AuthenticationSessionRecord>();
 
@@ -36,14 +44,21 @@ class InMemoryAuthenticationRepository extends AuthenticationRepository {
   }
 
   async createSession(input: {
+    id: string;
     userId: string;
     tokenHash: string;
     expiresAt: Date;
+    auditEvent: Extract<
+      AuthenticationAuditEvent,
+      { eventType: "authentication.login.succeeded" }
+    >;
   }): Promise<void> {
     const user = [...this.users.values()].find(({ id }) => id === input.userId);
     if (!user) throw new Error("Missing test user");
 
+    await this.auditEvents.append(input.auditEvent);
     this.sessions.set(input.tokenHash, {
+      id: input.id,
       tokenHash: input.tokenHash,
       expiresAt: input.expiresAt,
       revokedAt: null,
@@ -58,11 +73,27 @@ class InMemoryAuthenticationRepository extends AuthenticationRepository {
   }
 
   async revokeSessionByTokenHash(
+    sessionId: string,
     tokenHash: string,
     revokedAt: Date,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const session = this.sessions.get(tokenHash);
-    if (session) this.sessions.set(tokenHash, { ...session, revokedAt });
+    if (!session || session.id !== sessionId || session.revokedAt !== null) {
+      return false;
+    }
+
+    this.sessions.set(tokenHash, { ...session, revokedAt });
+    return true;
+  }
+}
+
+class InMemoryAuditEventWriter extends AuditEventWriter {
+  events: AuthenticationAuditEvent[] = [];
+  failure: Error | null = null;
+
+  async append(event: AuthenticationAuditEvent): Promise<void> {
+    if (this.failure) throw this.failure;
+    this.events.push(event);
   }
 }
 
@@ -72,9 +103,11 @@ describe("AuthenticationService", () => {
   let clock: FixedClock;
   let service: AuthenticationService;
   let passwordHasher: PasswordHasher;
+  let auditEvents: InMemoryAuditEventWriter;
 
   beforeEach(async () => {
-    repository = new InMemoryAuthenticationRepository();
+    auditEvents = new InMemoryAuditEventWriter();
+    repository = new InMemoryAuthenticationRepository(auditEvents);
     clock = new FixedClock(now);
     passwordHasher = new PasswordHasher();
     service = new AuthenticationService(
@@ -82,6 +115,7 @@ describe("AuthenticationService", () => {
       passwordHasher,
       new SessionTokenService(),
       clock,
+      auditEvents,
     );
     repository.users.set("synthetic@example.test", {
       id: "user-1",
@@ -94,7 +128,7 @@ describe("AuthenticationService", () => {
   it("returns the same generic error for a wrong password and unknown user", async () => {
     const capture = async (email: string) => {
       try {
-        await service.login(email, "wrong-password");
+        await service.login(email, "wrong-password", CORRELATION_ID);
       } catch (error) {
         const problem = error as AuthenticationProblem;
         return { status: problem.getStatus(), body: problem.getResponse() };
@@ -105,12 +139,26 @@ describe("AuthenticationService", () => {
     await expect(capture("synthetic@example.test")).resolves.toEqual(
       await capture("unknown@example.test"),
     );
+    expect(auditEvents.events).toHaveLength(2);
+    expect(auditEvents.events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          eventType: "authentication.login.failed",
+          actor: { type: "unauthenticated" },
+          metadata: { failureCategory: "invalid_credentials" },
+        }),
+      ]),
+    );
+    expect(JSON.stringify(auditEvents.events)).not.toMatch(
+      /synthetic@example|unknown@example|wrong-password/i,
+    );
   });
 
   it("creates an eight-hour hashed session and returns only safe identity", async () => {
     const result = await service.login(
       "synthetic@example.test",
       "correct-password",
+      CORRELATION_ID,
     );
     const stored = [...repository.sessions.values()][0];
 
@@ -124,12 +172,20 @@ describe("AuthenticationService", () => {
       LOCAL_SESSION_DURATION_MS,
     );
     expect(JSON.stringify(result.response)).not.toMatch(/password|token|hash/i);
+    expect(auditEvents.events).toEqual([
+      expect.objectContaining({
+        eventType: "authentication.login.succeeded",
+        actor: { type: "user", userId: "user-1" },
+        target: { type: "session", id: stored.id },
+      }),
+    ]);
   });
 
   it("resolves an active session", async () => {
     const login = await service.login(
       "synthetic@example.test",
       "correct-password",
+      CORRELATION_ID,
     );
 
     await expect(service.session(login.rawToken)).resolves.toEqual(login.response);
@@ -141,6 +197,7 @@ describe("AuthenticationService", () => {
     const expired = await service.login(
       "synthetic@example.test",
       "correct-password",
+      CORRELATION_ID,
     );
     clock.set(new Date(now.getTime() + LOCAL_SESSION_DURATION_MS));
     await expect(service.session(expired.rawToken)).rejects.toMatchObject({
@@ -151,8 +208,9 @@ describe("AuthenticationService", () => {
     const revoked = await service.login(
       "synthetic@example.test",
       "correct-password",
+      CORRELATION_ID,
     );
-    await service.logout(revoked.rawToken);
+    await service.logout(revoked.rawToken, CORRELATION_ID);
     await expect(service.session(revoked.rawToken)).rejects.toMatchObject({
       status: 401,
     });
@@ -160,6 +218,7 @@ describe("AuthenticationService", () => {
     const disabled = await service.login(
       "synthetic@example.test",
       "correct-password",
+      CORRELATION_ID,
     );
     const disabledTokenHash = hashSessionToken(disabled.rawToken);
     const stored = repository.sessions.get(disabledTokenHash);
@@ -177,14 +236,51 @@ describe("AuthenticationService", () => {
     const login = await service.login(
       "synthetic@example.test",
       "correct-password",
+      CORRELATION_ID,
     );
 
-    await service.logout(login.rawToken);
-    await service.logout(login.rawToken);
-    await service.logout(null);
+    await service.logout(login.rawToken, CORRELATION_ID);
+    await service.logout(login.rawToken, CORRELATION_ID);
+    await service.logout(null, CORRELATION_ID);
 
+    await expect(service.session(login.rawToken)).rejects.toMatchObject({
+      status: 401,
+    });
+    expect(
+      auditEvents.events.filter(
+        ({ eventType }) => eventType === "authentication.logout.succeeded",
+      ),
+    ).toHaveLength(1);
+  });
+
+  it("fails closed when audit persistence is unavailable", async () => {
+    auditEvents.failure = new Error("audit unavailable");
+
+    await expect(
+      service.login("synthetic@example.test", "correct-password", CORRELATION_ID),
+    ).rejects.toThrow("audit unavailable");
+    expect(repository.sessions.size).toBe(0);
+
+    await expect(
+      service.login("unknown@example.test", "wrong-password", CORRELATION_ID),
+    ).rejects.toThrow("audit unavailable");
+  });
+
+  it("keeps a session revoked when its audit event cannot be persisted", async () => {
+    const login = await service.login(
+      "synthetic@example.test",
+      "correct-password",
+      CORRELATION_ID,
+    );
+    auditEvents.failure = new Error("audit unavailable");
+
+    await expect(
+      service.logout(login.rawToken, CORRELATION_ID),
+    ).rejects.toThrow("audit unavailable");
     await expect(service.session(login.rawToken)).rejects.toMatchObject({
       status: 401,
     });
   });
 });
+
+const CORRELATION_ID = "20000000-0000-4000-8000-000000000001";

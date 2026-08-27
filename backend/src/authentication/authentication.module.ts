@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 
+import { AuditModule } from "../audit";
 import { DatabaseModule } from "../database";
 import { AuthenticationController } from "./authentication.controller";
 import { AuthenticationNoStoreInterceptor } from "./authentication-no-store.interceptor";
@@ -11,7 +12,7 @@ import { PrismaAuthenticationRepository } from "./prisma-authentication.reposito
 import { SessionTokenService } from "./session-token";
 
 @Module({
-  imports: [DatabaseModule],
+  imports: [AuditModule, DatabaseModule],
   controllers: [AuthenticationController],
   providers: [
     AuthenticationService,
