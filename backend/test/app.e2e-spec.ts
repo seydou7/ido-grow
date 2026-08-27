@@ -10,6 +10,10 @@ import {
 } from "../src/authentication/authentication.repository";
 import { PasswordHasher } from "../src/authentication/password-hasher";
 import { PrismaService } from "../src/database";
+import {
+  type MembershipRecord,
+  OrganisationsRepository,
+} from "../src/organisations/organisations.repository";
 
 class TestAuthenticationRepository extends AuthenticationRepository {
   users = new Map<string, AuthenticationUserRecord>();
@@ -60,13 +64,25 @@ class TestAuthenticationRepository extends AuthenticationRepository {
   }
 }
 
+class TestOrganisationsRepository extends OrganisationsRepository {
+  membershipsByUser = new Map<string, MembershipRecord[]>();
+  requestedUserIds: string[] = [];
+
+  async findMembershipsForUser(userId: string): Promise<MembershipRecord[]> {
+    this.requestedUserIds.push(userId);
+    return this.membershipsByUser.get(userId) ?? [];
+  }
+}
+
 describe("application-managed authentication (e2e)", () => {
   let app: INestApplication;
   let repository: TestAuthenticationRepository;
+  let organisationsRepository: TestOrganisationsRepository;
 
   beforeAll(async () => {
     process.env.IDO_GROW_RUNTIME_ENV = "local";
     repository = new TestAuthenticationRepository();
+    organisationsRepository = new TestOrganisationsRepository();
     repository.users.set("synthetic@example.test", {
       id: "4c74eb4d-f1c4-4dc8-8281-e7cd42447188",
       email: "synthetic@example.test",
@@ -77,6 +93,8 @@ describe("application-managed authentication (e2e)", () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(AuthenticationRepository)
       .useValue(repository)
+      .overrideProvider(OrganisationsRepository)
+      .useValue(organisationsRepository)
       .overrideProvider(PrismaService)
       .useValue({})
       .compile();
@@ -222,6 +240,79 @@ describe("application-managed authentication (e2e)", () => {
       .expect(200);
   });
 
+  it("denies unauthenticated self-membership retrieval", async () => {
+    const response = await request(app.getHttpServer())
+      .get("/api/v1/memberships")
+      .expect(401)
+      .expect("Cache-Control", "no-store")
+      .expect("Content-Type", /application\/problem\+json/);
+
+    expect(response.body).toMatchObject({
+      type: "about:blank",
+      title: "Authentication required",
+      status: 401,
+      code: "AUTHENTICATION_REQUIRED",
+      instance: "/api/v1/memberships",
+    });
+    expect(organisationsRepository.requestedUserIds).toEqual([]);
+  });
+
+  it("returns an empty collection for an authenticated user with no memberships", async () => {
+    const loginResponse = await login();
+    const cookie = loginResponse.headers["set-cookie"]?.[0];
+    if (!cookie) throw new Error("Missing test session cookie");
+
+    const response = await request(app.getHttpServer())
+      .get("/api/v1/memberships")
+      .set("Cookie", cookie)
+      .expect(200)
+      .expect("Cache-Control", "no-store");
+
+    expect(response.body).toEqual({
+      items: [],
+      page: { nextCursor: null, hasMore: false },
+    });
+    expect(organisationsRepository.requestedUserIds.at(-1)).toBe(
+      "4c74eb4d-f1c4-4dc8-8281-e7cd42447188",
+    );
+  });
+
+  it("derives self-memberships from the session and ignores user-supplied scope", async () => {
+    const timestamp = new Date("2026-08-26T12:00:00.000Z");
+    const userAId = "4c74eb4d-f1c4-4dc8-8281-e7cd42447188";
+    const userBId = "54133469-4e0c-4427-a54a-6156d5a01ba7";
+    organisationsRepository.membershipsByUser.set(userAId, [
+      membershipRecord("membership-a", "organisation-a", timestamp),
+    ]);
+    organisationsRepository.membershipsByUser.set(userBId, [
+      membershipRecord("membership-b", "organisation-b", timestamp),
+    ]);
+
+    const loginResponse = await login();
+    const cookie = loginResponse.headers["set-cookie"]?.[0];
+    if (!cookie) throw new Error("Missing test session cookie");
+
+    const response = await request(app.getHttpServer())
+      .get(
+        `/api/v1/memberships?userId=${userBId}&organisationId=organisation-b`,
+      )
+      .set("Cookie", cookie)
+      .expect(200)
+      .expect("Cache-Control", "no-store");
+
+    expect(response.body.items).toHaveLength(1);
+    expect(response.body.items[0]).toMatchObject({
+      id: "membership-a",
+      organisation: { id: "organisation-a" },
+    });
+    expect(JSON.stringify(response.body)).not.toContain("membership-b");
+    expect(JSON.stringify(response.body)).not.toContain("organisation-b");
+    expect(JSON.stringify(response.body)).not.toMatch(
+      /password|session|token|hash|role|permission|authority|activeOrganisation/i,
+    );
+    expect(organisationsRepository.requestedUserIds.at(-1)).toBe(userAId);
+  });
+
   function login() {
     return request(app.getHttpServer())
       .post("/api/v1/auth/login")
@@ -234,3 +325,29 @@ describe("application-managed authentication (e2e)", () => {
       .expect("Cache-Control", "no-store");
   }
 });
+
+function membershipRecord(
+  membershipId: string,
+  organisationId: string,
+  timestamp: Date,
+): MembershipRecord {
+  return {
+    id: membershipId,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    organisation: {
+      id: organisationId,
+      name: "Synthetic Test Organisation",
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      sites: [
+        {
+          id: `site-for-${organisationId}`,
+          name: "Synthetic Test Site",
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+      ],
+    },
+  };
+}

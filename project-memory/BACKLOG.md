@@ -30,8 +30,8 @@ Guardrails: build only from approved foundations; keep behavior marked **OPEN** 
 ### Platform, organisations, and access
 
 - **PARTIAL / DEFERRED:** The application foundation is established. OVHcloud is the preferred infrastructure and hosting provider for now; application-environment and deployment implementation remains **DEFERRED** pending selection of the exact OVHcloud product and the remaining deployment details. DEC-004 supersedes DEC-003, approves application-managed authentication and selects Prisma for PostgreSQL data access while preserving backend-authoritative authorization. The local authentication foundation is implemented and Project Owner-validated; production authentication policy and privacy work remain OPEN or future work. File storage and the delivery pipeline remain gated by their separate TBD decisions.
-- Support organisations, sites, users, memberships, supplier/buyer organisation types, roles, permissions, verification, and onboarding.
-- Support multiple organisations with role-, ownership-, transaction-, sharing-, and marketplace-based access boundaries.
+- **PARTIAL:** Organisation, Site and User–Organisation Membership persistence plus authenticated read-only self-membership retrieval are complete. Supplier/buyer organisation types, roles, permissions, verification and onboarding remain OPEN or unimplemented.
+- **PARTIAL:** Persisted multiple-organisation memberships and server-derived self-access isolation are complete. Role-, ownership-, transaction-, sharing- and marketplace-based access boundaries remain OPEN or unimplemented.
 - Record immutable audit history for critical trading records and additional controls for critical actions.
 - Support English, Dutch, and French initially; retain original input when translation is used.
 

@@ -24,5 +24,6 @@ import { SessionTokenService } from "./session-token";
       useClass: PrismaAuthenticationRepository,
     },
   ],
+  exports: [AuthenticationService, AuthenticationNoStoreInterceptor],
 })
 export class AuthenticationModule {}

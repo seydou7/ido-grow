@@ -53,6 +53,12 @@ export class AuthenticationService {
   }
 
   async session(rawToken: string | null): Promise<AuthenticatedSessionResult> {
+    return authenticatedResponse(await this.resolveIdentity(rawToken));
+  }
+
+  async resolveIdentity(
+    rawToken: string | null,
+  ): Promise<AuthenticationIdentity> {
     if (!rawToken) {
       throwAuthenticationRequired();
     }
@@ -72,10 +78,10 @@ export class AuthenticationService {
       throwAuthenticationRequired();
     }
 
-    return authenticatedResponse({
+    return {
       userId: session.user.id,
       email: session.user.email,
-    });
+    };
   }
 
   async logout(rawToken: string | null): Promise<void> {
