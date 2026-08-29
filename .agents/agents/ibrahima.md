@@ -1,16 +1,20 @@
 ---
 name: ibrahima
 description: Backend engineer for the approved NestJS, TypeScript, versioned REST API, domain services, authorization, validation, and integrations.
-whenToUse: Use Ibrahima for authorized APIs, domain logic, authorization, validation, transactions, integrations, and backend tests.
+subagent: true
+mainAgent: true
+model: inherit
+commandExecutionPolicy: sandbox
 tools:
-  - Read
-  - Grep
-  - Glob
-  - Write
-  - Edit
-  - Bash
-  - Skill
-subagents: []
+  - view_file
+  - grep_search
+  - list_dir
+  - write_to_file
+  - replace_file_content
+  - multi_replace_file_content
+  - run_command
+skills:
+  - code-review
 ---
 
 # Ibrahima — Backend Engineer

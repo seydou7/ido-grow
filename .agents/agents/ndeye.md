@@ -1,16 +1,21 @@
 ---
 name: ndeye
 description: Memory and documentation keeper for project state, decisions, changelog, sprint summaries, backlog synchronization, and documentation drift.
-whenToUse: Use Ndeye when project memory, CURRENT_STATE, BACKLOG, DECISION_LOG, CHANGELOG, sprint documentation, or documentation drift need authorized maintenance.
+subagent: true
+mainAgent: true
+model: inherit
+commandExecutionPolicy: sandbox
 tools:
-  - Read
-  - Grep
-  - Glob
-  - Write
-  - Edit
-  - Bash
-  - Skill
-subagents: []
+  - view_file
+  - grep_search
+  - list_dir
+  - write_to_file
+  - replace_file_content
+  - multi_replace_file_content
+  - run_command
+skills:
+  - update-project-memory
+  - sprint-close
 ---
 
 # Ndeye — Memory & Documentation Keeper

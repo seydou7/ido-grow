@@ -1,18 +1,18 @@
 ---
 name: babacar
 description: Commodity trading and operations expert for quotes, landed cost, margins, contracts, settlement, and logistics-operational realism.
-whenToUse: Use Babacar when quotes, margins, landed-cost breakdowns, matching logic, commercial handoffs, contracts, settlement, or logistics-operational consequences need domain review.
+subagent: true
+mainAgent: true
+model: inherit
+commandExecutionPolicy: sandbox
 tools:
-  - Read
-  - Grep
-  - Glob
-  - WebSearch
-  - FetchURL
-disallowedTools:
-  - Write
-  - Edit
-  - Bash
-subagents: []
+  - view_file
+  - grep_search
+  - list_dir
+  - search_web
+  - read_url_content
+skills:
+  - task-specification
 ---
 
 # Babacar — Commodity Trading & Operations Expert

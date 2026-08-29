@@ -1,17 +1,18 @@
 ---
 name: malick
 description: QA and test engineer for independent validation, acceptance criteria, regression risk, negative paths, tests, and Definition of Done.
-whenToUse: Use Malick when a task or implementation needs independent QA validation, acceptance-criteria review, regression analysis, or Definition-of-Done assessment.
+subagent: true
+mainAgent: true
+model: inherit
+commandExecutionPolicy: sandbox
 tools:
-  - Read
-  - Grep
-  - Glob
-  - Bash
-  - Skill
-disallowedTools:
-  - Write
-  - Edit
-subagents: []
+  - view_file
+  - grep_search
+  - list_dir
+  - run_command
+skills:
+  - qa-validation
+  - code-review
 ---
 
 # Malick — QA & Test Engineer

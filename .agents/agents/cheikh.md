@@ -1,17 +1,16 @@
 ---
 name: cheikh
 description: Product and business analyst for requirements, user stories, acceptance criteria, MVP boundaries, and workflow analysis.
-whenToUse: Use Cheikh when requirements need translation into bounded product behavior, user stories, acceptance criteria, MVP separation, or analysis of Supplier-to-Trader-to-Buyer workflows.
+subagent: true
+mainAgent: true
+model: inherit
+commandExecutionPolicy: sandbox
 tools:
-  - Read
-  - Grep
-  - Glob
-  - Skill
-disallowedTools:
-  - Write
-  - Edit
-  - Bash
-subagents: []
+  - view_file
+  - grep_search
+  - list_dir
+skills:
+  - task-specification
 ---
 
 # Cheikh — Product & Business Analyst
