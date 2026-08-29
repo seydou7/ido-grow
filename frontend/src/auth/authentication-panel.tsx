@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { useI18n } from "@/i18n/i18n-provider";
 import { LanguageSelector } from "@/i18n/language-selector";
 import type { Translate } from "@/i18n/runtime";
+import { SupplierDashboard } from "@/organisations/supplier-dashboard";
 
 import { getAuthenticationSession, login, logout } from "./api";
 import type { AuthenticationSession } from "./contracts";
@@ -101,6 +102,7 @@ export function AuthenticationPanel() {
       })
       .catch(() => {
         if (active) {
+          setSession({ status: "unauthenticated" });
           setRequestError(safeErrorMessage(t));
         }
       })
@@ -120,37 +122,54 @@ export function AuthenticationPanel() {
     setRequestError(null);
 
     try {
-      const authenticatedSession = await login({
+      const nextSession = await login({
         email: values.email.trim(),
         password: values.password,
       });
-      setSession(authenticatedSession);
-      reset();
-    } catch {
-      setRequestError(safeErrorMessage(t));
+
+      setSession(nextSession);
+      reset({ email: "", password: "" });
+    } catch (error) {
+      setRequestError(
+        error instanceof Error ? error.message : safeErrorMessage(t),
+      );
     } finally {
       setViewState("ready");
     }
   });
 
-  async function submitLogout() {
+  const submitLogout = async () => {
     setViewState("submitting");
     setRequestError(null);
 
     try {
       await logout();
       setSession({ status: "unauthenticated" });
+      reset({ email: "", password: "" });
     } catch {
       setRequestError(safeErrorMessage(t));
     } finally {
       setViewState("ready");
     }
-  }
+  };
 
   const busy = viewState !== "ready";
 
+  // When authenticated, render the dedicated full-width application shell
+  if (viewState === "ready" && session.status === "authenticated") {
+    return (
+      <SupplierDashboard
+        userEmail={session.user.email}
+        onLogout={() => void submitLogout()}
+        isLoggingOut={busy}
+      />
+    );
+  }
+
+  // Unauthenticated / checking session: render the approved split-screen login shell
   return (
     <main className="grid min-h-screen bg-[#fbf8ef] lg:grid-cols-[1.08fr_1fr]">
+      {/* Visual Marketing Panel */}
       <section className="relative hidden min-h-screen overflow-hidden lg:block" aria-label="I Do Grow">
         <Image
           alt="Natural fibres"
@@ -187,6 +206,7 @@ export function AuthenticationPanel() {
         </div>
       </section>
 
+      {/* Interactive Login Form Panel (ONE single LanguageSelector) */}
       <section
         aria-label={t("auth.sectionLabel")}
         className="relative flex min-h-screen items-center justify-center px-6 py-10 sm:px-10 lg:px-12"
@@ -210,35 +230,6 @@ export function AuthenticationPanel() {
             <div className="flex min-h-80 flex-col items-center justify-center text-center" role="status">
               <span className="h-8 w-8 animate-spin rounded-full border-[3px] border-[#ddd6c6] border-t-[#284f41]" />
               <p className="mt-4 text-sm font-medium text-[#5d6e68]">{t("auth.checkingSession")}</p>
-            </div>
-          ) : session.status === "authenticated" ? (
-            <div className="min-h-80">
-              <span className="inline-flex items-center gap-2 rounded-full bg-[#e7f1eb] px-3 py-1 text-xs font-semibold text-[#285d4a]">
-                <span className="h-2 w-2 rounded-full bg-[#3b876b]" />
-                {t("auth.authenticated")}
-              </span>
-              <h1 className="mt-6 text-3xl font-semibold tracking-tight text-[#203e35]" id="authentication-heading">
-                {t("auth.welcomeBack")}
-              </h1>
-              <p className="mt-2 text-sm leading-6 text-[#66736f]">
-                {t("auth.sessionActive")}
-              </p>
-              <div className="mt-8 rounded-xl border border-[#e2dccd] bg-white p-4 shadow-[0_1px_2px_rgba(31,70,57,0.04)]">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#837760]">
-                  {t("auth.signedInAs")}
-                </p>
-                <p className="mt-2 break-all text-sm font-medium text-[#203e35]">
-                  {session.user.email}
-                </p>
-              </div>
-              <button
-                className="mt-6 h-11 w-full rounded-lg border border-[#cbc3b2] bg-white px-4 text-sm font-semibold text-[#284f41] transition hover:border-[#284f41] hover:bg-[#f5f1e7] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#356a57] disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={busy}
-                onClick={() => void submitLogout()}
-                type="button"
-              >
-                {busy ? t("auth.logoutPending") : t("auth.logout")}
-              </button>
             </div>
           ) : (
             <form className="min-h-80" noValidate onSubmit={submitLogin}>

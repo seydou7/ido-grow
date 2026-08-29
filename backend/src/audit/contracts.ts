@@ -4,8 +4,24 @@ export const AUTHENTICATION_AUDIT_EVENT_TYPES = [
   "authentication.logout.succeeded",
 ] as const;
 
+export const ORGANISATION_AUDIT_EVENT_TYPES = [
+  "organisation.profile.updated",
+  "organisation.site.created",
+  "organisation.site.updated",
+] as const;
+
+export const AUDIT_EVENT_TYPES = [
+  ...AUTHENTICATION_AUDIT_EVENT_TYPES,
+  ...ORGANISATION_AUDIT_EVENT_TYPES,
+] as const;
+
 export type AuthenticationAuditEventType =
   (typeof AUTHENTICATION_AUDIT_EVENT_TYPES)[number];
+
+export type OrganisationAuditEventType =
+  (typeof ORGANISATION_AUDIT_EVENT_TYPES)[number];
+
+export type AuditEventType = (typeof AUDIT_EVENT_TYPES)[number];
 
 type AuditEventBase = Readonly<{
   correlationId: string;
@@ -39,7 +55,41 @@ export type LogoutSucceededAuditEvent = AuditEventBase &
     metadata: Readonly<Record<string, never>>;
   }>;
 
+export type OrganisationProfileUpdatedAuditEvent = AuditEventBase &
+  Readonly<{
+    eventType: "organisation.profile.updated";
+    outcome: "succeeded";
+    actor: Readonly<{ type: "user"; userId: string }>;
+    target: Readonly<{ type: "organisation"; id: string }>;
+    metadata: Readonly<Record<string, string>>;
+  }>;
+
+export type SiteCreatedAuditEvent = AuditEventBase &
+  Readonly<{
+    eventType: "organisation.site.created";
+    outcome: "succeeded";
+    actor: Readonly<{ type: "user"; userId: string }>;
+    target: Readonly<{ type: "site"; id: string }>;
+    metadata: Readonly<{ organisationId: string }>;
+  }>;
+
+export type SiteUpdatedAuditEvent = AuditEventBase &
+  Readonly<{
+    eventType: "organisation.site.updated";
+    outcome: "succeeded";
+    actor: Readonly<{ type: "user"; userId: string }>;
+    target: Readonly<{ type: "site"; id: string }>;
+    metadata: Readonly<{ organisationId: string }>;
+  }>;
+
 export type AuthenticationAuditEvent =
   | LoginSucceededAuditEvent
   | LoginFailedAuditEvent
   | LogoutSucceededAuditEvent;
+
+export type OrganisationAuditEvent =
+  | OrganisationProfileUpdatedAuditEvent
+  | SiteCreatedAuditEvent
+  | SiteUpdatedAuditEvent;
+
+export type PlatformAuditEvent = AuthenticationAuditEvent | OrganisationAuditEvent;

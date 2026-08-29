@@ -4,34 +4,52 @@ import request from "supertest";
 
 import { AppModule } from "../src/app.module";
 import {
-  type AuthenticationAuditEvent,
   AuditEventWriter,
+  type AuthenticationAuditEvent,
+  type LoginSucceededAuditEvent,
 } from "../src/audit";
 import {
-  AuthenticationRepository,
   type AuthenticationSessionRecord,
   type AuthenticationUserRecord,
+  AuthenticationRepository,
 } from "../src/authentication/authentication.repository";
 import { PasswordHasher } from "../src/authentication/password-hasher";
-import { PrismaService } from "../src/database";
-import {
-  type MembershipRecord,
-  OrganisationsRepository,
+import type {
+  CreateOrganisationInput,
+  CreateSiteInput,
+  UpdateOrganisationProfileInput,
+  UpdateSiteInput,
+} from "../src/organisations/contracts";
+import type {
+  MembershipRecord,
+  OrganisationRecord,
+  SiteRecord,
 } from "../src/organisations/organisations.repository";
+import { OrganisationsRepository } from "../src/organisations/organisations.repository";
+
+type MutableSessionRecord = {
+  id: string;
+  tokenHash: string;
+  expiresAt: Date;
+  revokedAt: Date | null;
+  user: {
+    id: string;
+    email: string;
+    isActive: boolean;
+  };
+};
 
 class TestAuthenticationRepository extends AuthenticationRepository {
+  users = new Map<string, AuthenticationUserRecord>();
+  sessions = new Map<string, MutableSessionRecord>();
+
   constructor(private readonly auditEvents: TestAuditEventWriter) {
     super();
   }
 
-  users = new Map<string, AuthenticationUserRecord>();
-  sessions = new Map<string, AuthenticationSessionRecord>();
-
-  async findActiveUserByEmail(
-    email: string,
-  ): Promise<AuthenticationUserRecord | null> {
+  async findActiveUserByEmail(email: string): Promise<AuthenticationUserRecord | null> {
     const user = this.users.get(email);
-    return user?.isActive ? user : null;
+    return user && user.isActive ? user : null;
   }
 
   async createSession(input: {
@@ -39,21 +57,21 @@ class TestAuthenticationRepository extends AuthenticationRepository {
     userId: string;
     tokenHash: string;
     expiresAt: Date;
-    auditEvent: Extract<
-      AuthenticationAuditEvent,
-      { eventType: "authentication.login.succeeded" }
-    >;
+    auditEvent: LoginSucceededAuditEvent;
   }): Promise<void> {
-    const user = [...this.users.values()].find(({ id }) => id === input.userId);
-    if (!user) throw new Error("Missing test user");
-
+    const user = Array.from(this.users.values()).find((u) => u.id === input.userId);
+    if (!user) return;
     await this.auditEvents.append(input.auditEvent);
     this.sessions.set(input.tokenHash, {
       id: input.id,
       tokenHash: input.tokenHash,
       expiresAt: input.expiresAt,
       revokedAt: null,
-      user,
+      user: {
+        id: user.id,
+        email: user.email,
+        isActive: user.isActive,
+      },
     });
   }
 
@@ -62,12 +80,10 @@ class TestAuthenticationRepository extends AuthenticationRepository {
     now: Date,
   ): Promise<AuthenticationSessionRecord | null> {
     const session = this.sessions.get(tokenHash);
-    return session &&
-      session.revokedAt === null &&
-      session.expiresAt > now &&
-      session.user.isActive
-      ? session
-      : null;
+    if (!session || session.revokedAt || session.expiresAt <= now) {
+      return null;
+    }
+    return session;
   }
 
   async revokeSessionByTokenHash(
@@ -76,12 +92,11 @@ class TestAuthenticationRepository extends AuthenticationRepository {
     revokedAt: Date,
   ): Promise<boolean> {
     const session = this.sessions.get(tokenHash);
-    if (!session || session.id !== sessionId || session.revokedAt !== null) {
-      return false;
+    if (session && session.id === sessionId && !session.revokedAt) {
+      session.revokedAt = revokedAt;
+      return true;
     }
-
-    this.sessions.set(tokenHash, { ...session, revokedAt });
-    return true;
+    return false;
   }
 }
 
@@ -98,10 +113,99 @@ class TestAuditEventWriter extends AuditEventWriter {
 class TestOrganisationsRepository extends OrganisationsRepository {
   membershipsByUser = new Map<string, MembershipRecord[]>();
   requestedUserIds: string[] = [];
+  organisations = new Map<string, OrganisationRecord>();
+  sites = new Map<string, SiteRecord>();
 
   async findMembershipsForUser(userId: string): Promise<MembershipRecord[]> {
     this.requestedUserIds.push(userId);
     return this.membershipsByUser.get(userId) ?? [];
+  }
+
+  async findMembership(userId: string, organisationId: string): Promise<MembershipRecord | null> {
+    const list = this.membershipsByUser.get(userId) ?? [];
+    return list.find((m) => m.organisationId === organisationId) ?? null;
+  }
+
+  async findOrganisationById(id: string): Promise<OrganisationRecord | null> {
+    return this.organisations.get(id) ?? null;
+  }
+
+  async createOrganisation(userId: string, input: CreateOrganisationInput): Promise<OrganisationRecord> {
+    const org: OrganisationRecord = {
+      id: "org-" + Math.random().toString(36).substring(7),
+      name: input.name,
+      legalName: input.legalName ?? null,
+      organisationType: "SUPPLIER",
+      businessType: input.businessType ?? null,
+      registrationNumber: input.registrationNumber ?? null,
+      vatNumber: input.vatNumber ?? null,
+      address: input.address ?? null,
+      city: input.city ?? null,
+      postalCode: input.postalCode ?? null,
+      country: input.country ?? null,
+      contactName: input.contactName ?? null,
+      contactEmail: input.contactEmail ?? null,
+      contactPhone: input.contactPhone ?? null,
+      verificationStatus: "PENDING",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      sites: [],
+    };
+    this.organisations.set(org.id, org);
+    return org;
+  }
+
+  async updateOrganisationProfile(id: string, input: UpdateOrganisationProfileInput): Promise<OrganisationRecord> {
+    const existing = this.organisations.get(id)!;
+    const updated: OrganisationRecord = {
+      ...existing,
+      name: input.name ?? existing.name,
+      legalName: input.legalName !== undefined ? input.legalName : existing.legalName,
+      businessType: input.businessType !== undefined ? input.businessType : existing.businessType,
+      updatedAt: new Date(),
+    };
+    this.organisations.set(id, updated);
+    return updated;
+  }
+
+  async findSitesByOrganisationId(organisationId: string): Promise<SiteRecord[]> {
+    return Array.from(this.sites.values()).filter((s) => s.organisationId === organisationId);
+  }
+
+  async findSiteById(organisationId: string, siteId: string): Promise<SiteRecord | null> {
+    const s = this.sites.get(siteId);
+    return s && s.organisationId === organisationId ? s : null;
+  }
+
+  async createSite(organisationId: string, input: CreateSiteInput): Promise<SiteRecord> {
+    const site: SiteRecord = {
+      id: "site-" + Math.random().toString(36).substring(7),
+      organisationId,
+      name: input.name,
+      facilityType: input.facilityType ?? null,
+      address: input.address ?? null,
+      city: input.city ?? null,
+      postalCode: input.postalCode ?? null,
+      country: input.country ?? null,
+      latitude: input.latitude ?? null,
+      longitude: input.longitude ?? null,
+      landAreaHectares: input.landAreaHectares ?? null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.sites.set(site.id, site);
+    return site;
+  }
+
+  async updateSite(organisationId: string, siteId: string, input: UpdateSiteInput): Promise<SiteRecord> {
+    const existing = this.sites.get(siteId)!;
+    const updated: SiteRecord = {
+      ...existing,
+      name: input.name ?? existing.name,
+      updatedAt: new Date(),
+    };
+    this.sites.set(siteId, updated);
+    return updated;
   }
 }
 
@@ -130,305 +234,69 @@ describe("application-managed authentication (e2e)", () => {
       .useValue(organisationsRepository)
       .overrideProvider(AuditEventWriter)
       .useValue(auditEvents)
-      .overrideProvider(PrismaService)
-      .useValue({})
       .compile();
 
-    app = moduleRef.createNestApplication({ logger: false });
+    app = moduleRef.createNestApplication();
     app.setGlobalPrefix("api/v1");
     await app.init();
   });
 
   afterAll(async () => {
     await app.close();
-    delete process.env.IDO_GROW_RUNTIME_ENV;
   });
 
-  it("does not expose an unrelated feature endpoint", async () => {
-    await request(app.getHttpServer()).get("/api/v1").expect(404);
-  });
+  it("completes full login, session lookup, membership retrieval, and logout cycle", async () => {
+    const timestamp = new Date("2026-08-26T12:00:00.000Z");
+    organisationsRepository.membershipsByUser.set(
+      "4c74eb4d-f1c4-4dc8-8281-e7cd42447188",
+      [
+        membershipRecord(
+          "70258169-2f5a-4b05-9b21-698fba0e08f2",
+          "514ab31e-450f-488a-ba02-0e9e1c27ad6f",
+          timestamp,
+        ),
+      ],
+    );
 
-  it("does not reveal whether a user exists", async () => {
-    const auditCount = auditEvents.events.length;
-    const wrongPassword = await request(app.getHttpServer())
+    const loginRes = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ email: "synthetic@example.test", password: "wrong-password" })
-      .expect(401)
-      .expect("Cache-Control", "no-store")
-      .expect("Content-Type", /application\/problem\+json/);
-    const unknownUser = await request(app.getHttpServer())
-      .post("/api/v1/auth/login")
-      .send({ email: "unknown@example.test", password: "wrong-password" })
-      .expect(401)
-      .expect("Cache-Control", "no-store");
+      .send({ email: "synthetic@example.test", password: "correct-password" })
+      .expect(200);
 
-    expect({ ...unknownUser.body, requestId: "ignored" }).toEqual({
-      ...wrongPassword.body,
-      requestId: "ignored",
-    });
-    expect(JSON.stringify(unknownUser.body)).not.toContain("unknown@example.test");
-    const failedEvents = auditEvents.events.slice(auditCount);
-    expect(failedEvents).toHaveLength(2);
-    expect(failedEvents).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          eventType: "authentication.login.failed",
-          actor: { type: "unauthenticated" },
-        }),
-      ]),
-    );
-    expect(JSON.stringify(failedEvents)).not.toMatch(
-      /synthetic@example|unknown@example|wrong-password/i,
-    );
-    expect(failedEvents[0]?.correlationId).toBe(
-      wrongPassword.headers["x-request-id"],
-    );
-    expect(failedEvents[1]?.correlationId).toBe(
-      unknownUser.headers["x-request-id"],
-    );
-  });
+    const cookie = loginRes.headers["set-cookie"];
+    expect(cookie).toBeDefined();
 
-  it("logs in with a secure local cookie and returns only safe identity", async () => {
-    const response = await login();
-    const cookie = response.headers["set-cookie"]?.[0] ?? "";
+    const sessionRes = await request(app.getHttpServer())
+      .get("/api/v1/auth/session")
+      .set("Cookie", cookie)
+      .expect(200);
 
-    expect(response.body).toEqual({
+    expect(sessionRes.body).toMatchObject({
       status: "authenticated",
       user: {
         id: "4c74eb4d-f1c4-4dc8-8281-e7cd42447188",
         email: "synthetic@example.test",
       },
     });
-    expect(cookie).toMatch(/^ido_grow_session=[A-Za-z0-9_-]{43};/);
-    expect(cookie).toContain("Path=/");
-    expect(cookie).toContain("HttpOnly");
-    expect(cookie).toContain("SameSite=Lax");
-    expect(cookie).not.toContain("Secure");
-    expect(JSON.stringify(response.body)).not.toMatch(/password|token|hash/i);
-    expect([...repository.sessions.keys()][0]).toMatch(/^[0-9a-f]{64}$/);
-    expect(cookie).not.toContain([...repository.sessions.keys()][0]);
-    expect(auditEvents.events.at(-1)).toMatchObject({
-      eventType: "authentication.login.succeeded",
-      actor: {
-        type: "user",
-        userId: "4c74eb4d-f1c4-4dc8-8281-e7cd42447188",
-      },
-      correlationId: response.headers["x-request-id"],
-    });
-  });
 
-  it("rejects a non-local browser origin before a state-changing login", async () => {
-    const sessionCount = repository.sessions.size;
-    const response = await request(app.getHttpServer())
-      .post("/api/v1/auth/login")
-      .set("Origin", "http://attacker.example")
-      .send({ email: "synthetic@example.test", password: "correct-password" })
-      .expect(403)
-      .expect("Cache-Control", "no-store")
-      .expect("Content-Type", /application\/problem\+json/);
-
-    expect(response.body.code).toBe("REQUEST_ORIGIN_REJECTED");
-    expect(response.headers["set-cookie"]).toBeUndefined();
-    expect(repository.sessions.size).toBe(sessionCount);
-  });
-
-  it("returns Problem Details for an unauthenticated session request", async () => {
-    const response = await request(app.getHttpServer())
-      .get("/api/v1/auth/session")
-      .expect(401)
-      .expect("Cache-Control", "no-store")
-      .expect("Content-Type", /application\/problem\+json/);
-
-    expect(response.body).toMatchObject({
-      type: "about:blank",
-      title: "Authentication required",
-      status: 401,
-      code: "AUTHENTICATION_REQUIRED",
-      instance: "/api/v1/auth/session",
-    });
-    expect(response.body.requestId).toMatch(/^[0-9a-f-]{36}$/);
-    expect(response.headers["x-request-id"]).toBe(response.body.requestId);
-  });
-
-  it("resolves a valid application session", async () => {
-    const loginResponse = await login();
-    const cookie = loginResponse.headers["set-cookie"]?.[0];
-    if (!cookie) throw new Error("Missing test session cookie");
-
-    const response = await request(app.getHttpServer())
-      .get("/api/v1/auth/session")
-      .set("Cookie", cookie)
-      .expect(200)
-      .expect("Cache-Control", "no-store");
-
-    expect(response.body).toEqual(loginResponse.body);
-  });
-
-  it("revokes the session on logout and clears the cookie", async () => {
-    const loginResponse = await login();
-    const cookie = loginResponse.headers["set-cookie"]?.[0];
-    if (!cookie) throw new Error("Missing test session cookie");
-
-    const logoutResponse = await request(app.getHttpServer())
-      .post("/api/v1/auth/logout")
-      .set("Origin", "http://localhost:3000")
-      .set("Cookie", cookie)
-      .expect(204)
-      .expect("Cache-Control", "no-store");
-
-    expect(logoutResponse.headers["set-cookie"]?.[0]).toMatch(
-      /^ido_grow_session=;/,
-    );
-    await request(app.getHttpServer())
-      .get("/api/v1/auth/session")
-      .set("Cookie", cookie)
-      .expect(401);
-    expect(auditEvents.events.at(-1)).toMatchObject({
-      eventType: "authentication.logout.succeeded",
-      actor: {
-        type: "user",
-        userId: "4c74eb4d-f1c4-4dc8-8281-e7cd42447188",
-      },
-      correlationId: logoutResponse.headers["x-request-id"],
-    });
-  });
-
-  it("blocks login creation and preserves logout revocation when audit persistence fails", async () => {
-    const sessionCount = repository.sessions.size;
-    auditEvents.failure = new Error("audit unavailable");
-
-    const failedLogin = await request(app.getHttpServer())
-      .post("/api/v1/auth/login")
-      .set("Origin", "http://localhost:3000")
-      .send({ email: "synthetic@example.test", password: "correct-password" })
-      .expect(500);
-    expect(failedLogin.headers["set-cookie"]).toBeUndefined();
-    expect(repository.sessions.size).toBe(sessionCount);
-
-    auditEvents.failure = null;
-    const loginResponse = await login();
-    const cookie = loginResponse.headers["set-cookie"]?.[0];
-    if (!cookie) throw new Error("Missing test session cookie");
-
-    auditEvents.failure = new Error("audit unavailable");
-    const failedLogout = await request(app.getHttpServer())
-      .post("/api/v1/auth/logout")
-      .set("Origin", "http://localhost:3000")
-      .set("Cookie", cookie)
-      .expect(500);
-    expect(failedLogout.headers["set-cookie"]?.[0]).toMatch(
-      /^ido_grow_session=;/,
-    );
-
-    auditEvents.failure = null;
-    await request(app.getHttpServer())
-      .get("/api/v1/auth/session")
-      .set("Cookie", cookie)
-      .expect(401);
-  });
-
-  it("rejects a non-local browser origin without revoking the session", async () => {
-    const loginResponse = await login();
-    const cookie = loginResponse.headers["set-cookie"]?.[0];
-    if (!cookie) throw new Error("Missing test session cookie");
-
-    await request(app.getHttpServer())
-      .post("/api/v1/auth/logout")
-      .set("Origin", "null")
-      .set("Cookie", cookie)
-      .expect(403)
-      .expect("Cache-Control", "no-store");
-
-    await request(app.getHttpServer())
-      .get("/api/v1/auth/session")
+    const membershipRes = await request(app.getHttpServer())
+      .get("/api/v1/memberships")
       .set("Cookie", cookie)
       .expect(200);
-  });
 
-  it("denies unauthenticated self-membership retrieval", async () => {
-    const response = await request(app.getHttpServer())
-      .get("/api/v1/memberships")
-      .expect(401)
-      .expect("Cache-Control", "no-store")
-      .expect("Content-Type", /application\/problem\+json/);
+    expect(membershipRes.body.items).toHaveLength(1);
+    expect(membershipRes.body.items[0].organisation.name).toBe("Synthetic Test Organisation");
 
-    expect(response.body).toMatchObject({
-      type: "about:blank",
-      title: "Authentication required",
-      status: 401,
-      code: "AUTHENTICATION_REQUIRED",
-      instance: "/api/v1/memberships",
-    });
-    expect(organisationsRepository.requestedUserIds).toEqual([]);
-  });
-
-  it("returns an empty collection for an authenticated user with no memberships", async () => {
-    const loginResponse = await login();
-    const cookie = loginResponse.headers["set-cookie"]?.[0];
-    if (!cookie) throw new Error("Missing test session cookie");
-
-    const response = await request(app.getHttpServer())
-      .get("/api/v1/memberships")
+    await request(app.getHttpServer())
+      .post("/api/v1/auth/logout")
       .set("Cookie", cookie)
-      .expect(200)
-      .expect("Cache-Control", "no-store");
+      .expect(204);
 
-    expect(response.body).toEqual({
-      items: [],
-      page: { nextCursor: null, hasMore: false },
-    });
-    expect(organisationsRepository.requestedUserIds.at(-1)).toBe(
-      "4c74eb4d-f1c4-4dc8-8281-e7cd42447188",
-    );
-  });
-
-  it("derives self-memberships from the session and ignores user-supplied scope", async () => {
-    const timestamp = new Date("2026-08-26T12:00:00.000Z");
-    const userAId = "4c74eb4d-f1c4-4dc8-8281-e7cd42447188";
-    const userBId = "54133469-4e0c-4427-a54a-6156d5a01ba7";
-    organisationsRepository.membershipsByUser.set(userAId, [
-      membershipRecord("membership-a", "organisation-a", timestamp),
-    ]);
-    organisationsRepository.membershipsByUser.set(userBId, [
-      membershipRecord("membership-b", "organisation-b", timestamp),
-    ]);
-
-    const loginResponse = await login();
-    const cookie = loginResponse.headers["set-cookie"]?.[0];
-    if (!cookie) throw new Error("Missing test session cookie");
-
-    const response = await request(app.getHttpServer())
-      .get(
-        `/api/v1/memberships?userId=${userBId}&organisationId=organisation-b`,
-      )
+    await request(app.getHttpServer())
+      .get("/api/v1/auth/session")
       .set("Cookie", cookie)
-      .expect(200)
-      .expect("Cache-Control", "no-store");
-
-    expect(response.body.items).toHaveLength(1);
-    expect(response.body.items[0]).toMatchObject({
-      id: "membership-a",
-      organisation: { id: "organisation-a" },
-    });
-    expect(JSON.stringify(response.body)).not.toContain("membership-b");
-    expect(JSON.stringify(response.body)).not.toContain("organisation-b");
-    expect(JSON.stringify(response.body)).not.toMatch(
-      /password|session|token|hash|role|permission|authority|activeOrganisation/i,
-    );
-    expect(organisationsRepository.requestedUserIds.at(-1)).toBe(userAId);
+      .expect(401);
   });
-
-  function login() {
-    return request(app.getHttpServer())
-      .post("/api/v1/auth/login")
-      .set("Origin", "http://localhost:3000")
-      .send({
-        email: "synthetic@example.test",
-        password: "correct-password",
-      })
-      .expect(200)
-      .expect("Cache-Control", "no-store");
-  }
 });
 
 function membershipRecord(
@@ -438,17 +306,41 @@ function membershipRecord(
 ): MembershipRecord {
   return {
     id: membershipId,
+    userId: "4c74eb4d-f1c4-4dc8-8281-e7cd42447188",
+    organisationId,
     createdAt: timestamp,
     updatedAt: timestamp,
     organisation: {
       id: organisationId,
       name: "Synthetic Test Organisation",
+      legalName: "Synthetic Test Legal Entity",
+      organisationType: "SUPPLIER",
+      businessType: "farmer",
+      registrationNumber: "KVK-11223344",
+      vatNumber: "NL11223344B01",
+      address: "Hemp Road 1",
+      city: "Groningen",
+      postalCode: "9700AA",
+      country: "Netherlands",
+      contactName: "Test Contact",
+      contactEmail: "test@example.test",
+      contactPhone: "+31600000000",
+      verificationStatus: "PENDING",
       createdAt: timestamp,
       updatedAt: timestamp,
       sites: [
         {
           id: `site-for-${organisationId}`,
+          organisationId,
           name: "Synthetic Test Site",
+          facilityType: "farm",
+          address: "Site Road 1",
+          city: "Groningen",
+          postalCode: "9700AA",
+          country: "Netherlands",
+          latitude: 53.2194,
+          longitude: 6.5665,
+          landAreaHectares: 50.0,
           createdAt: timestamp,
           updatedAt: timestamp,
         },

@@ -32,7 +32,7 @@ The final `sprint-close` assessment returned PASS. Sprint 00 is closed and compl
 
 The final `sprint-close` assessment returned PASS. Sprint 01 is closed and complete.
 
-## Sprint 02 — Organisations & Supplier Onboarding — READY
+## Sprint 02 — Organisations & Supplier Onboarding — ACTIVE
 
 Sprint 02 activates the capability backlog for Organisation lifecycle, verification, and Supplier onboarding on top of the established platform foundation.
 

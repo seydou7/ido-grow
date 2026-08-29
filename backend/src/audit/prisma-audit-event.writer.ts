@@ -6,7 +6,7 @@ import {
   type AuditEventDatabaseClient,
   AuditEventWriter,
 } from "./audit-event.writer";
-import type { AuthenticationAuditEvent } from "./contracts";
+import type { PlatformAuditEvent } from "./contracts";
 
 @Injectable()
 export class PrismaAuditEventWriter extends AuditEventWriter {
@@ -15,15 +15,15 @@ export class PrismaAuditEventWriter extends AuditEventWriter {
   }
 
   async append(
-    event: AuthenticationAuditEvent,
+    event: PlatformAuditEvent,
     database: AuditEventDatabaseClient = this.prisma,
   ): Promise<void> {
-    await database.auditEvent.create({ data: sanitizeAuthenticationEvent(event) });
+    await database.auditEvent.create({ data: sanitizePlatformEvent(event) });
   }
 }
 
-export function sanitizeAuthenticationEvent(
-  event: AuthenticationAuditEvent,
+export function sanitizePlatformEvent(
+  event: PlatformAuditEvent,
 ): AuditEventCreateData {
   assertUuid(event.correlationId, "correlationId");
 
@@ -58,6 +58,35 @@ export function sanitizeAuthenticationEvent(
         correlationId: event.correlationId,
         occurredAt: event.occurredAt,
         metadata: {},
+      };
+    case "organisation.profile.updated":
+      assertUuid(event.actor.userId, "actor.userId");
+      assertUuid(event.target.id, "target.id");
+      return {
+        eventType: event.eventType,
+        outcome: "succeeded",
+        actorType: "user",
+        actorUserId: event.actor.userId,
+        targetType: "organisation",
+        targetId: event.target.id,
+        correlationId: event.correlationId,
+        occurredAt: event.occurredAt,
+        metadata: event.metadata,
+      };
+    case "organisation.site.created":
+    case "organisation.site.updated":
+      assertUuid(event.actor.userId, "actor.userId");
+      assertUuid(event.target.id, "target.id");
+      return {
+        eventType: event.eventType,
+        outcome: "succeeded",
+        actorType: "user",
+        actorUserId: event.actor.userId,
+        targetType: "site",
+        targetId: event.target.id,
+        correlationId: event.correlationId,
+        occurredAt: event.occurredAt,
+        metadata: { organisationId: event.metadata.organisationId },
       };
   }
 }

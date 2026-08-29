@@ -39,21 +39,42 @@ model AuditEvent {
 }
 
 model Organisation {
-  id          String       @id @default(uuid()) @db.Uuid
-  name        String       @db.VarChar(200)
-  createdAt   DateTime     @default(now()) @db.Timestamptz(6)
-  updatedAt   DateTime     @updatedAt @db.Timestamptz(6)
-  sites       Site[]
-  memberships Membership[]
+  id                 String       @id @default(uuid()) @db.Uuid
+  name               String       @db.VarChar(200)
+  legalName          String?      @db.VarChar(200)
+  organisationType   String       @default("SUPPLIER") @db.VarChar(50)
+  businessType       String?      @db.VarChar(50)
+  registrationNumber String?      @db.VarChar(100)
+  vatNumber          String?      @db.VarChar(100)
+  address            String?      @db.VarChar(255)
+  city               String?      @db.VarChar(100)
+  postalCode         String?      @db.VarChar(32)
+  country            String?      @db.VarChar(100)
+  contactName        String?      @db.VarChar(150)
+  contactEmail       String?      @db.VarChar(320)
+  contactPhone       String?      @db.VarChar(50)
+  verificationStatus String       @default("PENDING") @db.VarChar(50)
+  createdAt          DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime     @updatedAt @db.Timestamptz(6)
+  sites              Site[]
+  memberships        Membership[]
 }
 
 model Site {
-  id             String       @id @default(uuid()) @db.Uuid
-  organisationId String       @db.Uuid
-  name           String       @db.VarChar(200)
-  createdAt      DateTime     @default(now()) @db.Timestamptz(6)
-  updatedAt      DateTime     @updatedAt @db.Timestamptz(6)
-  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Restrict)
+  id               String       @id @default(uuid()) @db.Uuid
+  organisationId   String       @db.Uuid
+  name             String       @db.VarChar(200)
+  facilityType     String?      @db.VarChar(50)
+  address          String?      @db.VarChar(255)
+  city             String?      @db.VarChar(100)
+  postalCode       String?      @db.VarChar(32)
+  country          String?      @db.VarChar(100)
+  latitude         Float?
+  longitude        Float?
+  landAreaHectares Float?
+  createdAt        DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime     @updatedAt @db.Timestamptz(6)
+  organisation     Organisation @relation(fields: [organisationId], references: [id], onDelete: Restrict)
 
   @@index([organisationId])
 }

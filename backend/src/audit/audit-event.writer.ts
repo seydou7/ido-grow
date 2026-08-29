@@ -1,4 +1,4 @@
-import type { AuthenticationAuditEvent } from "./contracts";
+import type { PlatformAuditEvent } from "./contracts";
 
 export type AuditEventCreateData = Readonly<{
   eventType: string;
@@ -20,7 +20,7 @@ export type AuditEventDatabaseClient = Readonly<{
 
 export abstract class AuditEventWriter {
   abstract append(
-    event: AuthenticationAuditEvent,
+    event: PlatformAuditEvent,
     database?: AuditEventDatabaseClient,
   ): Promise<void>;
 }

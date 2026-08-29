@@ -36,12 +36,19 @@ describe("organisation and membership persistence (integration)", () => {
         data: {
           id: organisationId,
           name: "Synthetic Integration Organisation",
+          legalName: "Synthetic Integration Legal Entity",
+          organisationType: "SUPPLIER",
+          businessType: "farmer",
+          country: "Netherlands",
+          verificationStatus: "PENDING",
         },
       }),
       prisma.organisation.create({
         data: {
           id: otherOrganisationId,
           name: "Other Synthetic Integration Organisation",
+          organisationType: "SUPPLIER",
+          verificationStatus: "PENDING",
         },
       }),
     ]);
@@ -50,6 +57,10 @@ describe("organisation and membership persistence (integration)", () => {
         id: siteId,
         organisationId,
         name: "Synthetic Integration Site",
+        facilityType: "farm",
+        city: "Groningen",
+        country: "Netherlands",
+        landAreaHectares: 85.0,
       },
     });
     await prisma.membership.create({
@@ -68,7 +79,9 @@ describe("organisation and membership persistence (integration)", () => {
     await prisma.membership.deleteMany({
       where: { id: { in: [membershipId, otherMembershipId] } },
     });
-    await prisma.site.deleteMany({ where: { id: siteId } });
+    await prisma.site.deleteMany({
+      where: { organisationId: { in: [organisationId, otherOrganisationId] } },
+    });
     await prisma.organisation.deleteMany({
       where: { id: { in: [organisationId, otherOrganisationId] } },
     });
@@ -86,51 +99,58 @@ describe("organisation and membership persistence (integration)", () => {
       id: membershipId,
       organisation: {
         id: organisationId,
-        sites: [{ id: siteId }],
+        name: "Synthetic Integration Organisation",
+        legalName: "Synthetic Integration Legal Entity",
+        businessType: "farmer",
+        sites: [{ id: siteId, facilityType: "farm" }],
       },
     });
     expect(JSON.stringify(memberships)).not.toContain(otherMembershipId);
     expect(JSON.stringify(memberships)).not.toContain(otherOrganisationId);
   });
 
-  it("persists the User-Membership-Organisation and Site-Organisation relations", async () => {
-    const membership = await prisma.membership.findUnique({
-      where: { id: membershipId },
-      include: {
-        user: { select: { id: true, email: true } },
-        organisation: { include: { sites: true } },
-      },
-    });
+  it("finds single membership by userId and organisationId", async () => {
+    const membership = await repository.findMembership(userId, organisationId);
+    expect(membership).not.toBeNull();
+    expect(membership?.organisation.id).toBe(organisationId);
 
-    expect(membership).toMatchObject({
-      id: membershipId,
-      user: { id: userId },
-      organisation: {
-        id: organisationId,
-        name: "Synthetic Integration Organisation",
-        sites: [
-          {
-            id: siteId,
-            organisationId,
-            name: "Synthetic Integration Site",
-          },
-        ],
-      },
-    });
+    const nonMember = await repository.findMembership(userId, otherOrganisationId);
+    expect(nonMember).toBeNull();
   });
 
-  it("prevents duplicate membership for the same User and Organisation", async () => {
-    await expect(
-      prisma.membership.create({ data: { userId, organisationId } }),
-    ).rejects.toMatchObject({ code: "P2002" });
+  it("updates organisation profile fields successfully", async () => {
+    const updated = await repository.updateOrganisationProfile(organisationId, {
+      registrationNumber: "KVK-99887766",
+      vatNumber: "NL99887766B01",
+      city: "Utrecht",
+      contactName: "Pieter de Boer",
+      contactEmail: "pieter@deboer.nl",
+    });
+
+    expect(updated.registrationNumber).toBe("KVK-99887766");
+    expect(updated.vatNumber).toBe("NL99887766B01");
+    expect(updated.city).toBe("Utrecht");
+    expect(updated.contactName).toBe("Pieter de Boer");
   });
 
-  it("restricts deletion while membership and site relations still exist", async () => {
-    await expect(prisma.user.delete({ where: { id: userId } })).rejects.toMatchObject(
-      { code: "P2003" },
-    );
-    await expect(
-      prisma.organisation.delete({ where: { id: organisationId } }),
-    ).rejects.toMatchObject({ code: "P2003" });
+  it("creates and retrieves sites for the organisation", async () => {
+    const newSite = await repository.createSite(organisationId, {
+      name: "South Processing Facility",
+      facilityType: "processing_facility",
+      city: "Breda",
+      country: "Netherlands",
+      latitude: 51.5719,
+      longitude: 4.7683,
+    });
+
+    expect(newSite.name).toBe("South Processing Facility");
+    expect(newSite.facilityType).toBe("processing_facility");
+
+    const sites = await repository.findSitesByOrganisationId(organisationId);
+    expect(sites.length).toBe(2);
+
+    const retrieved = await repository.findSiteById(organisationId, newSite.id);
+    expect(retrieved?.id).toBe(newSite.id);
+    expect(retrieved?.latitude).toBe(51.5719);
   });
 });

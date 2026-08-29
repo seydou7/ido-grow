@@ -10,4 +10,10 @@ export type {
   LoginFailedAuditEvent,
   LoginSucceededAuditEvent,
   LogoutSucceededAuditEvent,
+  OrganisationAuditEvent,
+  OrganisationAuditEventType,
+  OrganisationProfileUpdatedAuditEvent,
+  PlatformAuditEvent,
+  SiteCreatedAuditEvent,
+  SiteUpdatedAuditEvent,
 } from "./contracts";

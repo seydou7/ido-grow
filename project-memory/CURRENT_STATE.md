@@ -1,11 +1,11 @@
 # Current State
 
 - **CLOSED — Phase:** Sprint 01 — Platform Foundation is closed and complete following the formal `sprint-close` PASS across all platform foundations.
-- **READY — Phase:** Sprint 02 — Organisations & Supplier Onboarding is ready to begin under the locked roadmap.
+- **ACTIVE — Phase:** Sprint 02 — Organisations & Supplier Onboarding is active under the locked roadmap. Vertical Block 01 (Supplier Organisation Profile & Production Sites Onboarding) is COMPLETE / PROJECT OWNER VALIDATED.
 - **LOCKED ROADMAP:**
   - Sprint 00 — Discovery & Foundation (CLOSED)
   - Sprint 01 — Platform Foundation (CLOSED)
-  - Sprint 02 — Organisations & Supplier Onboarding (READY)
+  - Sprint 02 — Organisations & Supplier Onboarding (ACTIVE)
   - Sprint 03 — Product Catalogue & Listings
   - Sprint 04 — Buyer Marketplace & Buy Orders
   - Sprint 05 — Trader Cockpit & Manual Matching
