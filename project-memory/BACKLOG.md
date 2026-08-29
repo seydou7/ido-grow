@@ -32,9 +32,9 @@ The final `sprint-close` assessment returned PASS. Sprint 00 is closed and compl
 
 The final `sprint-close` assessment returned PASS. Sprint 01 is closed and complete.
 
-## Sprint 02 — Organisations & Supplier Onboarding — ACTIVE
+## Sprint 02 — Organisations & Supplier Onboarding — CLOSED
 
-Sprint 02 activates the capability backlog for Organisation lifecycle, verification, and Supplier onboarding on top of the established platform foundation.
+Sprint 02 completed the capability backlog for Organisation lifecycle and Supplier onboarding on top of the platform foundation.
 
 Guardrails: build only from approved foundations; keep behavior marked **OPEN** blocked until approved; preserve all legal/privacy, authority, and verification gates.
 
@@ -43,6 +43,14 @@ Guardrails: build only from approved foundations; keep behavior marked **OPEN** 
 - **COMPLETE (PROJECT OWNER VALIDATED) — Supplier Compliance Documents & Verification Foundation (Vertical Block 02):** Additive ComplianceDocument persistence, provider-neutral file storage with local development adapter, upload boundary limits (10MB, 1 file), magic-byte binary signature validation (PDF/JPEG/PNG/WEBP), compliance document upload/download, verification status tracking (`PENDING_REVIEW`), append-only audit events, and compliance management UI. Supplier document removal remains OPEN / unsupported. Trader/Admin approval workflow remains OPEN.
 - **COMPLETE (PROJECT OWNER VALIDATED) — Organisation Members & Multi-User Foundation (Vertical Block 03):** Multi-user organisation member listing API, server-enforced tenant isolation, and Supplier Portal Team & Members view displaying member email and association date. Roles (ADMIN/OPERATOR/MEMBER), invitation workflows, member removal/deactivation, membership status lifecycle, and active organisation switching semantics remain OPEN / UNSUPPORTED.
 - **COMPLETE (PROJECT OWNER VALIDATED) — Guided Supplier Onboarding & Readiness Overview (Vertical Block 04):** Dedicated Onboarding Overview navigation section and guided step-by-step checklist across profile, production sites, compliance documents, and team, reusing existing Profile Readiness scoring and providing deep-link navigation. Trader-assisted onboarding authority, Trader review/approval/activation interfaces, and marketplace gating remain OPEN / UNSUPPORTED.
+
+The formal closure assessment returned PASS. Sprint 02 is closed and complete.
+
+---
+
+## Sprint 03 — Product Catalogue & Listings — READY
+
+Sprint 03 is READY under the locked roadmap (implementation not started in this run).
 
 ---
 

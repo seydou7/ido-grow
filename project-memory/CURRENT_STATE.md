@@ -1,14 +1,12 @@
 # Current State
 
-- **ACTIVE — Phase:** Sprint 02 — Organisations & Supplier Onboarding is active under the locked roadmap. Vertical Block 01 (Supplier Organisation Profile & Production Sites Onboarding) is COMPLETE / PROJECT OWNER VALIDATED. Vertical Block 02 (Supplier Compliance Documents & Verification Foundation) is COMPLETE / PROJECT OWNER VALIDATED. Vertical Block 03 (Organisation Members & Multi-User Foundation) is COMPLETE / PROJECT OWNER VALIDATED. Vertical Block 04 (Guided Supplier Onboarding & Readiness Overview) is COMPLETE / PROJECT OWNER VALIDATED.
-- **COMPLETE — Supplier Compliance Documents & Verification Foundation (Sprint 02 Block 02):** Additive ComplianceDocument persistence in PostgreSQL, provider-neutral file storage with local development adapter, upload boundary limits (10MB, exactly 1 file), magic-byte binary signature validation (PDF, JPEG, PNG, WebP), secure streaming download (`GET /api/v1/organisations/:id/documents/:documentId/download`), append-only `organisation.compliance_document.uploaded` audit events, readiness calculation, and Supplier Portal compliance UI are complete and passed Project Owner browser validation. Supplier self-service document removal was classified OPEN / UNSUPPORTED and excluded. Trader/Admin verification and approval workflows remain OPEN.
-- **COMPLETE — Organisation Members & Multi-User Foundation (Sprint 02 Block 03):** Multi-user organisation member listing API (`GET /api/v1/organisations/:id/members`), server-enforced tenant-scoped membership authorization, and Supplier Portal Team & Members view displaying member email and membership creation/association date are complete and passed Project Owner browser validation. Unapproved roles (ADMIN/OPERATOR/MEMBER), invitation workflows, member removal/deactivation, membership status lifecycle, and active-organisation switching UX/session semantics remain OPEN or UNSUPPORTED.
-- **COMPLETE — Guided Supplier Onboarding & Readiness Overview (Sprint 02 Block 04):** Dedicated "Onboarding Overview" section and step-by-step guided checklist across Organisation Profile, Production Sites, Compliance Documents, and Team & Members in the Supplier Portal, reusing the existing Profile Readiness calculation and deep-linking into each management section, are complete and passed Project Owner browser validation. Trader-assisted onboarding authority, Trader review/approval/activation interfaces, verification status progression transitions, and marketplace/listing gating remain OPEN.
+- **ACTIVE — Phase:** Sprint 02 — Organisations & Supplier Onboarding is CLOSED. Sprint 03 — Product Catalogue & Listings is READY under the locked roadmap.
+- **CLOSED — Sprint 02 (Organisations & Supplier Onboarding):** Delivered and Project Owner-validated 4 vertical blocks: (1) Supplier Organisation Profile & Production Sites Onboarding, (2) Supplier Compliance Documents & Verification Foundation, (3) Organisation Members & Multi-User Foundation, and (4) Guided Supplier Onboarding & Readiness Overview. Invitation lifecycles, internal organisation roles (ADMIN/OPERATOR/MEMBER), Trader-assisted onboarding authority, Trader review/approval/activation interfaces, and marketplace/listing gating remain OPEN or UNSUPPORTED.
 - **LOCKED ROADMAP:**
   - Sprint 00 — Discovery & Foundation (CLOSED)
   - Sprint 01 — Platform Foundation (CLOSED)
-  - Sprint 02 — Organisations & Supplier Onboarding (ACTIVE)
-  - Sprint 03 — Product Catalogue & Listings
+  - Sprint 02 — Organisations & Supplier Onboarding (CLOSED)
+  - Sprint 03 — Product Catalogue & Listings (READY)
   - Sprint 04 — Buyer Marketplace & Buy Orders
   - Sprint 05 — Trader Cockpit & Manual Matching
   - Sprint 06 — Quotes & Trade Lifecycle
