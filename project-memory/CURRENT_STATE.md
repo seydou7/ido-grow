@@ -1,6 +1,23 @@
 # Current State
 
-- **ACTIVE — Phase:** Sprint 01 — Platform Foundation is active with guardrails. Sprint 00 — Discovery and Foundation is closed and complete following the final `sprint-close` PASS.
+- **CLOSED — Phase:** Sprint 01 — Platform Foundation is closed and complete following the formal `sprint-close` PASS across all platform foundations.
+- **READY — Phase:** Sprint 02 — Organisations & Supplier Onboarding is ready to begin under the locked roadmap.
+- **LOCKED ROADMAP:**
+  - Sprint 00 — Discovery & Foundation (CLOSED)
+  - Sprint 01 — Platform Foundation (CLOSED)
+  - Sprint 02 — Organisations & Supplier Onboarding (READY)
+  - Sprint 03 — Product Catalogue & Listings
+  - Sprint 04 — Buyer Marketplace & Buy Orders
+  - Sprint 05 — Trader Cockpit & Manual Matching
+  - Sprint 06 — Quotes & Trade Lifecycle
+  - Sprint 07 — Quality Workflow
+  - Sprint 08 — Logistics & Contracts
+  - Sprint 09 — DPP
+  - Sprint 10 — AI Platform Foundation
+  - Sprint 11 — Supplier & Listing Agents
+  - Sprint 12 — Trader Copilot & Matching Agent
+  - Sprint 13 — WhatsApp Intake
+  - Sprint 14 — Automation & Optimisation
 - **APPROVED — Sprint 00 foundations:** The Project Owner approved the committed Sprint 00 foundations as the basis for design and implementation. Business, commercial, legal, quality, authority and visibility rules explicitly marked **OPEN** remain unapproved and blocked until appropriate clarification.
 - **COMPLETE — Source, architecture and audits:** The source-of-truth foundation, DEC-001, legacy technical audit and legacy UX audit are complete; DEC-001 remains current and unchanged.
 - **COMPLETE — Hemp taxonomy:** The hemp taxonomy is complete as a Sprint 00 foundation; proof-transaction classification and operational rules remain OPEN.
@@ -14,13 +31,13 @@
 - **COMPLETE — Sprint 00 visual review:** Project Owner-approved Option B closed the visual-review requirement at foundation level; the 42 legacy routes and final production UI were not individually approved.
 - **COMPLETE — Conceptual DATA_MODEL synchronization:** The conceptual model reflects the approved foundations while preserving all operational and legal rules marked OPEN; no physical schema was created.
 - **COMPLETE — Project Agent System:** Thirteen Project Agents, six workflow Skills and the Party Mode smoke test are complete.
-- **STARTED — Application implementation:** Sprint 01 platform-only implementation has started with the committed Next.js/NestJS application foundation, shadcn/ui, TanStack Query, React Hook Form and provider-neutral locale baselines; no business-domain functionality has started.
+- **COMPLETE — Application foundation:** The committed Next.js 16/NestJS monorepo application foundation, shadcn/ui, TanStack Query, React Hook Form, ESLint and TypeScript baselines are complete.
 - **PROVISIONAL / DEFERRED — Infrastructure and hosting:** OVHcloud is the Project Owner-approved preferred provider for now under DEC-002. Deployment implementation is deferred; the exact OVHcloud product, region, topology, runtime, networking, domains, secrets, CI/CD, observability and deployment process remain TBD.
 - **SUPERSEDED — Authentication provider:** DEC-003 historically approved Auth0 but is superseded by DEC-004. No external authentication provider or service is active for the current product direction.
 - **COMPLETE — Application-managed authentication foundation:** DEC-004 approves I Do Grow-controlled authentication and Prisma for PostgreSQL data access. The local PostgreSQL/Prisma User-and-Session slice, secure login/session/logout API, synthetic-user tooling and frontend authentication UI are implemented, and Project Owner browser validation passed. Backend-authoritative business authorization is unchanged; production MFA, recovery, email delivery, security policy, privacy, secrets and deployment details remain OPEN or future work.
 - **COMPLETE — Legacy Login Visual Integration:** The temporary login presentation has been replaced with the approved legacy I Do Grow visual language while retaining the application-managed authentication behavior unchanged. Project Owner manual visual and functional validation passed for branding, responsive presentation, login, authenticated state, session refresh and logout behavior.
 - **COMPLETE — Organisation and Membership foundation:** Organisation, Site and User–Organisation Membership persistence plus the authenticated read-only self-membership API are implemented and independently validated. The API derives User scope from the server-side session and exposes only structural membership context. Organisation verification, types, onboarding, roles, capabilities, mandates, authority and field visibility remain OPEN or unimplemented.
 - **COMPLETE — Immutable Audit Event foundation:** Append-only AuditEvent persistence and an isolated audit-writer boundary are implemented and independently validated at the application-interface level for `authentication.login.succeeded`, `authentication.login.failed` and `authentication.logout.succeeded`. Failed-login metadata is sanitized, while actor and correlation context are server-derived. Database-level cryptographic immutability is not claimed; retention, privacy handling, viewer authorization, the final event taxonomy and audit coverage beyond the current authentication foundation remain OPEN or unimplemented.
-- **READY FOR PROJECT OWNER VALIDATION — Frontend internationalization runtime:** DEC-005 records the approved internal typed runtime for exactly English, Dutch and French, with English as default and fallback, a validated first-party SameSite locale-preference cookie, no browser-language detection and no locale-specific routing. Implementation, frontend/UX/architecture review and QA are complete for non-business platform and authentication-shell copy; mandatory Project Owner manual validation remains pending. Business, legal, status and domain terminology remains OPEN and excluded.
+- **COMPLETE — Frontend internationalization runtime:** DEC-005 records the approved internal typed runtime for exactly English, Dutch and French, with English as default and fallback, a validated first-party SameSite locale-preference cookie, no browser-language detection and no locale-specific routing. Implementation, frontend/UX/architecture review, QA and Project Owner manual validation are complete and committed. Business, legal, status and domain terminology remains OPEN and excluded.
 
-Sprint 01 continues **WITH GUARDRAILS**: build only from approved foundations; keep behavior marked **OPEN** blocked until approved; keep Matches non-binding and AI assistive/human-controlled; exclude payment execution and escrow; and preserve all legal/privacy, authority, visibility and remaining provider gates.
+Sprint 02 will proceed **WITH GUARDRAILS**: build only from approved foundations; keep behavior marked **OPEN** blocked until approved; keep Matches non-binding and AI assistive/human-controlled; exclude payment execution and escrow; and preserve all legal/privacy, authority, visibility and remaining provider gates.

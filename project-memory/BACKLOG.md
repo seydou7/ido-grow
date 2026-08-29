@@ -1,139 +1,63 @@
 # Backlog
 
-This backlog records source-backed capabilities and sprint foundation work. Capability entries are requirements rather than approved implementation design; sprint entries carry their current delivery status. Ordering within a section is not a delivery commitment.
-
 ## Sprint 00 — Discovery and Foundation — COMPLETE
 
-- **COMPLETE:** Finalise the hemp product taxonomy as an approved Sprint 00 foundation; proof-transaction classification and operational rules remain OPEN.
-- **COMPLETE:** Define the structured quality model as an approved Lot/Inspection-centric foundation; methods, thresholds, Grades, certificates, gates, authorities and remedies remain OPEN.
-- **COMPLETE:** Define roles and permissions as an approved server-enforced, tenant-aware, deny-by-default foundation; mandates, authority and field visibility remain OPEN.
-- **COMPLETE:** Define the approved scenario-generic, OPEN-gated First MVP Transaction Workflow; real transaction inputs and unresolved operating rules remain OPEN.
-- **COMPLETE:** Initial technical architecture approved in DEC-001; later choices explicitly left TBD remain pending.
-- **COMPLETE:** Produce and audit low-fidelity wireframes for the 22 `REQUIRED_MVP` screen families; final production UI design and validation remain future work.
-- **COMPLETE:** Define provider-neutral API conventions consistent with DEC-001; workflow-specific contracts remain gated by approved business rules.
-- **COMPLETE:** Complete the preliminary data-protection assessment without a compliance claim; legal/privacy work and the DPIA determination remain OPEN.
+- **COMPLETE:** Establish the authoritative source-of-truth register and extracted project memory.
+- **COMPLETE:** Approve DEC-001 as the initial technical architecture baseline.
+- **COMPLETE:** Define the preliminary European hemp taxonomy for retted straw, bale packaging, and initial applications.
+- **COMPLETE:** Define the Lot/Inspection-centric quality model foundation while preserving OPEN gates on unapproved rules.
+- **COMPLETE:** Establish the tenant-aware, server-enforced Roles & Permissions foundation.
+- **COMPLETE:** Establish provider-neutral, resource-oriented API conventions consistent with DEC-001.
+- **COMPLETE:** Perform the preliminary data-protection assessment without claiming compliance.
+- **COMPLETE:** Create the consolidated client clarification pack.
+- **COMPLETE:** Create and commit the 15-step scenario-generic, OPEN-gated First MVP Transaction Workflow.
+- **COMPLETE:** Create low-fidelity MVP wireframes covering the 22 `REQUIRED_MVP` screen families.
+- **COMPLETE:** Synchronize the conceptual `DATA_MODEL.md` with all Sprint 00 foundations without creating physical schema.
 - **COMPLETE:** Audit the existing Fiber Connect product or implementation before development; see `sprints/sprint-00/LEGACY_AUDIT.md`.
 - **COMPLETE:** Complete the source-based legacy UX audit; see `sprints/sprint-00/LEGACY_UX_AUDIT.md`.
 - **COMPLETE:** Close the visual review for Sprint 00 foundation purposes through Project Owner-approved Option B. The legacy route-by-route approval was superseded for planning purposes and remains historical evidence; final production visual design and validation are deferred.
 - **COMPLETE:** Configure the Project Agent System and validate Party Mode through the successful functional smoke test.
 
-The final `sprint-close` assessment returned PASS. Sprint 00 is closed and complete. Its committed foundations are approved for design and implementation, while unresolved rules remain **OPEN** and continue to block only the affected implementation, first real transaction or production use until appropriately approved.
+The final `sprint-close` assessment returned PASS. Sprint 00 is closed and complete.
 
-## Sprint 01 — Platform Foundation — ACTIVE WITH GUARDRAILS
+## Sprint 01 — Platform Foundation — COMPLETE
 
-Sprint 01 activates the already-defined MVP-required capability backlog below without adding or redefining scope. Platform-only application implementation has started; no business-domain functionality has started.
+- **COMPLETE — Application & Monorepo Foundation:** Monorepo structure, NestJS backend, Next.js 16 frontend, Tailwind CSS, shadcn/ui, TanStack Query, React Hook Form, ESLint and TypeScript baselines.
+- **COMPLETE — Isolated PostgreSQL & Prisma Data Access:** Docker PostgreSQL 16 container (`ido-grow-postgres-16` on `55432`) and Prisma schema/migration layer under DEC-004.
+- **COMPLETE — Application-Managed Authentication:** DEC-004 session management, password hashing, secure login/session/logout API, synthetic local-user tooling and frontend authentication panel.
+- **COMPLETE — Legacy-Branded Login Visual Integration:** Project Owner-validated branded authentication experience adhering to legacy I Do Grow visual language.
+- **COMPLETE — Organisation, Site & Self-Membership Foundation:** Persisted Organisation, Site, and User-Organisation Membership models with authenticated read-only self-membership API.
+- **COMPLETE — Immutable Audit Event Writer Foundation:** Append-only AuditEvent persistence for `authentication.login.succeeded`, `authentication.login.failed` and `authentication.logout.succeeded`.
+- **COMPLETE — Frontend Internationalization Runtime:** DEC-005 typed runtime supporting English (default/fallback), Dutch, and French non-business platform copy, validated SameSite locale cookie, and accessible language selector.
 
-Guardrails: build only from approved foundations; keep behavior marked **OPEN** blocked until approved; keep Matches non-binding and AI assistive/human-controlled; exclude payment execution and escrow; and preserve all legal/privacy, authority, visibility and provider gates.
+The final `sprint-close` assessment returned PASS. Sprint 01 is closed and complete.
 
-## MVP-required capabilities
+## Sprint 02 — Organisations & Supplier Onboarding — READY
 
-### Platform, organisations, and access
+Sprint 02 activates the capability backlog for Organisation lifecycle, verification, and Supplier onboarding on top of the established platform foundation.
 
-- **PARTIAL / DEFERRED:** The application foundation is established. OVHcloud is the preferred infrastructure and hosting provider for now; application-environment and deployment implementation remains **DEFERRED** pending selection of the exact OVHcloud product and the remaining deployment details. DEC-004 supersedes DEC-003, approves application-managed authentication and selects Prisma for PostgreSQL data access while preserving backend-authoritative authorization. The local authentication foundation is implemented and Project Owner-validated; production authentication policy and privacy work remain OPEN or future work. File storage and the delivery pipeline remain gated by their separate TBD decisions.
-- **PARTIAL:** Organisation, Site and User–Organisation Membership persistence plus authenticated read-only self-membership retrieval are complete. Supplier/buyer organisation types, roles, permissions, verification and onboarding remain OPEN or unimplemented.
-- **PARTIAL:** Persisted multiple-organisation memberships and server-derived self-access isolation are complete. Role-, ownership-, transaction-, sharing- and marketplace-based access boundaries remain OPEN or unimplemented.
-- **PARTIAL — Foundation COMPLETE:** Append-only AuditEvent persistence is implemented and independently validated at the application-interface level for the current authentication foundation: successful login, failed login and successful logout. Audit coverage for critical trading records and other critical actions remains unimplemented; retention, privacy handling, viewer authorization and the final event taxonomy remain OPEN.
-- **PARTIAL — Implementation and QA COMPLETE; Project Owner validation PENDING:** The approved DEC-005 frontend runtime supports exactly English, Dutch and French for non-business platform and authentication-shell copy through the existing typed catalogs. English is the default and fallback; locale preference uses a validated first-party SameSite cookie; browser-language detection and locale-specific routing are not used in Sprint 01. Business, legal, status and domain terminology remains OPEN and excluded, and original input must still be retained when translation is used.
+Guardrails: build only from approved foundations; keep behavior marked **OPEN** blocked until approved; preserve all legal/privacy, authority, and verification gates.
 
-### Product catalogue, listings, and supplier intake
+### Sprint 02 Scope: Organisations & Supplier Onboarding
+- **Supplier Organisation Profile & Lifecycle:** Organisation types (Supplier, Buyer, Trader, Partner), company identity (commercial name, registration/tax IDs, legal address), contact points.
+- **Supplier Farm & Site Registration:** Multiple production sites, physical addresses, GPS coordinates, land area/capacity, facilities.
+- **Supplier Verification & Compliance Onboarding:** Verification statuses (`PENDING`, `UNDER_REVIEW`, `VERIFIED`, `REJECTED`), compliance document uploads (certifications, organic licenses, company registry), document review workflow.
+- **Organisation Membership & Invitation Management:** Multi-user organisation access, roles within organisation (`ADMIN`, `OPERATOR`, `MEMBER`), invitations and user association.
+- **Supplier Onboarding Flow (Self-Serve & Trader-Assisted):** Guided step-by-step onboarding experience, completeness scoring, trader review and activation interface.
 
-- Support a reusable taxonomy with categories, types, forms, applications, packaging, units, quality attributes, measurement definitions, and certifications.
-- Configure the initial hemp use case: retted hemp straw, large rectangular bale packaging, and named initial applications.
-- Allow supplier and trader-assisted onboarding.
-- Allow mobile-first listing creation with quantities/units, location, availability, price, photos, documents, and known quality measurements.
-- Support the documented listing review, publication, availability, reservation, sale, expiry, rejection, and suspension states.
-- Support WhatsApp-assisted intake: receive content, identify the user, retain conversation/original input, extract product information, request missing fields, create a draft, and hand over to a trader.
+---
 
-### Buyer demand and marketplace
+## Future Sprints Roadmap (Locked)
 
-- Provide marketplace search, listing details, comparison, and documented filters.
-- Create buy orders with applicable product, quality, quantity, delivery, price, origin, certification, packaging, DPP, transport, and payment requirements.
-- Support quotation requests, recurring supply requests, and private requests to selected suppliers.
-
-### Matching and landed cost
-
-- Filter compatible listings and support single-source and multi-supplier recommendations.
-- Compare product, quality, quantity, location, delivery, price, freight, duties, risk, certification, packaging, minimum volumes, lead time, and buyer preferences.
-- Calculate and retain a transparent landed-cost breakdown.
-- Produce configurable, explainable results and require trader approval; do not create binding transactions automatically in the first release.
-- Ensure deterministic services perform calculations while agents explain results.
-
-### Quality
-
-- Define inspection templates and an initial hemp inspection covering structured measurements, visual assessment, contamination, moisture, photo evidence, provenance, and non-conformities.
-- Support remote, self-reported, locally verified, physical, and laboratory evidence where applicable.
-- Allow a preliminary, clearly labelled AI-assisted assessment and require authorised human approval of the grade.
-- Record inspection findings and certificates where applicable.
-
-### Quotes, trades, and contracts
-
-- Create, review, send, counter, accept, reject, expire, and version quotes with cost breakdown and retained history.
-- Convert an accepted quote into a structured trade.
-- Generate and retain a structured contract and, where used, a PDF based on approved templates.
-- Require human review and signature for final contracts.
-
-### Logistics and settlement records
-
-- Create shipment records with origin, destination, requirements, manual freight quotation entry, carrier selection, status/tracking, documents, delivery confirmation, exceptions, and cost reconciliation.
-- Administratively track invoices, payment instructions, due dates, deposits, balances, payment status, commissions, claims, credit notes, and final settlement without acting as a regulated payment institution.
-
-### Digital Product Passport
-
-- Create a lot-linked basic DPP with identifier, origin, supplier, quality information, transaction events, shipment events, and downloadable passport page.
-- Preserve field provenance, verified source information, versions, and related records.
-
-### Human-controlled AI assistance
-
-- Provide MVP assistance for supplier onboarding, listing extraction, preliminary quality, matching explanations, and trader support.
-- Use allowlisted tools, validated structured outputs, confidence/evidence, logs, approvals, escalation, and human correction.
-- Prevent agents from inventing product data, measurements, certifications, parties, or binding terms.
-
-### Required MVP proof and validation
-
-- Complete at least one real transaction containing every stated MVP success item.
-- Validate mobile-phone offer submission and trader listing completion in under ten minutes.
-- Validate buyer comparison of multiple offers and a transparent landed-cost estimate.
-- Verify auditability and human review/correction of AI information.
-- Verify the conceptual data model can support another fibre without structural redevelopment.
-
-## Later-phase capabilities
-
-- Decorticated hemp fibre, hurd, other co-products, additional natural fibres, countries, and applications.
-- Semi-finished and finished product trading from factory to shelf.
-- Precision-fermentation, biomass-fermentation, and cultivated-production products.
-- Rich event-based DPP with lot transformations, custody, sustainability, recycling, and end-of-life data.
-- Carrier, laboratory, external supplier API, payment, escrow, financing, and insurance integrations.
-- More automated matching, consolidation/optimisation, real-time pricing inputs, and advanced risk models.
-- Configurable quality agents and increased agent autonomy after operational evidence.
-- Advanced analytics beyond what the real transaction requires.
-
-## Explicit first-MVP exclusions
-
-- Fully autonomous trading; blockchain; internal banking; direct escrow.
-- Automated credit decisions or customs declarations.
-- Live global freight pricing for every lane.
-- Advanced derivatives or carbon-credit trading; consumer marketplace.
-- Native iOS and Android apps; complex warehouse-management system.
-- Fully automated legal decisions.
-
-The client qualifies these exclusions with “unless a real transaction requires it”; no exception has yet been identified or approved.
-
-## Client technical recommendations and decision status
-
-- **COMPLETE — Approved by DEC-001:** Next.js/React/TypeScript frontend, Tailwind CSS, shadcn/ui baseline, React Hook Form, TanStack Query, internationalization support, NestJS/TypeScript modular monolith, versioned REST API boundary, and PostgreSQL as the primary transactional system of record.
-- **COMPLETE — Approved constraint in DEC-001:** Object/file storage is required, but its vendor remains TBD. Queues and Redis are not part of the initial architecture and may be introduced later only for a concrete requirement.
-- **PROVISIONAL / DEFERRED — Supplemental DEC-002:** OVHcloud is the preferred infrastructure and hosting provider for now. Exact OVHcloud product, region, topology, runtime, networking, domains, secrets, CI/CD, observability and deployment process remain TBD; deployment implementation is deferred.
-- **SUPERSEDED — Supplemental DEC-003:** The historical Auth0 provider decision is preserved but superseded by DEC-004.
-- **APPROVED — Supplemental DEC-004:** Authentication is application-managed with no external authentication provider, and Prisma is the approved PostgreSQL ORM/data-access layer. Backend-authoritative business authorization remains unchanged; deployment stays deferred.
-- **APPROVED — Supplemental DEC-005:** Frontend internationalization uses an internal typed runtime for `en`, `nl` and `fr`, with English as default/fallback, a validated first-party SameSite preference cookie, no browser auto-detection and no locale-specific routing in Sprint 01. Business, legal, status and domain terminology remains OPEN and excluded.
-- **PENDING — Explicitly not decided:** Object-storage vendor, queue technology, LLM provider, payment provider, WhatsApp implementation details, observability implementation/vendor, CI/CD implementation/vendor, and exact API-documentation tooling.
-- **PENDING — Recommendations, not implementation commitments:** Suggested team structure, infrastructure-as-code choices, deployment details, search/vector additions, and example match-score weighting remain subject to their applicable requirements and approvals.
-
-## Unresolved backlog inputs
-
-- Identify the real supplier, lot, buyer, lane, commercial terms, and owner for the MVP proof transaction.
-- Confirm the minimum slice across the broad MVP list and phased roadmap.
-- Clarify whether both France and the Netherlands must appear in the first transaction.
-- Define approval roles/thresholds for binding offers, large purchases, payment release, supplier suspension, and WhatsApp handover value.
-- Define required onboarding documents, verification, quality thresholds, contract templates, jurisdiction, payment terms, claims, and DPP obligations for the selected transaction.
-- Clarify lot versus batch semantics and reservation behavior.
+- **Sprint 03 — Product Catalogue & Listings:** Reusable hemp taxonomy, mobile-first listing creation, photos, lot linking, listing lifecycle (`DRAFT`, `PUBLISHED`, `RESERVED`, `SOLD`).
+- **Sprint 04 — Buyer Marketplace & Buy Orders:** Marketplace search, filters, listing detail/comparison, buy orders, request for quotation.
+- **Sprint 05 — Trader Cockpit & Manual Matching:** Supply/demand comparison, deterministic compatibility scoring, trader recommendation dashboard, landed-cost breakdown.
+- **Sprint 06 — Quotes & Trade Lifecycle:** Quote preparation, fee/commission transparency, negotiation, versioning, contract generation.
+- **Sprint 07 — Quality Workflow:** Inspection records, measurement capture, human-approved grades, certificates, dispute/remedy handling.
+- **Sprint 08 — Logistics & Contracts:** Freight requirements, shipping quotes, carrier dispatch, tracking, contract finalization.
+- **Sprint 09 — Digital Product Passport (DPP):** Provenance tracking, lot transformation events, public/private visibility boundaries, batch passport generation.
+- **Sprint 10 — AI Platform Foundation:** Controlled agent tools, guardrails, context injection, human-in-the-loop escalation.
+- **Sprint 11 — Supplier & Listing Agents:** Onboarding assistance agent, listing extraction and draft generation.
+- **Sprint 12 — Trader Copilot & Matching Agent:** Match explanation agent, trade assistance, risk scoring explanation.
+- **Sprint 13 — WhatsApp Intake:** Conversational intake channel, media ingestion, message parsing, trader hand-off.
+- **Sprint 14 — Automation & Optimisation:** Workflow optimizations, analytics, reporting, performance hardening.
