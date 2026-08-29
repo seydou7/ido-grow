@@ -13,6 +13,7 @@ import type {
   ComplianceDocumentSummary,
   CreateOrganisationInput,
   CreateSiteInput,
+  OrganisationMemberCollection,
   OrganisationProfile,
   SelfMembership,
   SelfMembershipCollection,
@@ -382,6 +383,33 @@ export class OrganisationsService {
     }
 
     return file;
+  }
+
+  async listOrganisationMembers(
+    userId: string,
+    organisationId: string,
+  ): Promise<OrganisationMemberCollection> {
+    const membership = await this.repository.findMembership(userId, organisationId);
+    if (!membership) {
+      throw new ForbiddenException({
+        type: "https://errors.idogrow.com/organisations/membership-required",
+        title: "Membership Required",
+        status: 403,
+        detail: "User is not a member of the requested organisation.",
+      });
+    }
+
+    const members = await this.repository.findMembersByOrganisationId(organisationId);
+    return {
+      items: members.map((m) => ({
+        id: m.id,
+        userId: m.userId,
+        organisationId: m.organisationId,
+        userEmail: m.userEmail,
+        createdAt: m.createdAt.toISOString(),
+        updatedAt: m.updatedAt.toISOString(),
+      })),
+    };
   }
 }
 

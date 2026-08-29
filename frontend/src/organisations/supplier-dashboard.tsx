@@ -11,6 +11,7 @@ import {
   getOrganisationProfile,
   getSelfMemberships,
   listComplianceDocuments,
+  listOrganisationMembers,
   updateOrganisationProfile,
   updateSite,
   uploadComplianceDocument,
@@ -19,6 +20,7 @@ import type {
   ComplianceDocumentSummary,
   CreateOrganisationInput,
   CreateSiteInput,
+  OrganisationMemberSummary,
   OrganisationProfile,
   SiteSummary,
   UpdateOrganisationProfileInput,
@@ -99,6 +101,7 @@ export function SupplierDashboard({
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<OrganisationProfile | null>(null);
   const [documents, setDocuments] = useState<ComplianceDocumentSummary[]>([]);
+  const [members, setMembers] = useState<OrganisationMemberSummary[]>([]);
   const [orgId, setOrgId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -148,6 +151,9 @@ export function SupplierDashboard({
           const docCollection = await listComplianceDocuments(first.organisation.id);
           if (!isMounted) return;
           setDocuments([...docCollection.items]);
+          const memberCollection = await listOrganisationMembers(first.organisation.id);
+          if (!isMounted) return;
+          setMembers([...memberCollection.items]);
           resetProfileForm({
             name: fullProfile.name,
             legalName: fullProfile.legalName,
@@ -165,6 +171,7 @@ export function SupplierDashboard({
         } else {
           setProfile(null);
           setDocuments([]);
+          setMembers([]);
         }
       } catch (err: unknown) {
         if (!isMounted) return;
@@ -1130,6 +1137,71 @@ export function SupplierDashboard({
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* SECTION: Team & Members */}
+      {activeSection === "members" && (
+        <div className="space-y-6">
+          <div className="flex flex-col justify-between gap-4 border-b border-[#e2dccd] pb-5 sm:flex-row sm:items-center">
+            <div>
+              <h2 className="text-xl font-bold tracking-tight text-[#173f35]">
+                Team & Organisation Members
+              </h2>
+              <p className="text-xs text-[#52635c]">
+                Authenticated users associated with {profile.name}.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center rounded-full bg-[#173f35]/10 px-3 py-1 text-xs font-semibold text-[#173f35]">
+                {members.length} {members.length === 1 ? "Member" : "Members"}
+              </span>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-[#e2dccd] bg-white p-6 shadow-2xs">
+            <div className="mb-4 flex items-center justify-between border-b border-[#f0ece1] pb-3">
+              <h3 className="text-sm font-bold text-[#173f35]">
+                Organisation Members
+              </h3>
+            </div>
+
+            {members.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-[#d4cdbc] p-8 text-center">
+                <p className="text-xs text-[#6e7d77]">
+                  No members found for this organisation.
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-[#f0ece1]">
+                {members.map((m) => {
+                  const memberInitials = m.userEmail
+                    ? m.userEmail.substring(0, 2).toUpperCase()
+                    : "MB";
+                  return (
+                    <div
+                      key={m.id}
+                      className="flex flex-col justify-between gap-3 py-4 sm:flex-row sm:items-center"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#284f41] text-xs font-bold text-[#e5b84b]">
+                          {memberInitials}
+                        </div>
+                        <div className="min-w-0 leading-tight">
+                          <p className="truncate text-xs font-bold text-[#173f35]">
+                            {m.userEmail}
+                          </p>
+                          <p className="mt-0.5 text-[11px] text-[#718079]">
+                            Joined: {new Date(m.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -126,3 +126,16 @@ export type UpdateSiteInput = Readonly<{
 export type SiteCollection = Readonly<{
   items: readonly SiteSummary[];
 }>;
+
+export type OrganisationMemberSummary = Readonly<{
+  id: string;
+  userId: string;
+  organisationId: string;
+  userEmail: string;
+  createdAt: string;
+  updatedAt: string;
+}>;
+
+export type OrganisationMemberCollection = Readonly<{
+  items: readonly OrganisationMemberSummary[];
+}>;

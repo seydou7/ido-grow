@@ -269,20 +269,38 @@ class InMemoryOrganisationsRepository extends OrganisationsRepository {
     return doc;
   }
 
-  async deleteComplianceDocument(organisationId: string, documentId: string): Promise<boolean> {
-    const d = this.documents.get(documentId);
-    if (d && d.organisationId === organisationId) {
-      this.documents.delete(documentId);
-      const org = this.organisations.get(organisationId);
-      if (org) {
-        this.organisations.set(organisationId, {
-          ...org,
-          complianceDocuments: org.complianceDocuments.filter((doc) => doc.id !== documentId),
-        });
+  async findMembersByOrganisationId(organisationId: string): Promise<{
+    id: string;
+    userId: string;
+    organisationId: string;
+    userEmail: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }[]> {
+    const list: {
+      id: string;
+      userId: string;
+      organisationId: string;
+      userEmail: string;
+      createdAt: Date;
+      updatedAt: Date;
+    }[] = [];
+
+    for (const [uid, userMemberships] of this.membershipsByUser.entries()) {
+      for (const m of userMemberships) {
+        if (m.organisationId === organisationId) {
+          list.push({
+            id: m.id,
+            userId: uid,
+            organisationId: m.organisationId,
+            userEmail: `${uid}@example.test`,
+            createdAt: m.createdAt,
+            updatedAt: m.updatedAt,
+          });
+        }
       }
-      return true;
     }
-    return false;
+    return list;
   }
 }
 
@@ -526,6 +544,72 @@ describe("OrganisationsService", () => {
         Buffer.from("tax"),
         "application/pdf",
       ),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it("lists organisation members for authenticated member", async () => {
+    const orgRecord: OrganisationRecord = {
+      id: "org-1",
+      name: "Farm Org",
+      legalName: null,
+      organisationType: "SUPPLIER",
+      businessType: null,
+      registrationNumber: null,
+      vatNumber: null,
+      address: null,
+      city: null,
+      postalCode: null,
+      country: null,
+      contactName: null,
+      contactEmail: null,
+      contactPhone: null,
+      verificationStatus: "PENDING",
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      sites: [],
+      complianceDocuments: [],
+    };
+    repository.organisations.set("org-1", orgRecord);
+    repository.membershipsByUser.set("user-1", [
+      {
+        id: "mem-1",
+        userId: "user-1",
+        organisationId: "org-1",
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        organisation: orgRecord,
+      },
+    ]);
+    repository.membershipsByUser.set("user-2", [
+      {
+        id: "mem-2",
+        userId: "user-2",
+        organisationId: "org-1",
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        organisation: orgRecord,
+      },
+    ]);
+
+    const result = await service.listOrganisationMembers("user-1", "org-1");
+    expect(result.items.length).toBe(2);
+    expect(result.items[0]).toMatchObject({
+      id: "mem-1",
+      userId: "user-1",
+      organisationId: "org-1",
+      userEmail: "user-1@example.test",
+    });
+    expect(result.items[1]).toMatchObject({
+      id: "mem-2",
+      userId: "user-2",
+      organisationId: "org-1",
+      userEmail: "user-2@example.test",
+    });
+  });
+
+  it("rejects listing members for non-members (403)", async () => {
+    await expect(
+      service.listOrganisationMembers("intruder", "org-1"),
     ).rejects.toThrow(ForbiddenException);
   });
 });

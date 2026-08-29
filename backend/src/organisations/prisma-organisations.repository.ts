@@ -10,6 +10,7 @@ import type {
 import {
   type ComplianceDocumentRecord,
   type MembershipRecord,
+  type OrganisationMemberRecord,
   type OrganisationRecord,
   type SiteRecord,
   OrganisationsRepository,
@@ -277,18 +278,28 @@ export class PrismaOrganisationsRepository extends OrganisationsRepository {
     return toComplianceDocumentRecord(record);
   }
 
-  async deleteComplianceDocument(
-    organisationId: string,
-    documentId: string,
-  ): Promise<boolean> {
-    const result = await this.prisma.complianceDocument.deleteMany({
-      where: {
-        id: documentId,
-        organisationId,
+  async findMembersByOrganisationId(organisationId: string): Promise<OrganisationMemberRecord[]> {
+    const records = await this.prisma.membership.findMany({
+      where: { organisationId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+          },
+        },
       },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     });
 
-    return result.count > 0;
+    return records.map((r) => ({
+      id: r.id,
+      userId: r.userId,
+      organisationId: r.organisationId,
+      userEmail: r.user.email,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+    }));
   }
 }
 

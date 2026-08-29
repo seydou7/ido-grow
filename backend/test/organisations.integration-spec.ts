@@ -158,7 +158,7 @@ describe("organisation and membership persistence (integration)", () => {
     expect(retrieved?.latitude).toBe(51.5719);
   });
 
-  it("creates, queries, and deletes compliance documents for organisation", async () => {
+  it("creates and queries compliance documents for organisation", async () => {
     const doc = await repository.createComplianceDocument(organisationId, {
       documentType: "COMPANY_REGISTRATION",
       originalFilename: "kvk_extract_2026.pdf",
@@ -178,11 +178,17 @@ describe("organisation and membership persistence (integration)", () => {
     const singleDoc = await repository.findComplianceDocumentById(organisationId, documentId);
     expect(singleDoc).not.toBeNull();
     expect(singleDoc?.originalFilename).toBe("kvk_extract_2026.pdf");
+  });
 
-    const deleted = await repository.deleteComplianceDocument(organisationId, documentId);
-    expect(deleted).toBe(true);
-
-    const afterDelete = await repository.findComplianceDocumentsByOrganisationId(organisationId);
-    expect(afterDelete.length).toBe(0);
+  it("queries members belonging to the organisation", async () => {
+    const members = await repository.findMembersByOrganisationId(organisationId);
+    expect(members).toHaveLength(1);
+    expect(members[0]).toMatchObject({
+      id: membershipId,
+      userId,
+      organisationId,
+      userEmail: `membership-${userId}@example.test`,
+    });
+    expect(members[0].createdAt).toBeInstanceOf(Date);
   });
 });

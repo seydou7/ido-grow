@@ -65,6 +65,15 @@ export type MembershipRecord = Readonly<{
   organisation: OrganisationRecord;
 }>;
 
+export type OrganisationMemberRecord = Readonly<{
+  id: string;
+  userId: string;
+  organisationId: string;
+  userEmail: string;
+  createdAt: Date;
+  updatedAt: Date;
+}>;
+
 export abstract class OrganisationsRepository {
   abstract findMembershipsForUser(userId: string): Promise<MembershipRecord[]>;
   abstract findMembership(userId: string, organisationId: string): Promise<MembershipRecord | null>;
@@ -84,5 +93,5 @@ export abstract class OrganisationsRepository {
     mimeType: string;
     fileSize: number;
   }): Promise<ComplianceDocumentRecord>;
-  abstract deleteComplianceDocument(organisationId: string, documentId: string): Promise<boolean>;
+  abstract findMembersByOrganisationId(organisationId: string): Promise<OrganisationMemberRecord[]>;
 }

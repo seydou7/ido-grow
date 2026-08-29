@@ -23,6 +23,7 @@ import type {
 import type {
   ComplianceDocumentRecord,
   MembershipRecord,
+  OrganisationMemberRecord,
   OrganisationRecord,
   SiteRecord,
 } from "../src/organisations/organisations.repository";
@@ -245,10 +246,23 @@ class TestOrganisationsRepository extends OrganisationsRepository {
     };
   }
 
-  async deleteComplianceDocument(organisationId: string, documentId: string): Promise<boolean> {
-    void organisationId;
-    void documentId;
-    return true;
+  async findMembersByOrganisationId(organisationId: string): Promise<OrganisationMemberRecord[]> {
+    const list: OrganisationMemberRecord[] = [];
+    for (const [uid, userMemberships] of this.membershipsByUser.entries()) {
+      for (const m of userMemberships) {
+        if (m.organisationId === organisationId) {
+          list.push({
+            id: m.id,
+            userId: uid,
+            organisationId: m.organisationId,
+            userEmail: `${uid}@example.test`,
+            createdAt: m.createdAt,
+            updatedAt: m.updatedAt,
+          });
+        }
+      }
+    }
+    return list;
   }
 }
 

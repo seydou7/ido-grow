@@ -3,6 +3,8 @@ export type {
   ComplianceDocumentSummary,
   CreateOrganisationInput,
   CreateSiteInput,
+  OrganisationMemberCollection,
+  OrganisationMemberSummary,
   OrganisationProfile,
   OrganisationSummary,
   SelfMembership,

@@ -64,3 +64,30 @@ test("organisations client contracts support supplier profile and production sit
   assert.equal(profile.complianceDocuments[0].status, "PENDING_REVIEW");
   assert.equal(profile.completenessPercent, 91);
 });
+
+test("organisations client contracts support organisation member collections", async () => {
+  const memberCollection = {
+    items: [
+      {
+        id: "mem-1",
+        userId: "user-1",
+        organisationId: "org-1",
+        userEmail: "supplier-owner@example.test",
+        createdAt: "2026-08-29T12:00:00.000Z",
+        updatedAt: "2026-08-29T12:00:00.000Z",
+      },
+      {
+        id: "mem-2",
+        userId: "user-2",
+        organisationId: "org-1",
+        userEmail: "supplier-colleague@example.test",
+        createdAt: "2026-08-29T13:00:00.000Z",
+        updatedAt: "2026-08-29T13:00:00.000Z",
+      },
+    ],
+  };
+
+  assert.equal(memberCollection.items.length, 2);
+  assert.equal(memberCollection.items[0].userEmail, "supplier-owner@example.test");
+  assert.equal(memberCollection.items[1].userEmail, "supplier-colleague@example.test");
+});

@@ -4,6 +4,7 @@ import type {
   ComplianceDocumentSummary,
   CreateOrganisationInput,
   CreateSiteInput,
+  OrganisationMemberCollection,
   OrganisationProfile,
   SelfMembershipCollection,
   SiteCollection,
@@ -182,4 +183,16 @@ export function getComplianceDocumentDownloadUrl(
   documentId: string,
 ): string {
   return endpoint(`/api/v1/organisations/${organisationId}/documents/${documentId}/download`);
+}
+
+export async function listOrganisationMembers(
+  organisationId: string,
+): Promise<OrganisationMemberCollection> {
+  const response = await send(`/api/v1/organisations/${organisationId}/members`, {
+    method: "GET",
+  });
+  if (!response.ok) {
+    throw new OrganisationRequestError("Unable to list organisation members.");
+  }
+  return response.json();
 }

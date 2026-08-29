@@ -28,6 +28,7 @@ import type {
   ComplianceDocumentSummary,
   CreateOrganisationInput,
   CreateSiteInput,
+  OrganisationMemberCollection,
   OrganisationProfile,
   SelfMembershipCollection,
   SiteCollection,
@@ -76,6 +77,18 @@ export class OrganisationsController {
     );
 
     return this.organisations.getOrganisationProfile(identity.userId, organisationId);
+  }
+
+  @Get("organisations/:id/members")
+  async listOrganisationMembers(
+    @Headers("cookie") cookieHeader: string | undefined,
+    @Param("id") organisationId: string,
+  ): Promise<OrganisationMemberCollection> {
+    const identity = await this.authentication.resolveIdentity(
+      readSessionToken(cookieHeader),
+    );
+
+    return this.organisations.listOrganisationMembers(identity.userId, organisationId);
   }
 
   @Post("organisations")
