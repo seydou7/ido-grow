@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -6,15 +7,25 @@ import {
   Param,
   Patch,
   Post,
+  Res,
+  StreamableFile,
+  UploadedFile,
   UseFilters,
   UseInterceptors,
 } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
+
+type ResponseHeaders = {
+  set(headers: Record<string, string>): void;
+};
 
 import { AuthenticationNoStoreInterceptor } from "../authentication/authentication-no-store.interceptor";
 import { AuthenticationProblemFilter } from "../authentication/authentication-problem";
 import { AuthenticationService } from "../authentication/authentication.service";
 import { readSessionToken } from "../authentication/cookie";
 import type {
+  ComplianceDocumentCollection,
+  ComplianceDocumentSummary,
   CreateOrganisationInput,
   CreateSiteInput,
   OrganisationProfile,
@@ -25,6 +36,15 @@ import type {
   UpdateSiteInput,
 } from "./contracts";
 import { OrganisationsService } from "./organisations.service";
+
+type ExpressUploadedFile = {
+  fieldname: string;
+  originalname: string;
+  encoding: string;
+  mimetype: string;
+  size: number;
+  buffer: Buffer;
+};
 
 @Controller()
 @UseFilters(AuthenticationProblemFilter)
@@ -142,5 +162,90 @@ export class OrganisationsController {
       siteId,
       input,
     );
+  }
+
+  @Get("organisations/:id/documents")
+  async listComplianceDocuments(
+    @Headers("cookie") cookieHeader: string | undefined,
+    @Param("id") organisationId: string,
+  ): Promise<ComplianceDocumentCollection> {
+    const identity = await this.authentication.resolveIdentity(
+      readSessionToken(cookieHeader),
+    );
+
+    return this.organisations.listComplianceDocuments(identity.userId, organisationId);
+  }
+
+  @Post("organisations/:id/documents")
+  @UseInterceptors(
+    FileInterceptor("file", {
+      limits: {
+        fileSize: 10 * 1024 * 1024,
+        files: 1,
+      },
+    }),
+  )
+  async uploadComplianceDocument(
+    @Headers("cookie") cookieHeader: string | undefined,
+    @Param("id") organisationId: string,
+    @Body("documentType") documentType: string,
+    @UploadedFile() file: ExpressUploadedFile | undefined,
+  ): Promise<ComplianceDocumentSummary> {
+    const identity = await this.authentication.resolveIdentity(
+      readSessionToken(cookieHeader),
+    );
+
+    if (!file) {
+      throw new BadRequestException({
+        type: "https://errors.idogrow.com/organisations/missing-file",
+        title: "File Required",
+        status: 400,
+        detail: "A valid file upload is required.",
+      });
+    }
+
+    if (!documentType || documentType.trim().length === 0) {
+      throw new BadRequestException({
+        type: "https://errors.idogrow.com/organisations/missing-document-type",
+        title: "Document Type Required",
+        status: 400,
+        detail: "A valid documentType is required.",
+      });
+    }
+
+    return this.organisations.uploadComplianceDocument(
+      identity.userId,
+      organisationId,
+      documentType,
+      file.originalname,
+      file.buffer,
+      file.mimetype,
+    );
+  }
+
+  @Get("organisations/:id/documents/:docId/download")
+  async downloadComplianceDocument(
+    @Headers("cookie") cookieHeader: string | undefined,
+    @Param("id") organisationId: string,
+    @Param("docId") docId: string,
+    @Res({ passthrough: true }) res: ResponseHeaders,
+  ): Promise<StreamableFile> {
+    const identity = await this.authentication.resolveIdentity(
+      readSessionToken(cookieHeader),
+    );
+
+    const file = await this.organisations.getComplianceDocumentFile(
+      identity.userId,
+      organisationId,
+      docId,
+    );
+
+    res.set({
+      "Content-Type": file.mimeType,
+      "Content-Disposition": `attachment; filename="${encodeURIComponent(file.filename)}"`,
+      "Content-Length": file.fileSize.toString(),
+    });
+
+    return new StreamableFile(file.stream);
   }
 }

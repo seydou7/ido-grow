@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -6,7 +7,10 @@ import {
 import { randomUUID } from "crypto";
 
 import { AuditEventWriter } from "../audit";
+import { StorageService, type RetrievedFile } from "../storage";
 import type {
+  ComplianceDocumentCollection,
+  ComplianceDocumentSummary,
   CreateOrganisationInput,
   CreateSiteInput,
   OrganisationProfile,
@@ -18,17 +22,28 @@ import type {
   UpdateSiteInput,
 } from "./contracts";
 import {
+  type ComplianceDocumentRecord,
   type MembershipRecord,
   type OrganisationRecord,
   type SiteRecord,
   OrganisationsRepository,
 } from "./organisations.repository";
 
+export const ALLOWED_DOCUMENT_TYPES = new Set([
+  "COMPANY_REGISTRATION",
+  "TAX_CERTIFICATE",
+  "ORGANIC_CERTIFICATION",
+  "QUALITY_CERTIFICATE",
+  "FARM_OWNERSHIP_LEASE",
+  "OTHER_COMPLIANCE",
+]);
+
 @Injectable()
 export class OrganisationsService {
   constructor(
     private readonly repository: OrganisationsRepository,
     private readonly auditWriter: AuditEventWriter,
+    private readonly storage: StorageService,
   ) {}
 
   async findSelfMemberships(userId: string): Promise<SelfMembershipCollection> {
@@ -250,6 +265,124 @@ export class OrganisationsService {
 
     return toSiteSummary(updated);
   }
+
+  async listComplianceDocuments(
+    userId: string,
+    organisationId: string,
+  ): Promise<ComplianceDocumentCollection> {
+    const membership = await this.repository.findMembership(userId, organisationId);
+    if (!membership) {
+      throw new ForbiddenException({
+        type: "https://errors.idogrow.com/organisations/membership-required",
+        title: "Membership Required",
+        status: 403,
+        detail: "User is not a member of the requested organisation.",
+      });
+    }
+
+    const documents = await this.repository.findComplianceDocumentsByOrganisationId(organisationId);
+
+    return {
+      items: documents.map(toComplianceDocumentSummary),
+    };
+  }
+
+  async uploadComplianceDocument(
+    userId: string,
+    organisationId: string,
+    documentType: string,
+    filename: string,
+    buffer: Buffer,
+    mimeType: string,
+  ): Promise<ComplianceDocumentSummary> {
+    const membership = await this.repository.findMembership(userId, organisationId);
+    if (!membership) {
+      throw new ForbiddenException({
+        type: "https://errors.idogrow.com/organisations/membership-required",
+        title: "Membership Required",
+        status: 403,
+        detail: "User is not a member of the requested organisation.",
+      });
+    }
+
+    if (!ALLOWED_DOCUMENT_TYPES.has(documentType)) {
+      throw new BadRequestException({
+        type: "https://errors.idogrow.com/organisations/invalid-document-type",
+        title: "Invalid Document Type",
+        status: 400,
+        detail: `Document type "${documentType}" is not supported. Allowed: ${Array.from(ALLOWED_DOCUMENT_TYPES).join(", ")}`,
+      });
+    }
+
+    const stored = await this.storage.store(filename, buffer, mimeType);
+
+    const doc = await this.repository.createComplianceDocument(organisationId, {
+      documentType,
+      originalFilename: stored.originalFilename,
+      storageKey: stored.storageKey,
+      mimeType: stored.mimeType,
+      fileSize: stored.fileSize,
+    });
+
+    await this.auditWriter.append({
+      eventType: "organisation.compliance_document.uploaded",
+      outcome: "succeeded",
+      actor: { type: "user", userId },
+      target: { type: "compliance_document", id: doc.id },
+      correlationId: randomUUID(),
+      occurredAt: new Date(),
+      metadata: {
+        organisationId,
+        documentType: doc.documentType,
+        filename: doc.originalFilename,
+      },
+    });
+
+    return toComplianceDocumentSummary(doc);
+  }
+
+  async getComplianceDocumentFile(
+    userId: string,
+    organisationId: string,
+    documentId: string,
+  ): Promise<RetrievedFile> {
+    const membership = await this.repository.findMembership(userId, organisationId);
+    if (!membership) {
+      throw new ForbiddenException({
+        type: "https://errors.idogrow.com/organisations/membership-required",
+        title: "Membership Required",
+        status: 403,
+        detail: "User is not a member of the requested organisation.",
+      });
+    }
+
+    const doc = await this.repository.findComplianceDocumentById(organisationId, documentId);
+    if (!doc) {
+      throw new NotFoundException({
+        type: "https://errors.idogrow.com/organisations/document-not-found",
+        title: "Document Not Found",
+        status: 404,
+        detail: "The requested compliance document was not found in this organisation.",
+      });
+    }
+
+    const file = await this.storage.retrieve(
+      doc.storageKey,
+      doc.originalFilename,
+      doc.mimeType,
+    );
+
+    if (!file) {
+      throw new NotFoundException({
+        type: "https://errors.idogrow.com/organisations/file-not-found",
+        title: "Stored File Missing",
+        status: 404,
+        detail: "The physical document file could not be found in storage.",
+      });
+    }
+
+    return file;
+  }
 }
 
 function calculateCompleteness(org: OrganisationRecord): {
@@ -269,8 +402,9 @@ function calculateCompleteness(org: OrganisationRecord): {
   if (!org.contactEmail || org.contactEmail.trim().length === 0) missing.push("contactEmail");
   if (!org.contactPhone || org.contactPhone.trim().length === 0) missing.push("contactPhone");
   if (org.sites.length === 0) missing.push("productionSites");
+  if (org.complianceDocuments.length === 0) missing.push("complianceDocuments");
 
-  const totalChecks = 11;
+  const totalChecks = 12;
   const completedChecks = totalChecks - missing.length;
   const completenessPercent = Math.round((completedChecks / totalChecks) * 100);
 
@@ -293,6 +427,20 @@ function toSiteSummary(record: SiteRecord): SiteSummary {
     latitude: record.latitude,
     longitude: record.longitude,
     landAreaHectares: record.landAreaHectares,
+    createdAt: record.createdAt.toISOString(),
+    updatedAt: record.updatedAt.toISOString(),
+  };
+}
+
+function toComplianceDocumentSummary(record: ComplianceDocumentRecord): ComplianceDocumentSummary {
+  return {
+    id: record.id,
+    organisationId: record.organisationId,
+    documentType: record.documentType,
+    originalFilename: record.originalFilename,
+    mimeType: record.mimeType,
+    fileSize: record.fileSize,
+    status: record.status,
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
   };
@@ -322,6 +470,7 @@ function toOrganisationProfile(record: OrganisationRecord): OrganisationProfile 
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
     sites: record.sites.map(toSiteSummary),
+    complianceDocuments: record.complianceDocuments.map(toComplianceDocumentSummary),
   };
 }
 

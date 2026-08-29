@@ -58,6 +58,25 @@ model Organisation {
   updatedAt          DateTime     @updatedAt @db.Timestamptz(6)
   sites              Site[]
   memberships        Membership[]
+  complianceDocuments ComplianceDocument[]
+}
+
+model ComplianceDocument {
+  id               String       @id @default(uuid()) @db.Uuid
+  organisationId   String       @db.Uuid
+  documentType     String       @db.VarChar(50)
+  originalFilename String       @db.VarChar(255)
+  storageKey       String       @unique @db.VarChar(255)
+  mimeType         String       @db.VarChar(100)
+  fileSize         Int
+  status           String       @default("PENDING_REVIEW") @db.VarChar(50)
+  createdAt        DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime     @updatedAt @db.Timestamptz(6)
+  organisation     Organisation @relation(fields: [organisationId], references: [id], onDelete: Restrict)
+
+  @@index([organisationId])
+  @@index([documentType])
+  @@index([status])
 }
 
 model Site {

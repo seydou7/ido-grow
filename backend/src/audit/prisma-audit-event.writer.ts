@@ -88,6 +88,24 @@ export function sanitizePlatformEvent(
         occurredAt: event.occurredAt,
         metadata: { organisationId: event.metadata.organisationId },
       };
+    case "organisation.compliance_document.uploaded":
+      assertUuid(event.actor.userId, "actor.userId");
+      assertUuid(event.target.id, "target.id");
+      return {
+        eventType: event.eventType,
+        outcome: "succeeded",
+        actorType: "user",
+        actorUserId: event.actor.userId,
+        targetType: "compliance_document",
+        targetId: event.target.id,
+        correlationId: event.correlationId,
+        occurredAt: event.occurredAt,
+        metadata: {
+          organisationId: event.metadata.organisationId,
+          documentType: event.metadata.documentType,
+          filename: event.metadata.filename,
+        },
+      };
   }
 }
 

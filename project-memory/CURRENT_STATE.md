@@ -1,7 +1,7 @@
 # Current State
 
-- **CLOSED — Phase:** Sprint 01 — Platform Foundation is closed and complete following the formal `sprint-close` PASS across all platform foundations.
-- **ACTIVE — Phase:** Sprint 02 — Organisations & Supplier Onboarding is active under the locked roadmap. Vertical Block 01 (Supplier Organisation Profile & Production Sites Onboarding) is COMPLETE / PROJECT OWNER VALIDATED.
+- **ACTIVE — Phase:** Sprint 02 — Organisations & Supplier Onboarding is active under the locked roadmap. Vertical Block 01 (Supplier Organisation Profile & Production Sites Onboarding) is COMPLETE / PROJECT OWNER VALIDATED. Vertical Block 02 (Supplier Compliance Documents & Verification Foundation) is COMPLETE / PROJECT OWNER VALIDATED.
+- **COMPLETE — Supplier Compliance Documents & Verification Foundation (Sprint 02 Block 02):** Additive ComplianceDocument persistence in PostgreSQL, provider-neutral file storage with local development adapter, upload boundary limits (10MB, exactly 1 file), magic-byte binary signature validation (PDF, JPEG, PNG, WebP), secure streaming download, append-only `organisation.compliance_document.uploaded` audit events, readiness calculation, and Supplier Portal compliance UI are complete and passed Project Owner browser validation. Supplier self-service document removal was classified OPEN / UNSUPPORTED and excluded. Trader/Admin verification and approval workflows remain OPEN.
 - **LOCKED ROADMAP:**
   - Sprint 00 — Discovery & Foundation (CLOSED)
   - Sprint 01 — Platform Foundation (CLOSED)

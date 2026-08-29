@@ -14,6 +14,7 @@ describe("organisation and membership persistence (integration)", () => {
   const siteId = randomUUID();
   const membershipId = randomUUID();
   const otherMembershipId = randomUUID();
+  let documentId: string;
 
   beforeAll(async () => {
     await prisma.$connect();
@@ -76,6 +77,9 @@ describe("organisation and membership persistence (integration)", () => {
   });
 
   afterAll(async () => {
+    await prisma.complianceDocument.deleteMany({
+      where: { organisationId: { in: [organisationId, otherOrganisationId] } },
+    });
     await prisma.membership.deleteMany({
       where: { id: { in: [membershipId, otherMembershipId] } },
     });
@@ -152,5 +156,33 @@ describe("organisation and membership persistence (integration)", () => {
     const retrieved = await repository.findSiteById(organisationId, newSite.id);
     expect(retrieved?.id).toBe(newSite.id);
     expect(retrieved?.latitude).toBe(51.5719);
+  });
+
+  it("creates, queries, and deletes compliance documents for organisation", async () => {
+    const doc = await repository.createComplianceDocument(organisationId, {
+      documentType: "COMPANY_REGISTRATION",
+      originalFilename: "kvk_extract_2026.pdf",
+      storageKey: `test-${randomUUID()}.pdf`,
+      mimeType: "application/pdf",
+      fileSize: 10240,
+    });
+
+    expect(doc.documentType).toBe("COMPANY_REGISTRATION");
+    expect(doc.status).toBe("PENDING_REVIEW");
+    documentId = doc.id;
+
+    const docs = await repository.findComplianceDocumentsByOrganisationId(organisationId);
+    expect(docs.length).toBe(1);
+    expect(docs[0].id).toBe(documentId);
+
+    const singleDoc = await repository.findComplianceDocumentById(organisationId, documentId);
+    expect(singleDoc).not.toBeNull();
+    expect(singleDoc?.originalFilename).toBe("kvk_extract_2026.pdf");
+
+    const deleted = await repository.deleteComplianceDocument(organisationId, documentId);
+    expect(deleted).toBe(true);
+
+    const afterDelete = await repository.findComplianceDocumentsByOrganisationId(organisationId);
+    expect(afterDelete.length).toBe(0);
   });
 });

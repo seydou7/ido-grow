@@ -7,12 +7,16 @@ import { AuthenticatedAppShell, type NavSection } from "./app-shell";
 import {
   createOrganisation,
   createSite,
+  getComplianceDocumentDownloadUrl,
   getOrganisationProfile,
   getSelfMemberships,
+  listComplianceDocuments,
   updateOrganisationProfile,
   updateSite,
+  uploadComplianceDocument,
 } from "./api";
 import type {
+  ComplianceDocumentSummary,
   CreateOrganisationInput,
   CreateSiteInput,
   OrganisationProfile,
@@ -32,15 +36,6 @@ function Building2Icon({ className = "h-4 w-4" }: Readonly<{ className?: string 
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
       <rect x="4" y="2" width="16" height="20" rx="2" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M9 22v-4h6v4M8 6h.01M16 6h.01M8 10h.01M16 10h.01M8 14h.01M16 14h.01" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function MapPinIcon({ className = "h-4 w-4" }: Readonly<{ className?: string }>) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="12" cy="10" r="3" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -70,6 +65,31 @@ function SproutSmallIcon({ className = "h-4 w-4" }: Readonly<{ className?: strin
   );
 }
 
+function DownloadIcon({ className = "h-4 w-4" }: Readonly<{ className?: string }>) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function UploadCloudIcon({ className = "h-5 w-5" }: Readonly<{ className?: string }>) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+const DOCUMENT_TYPE_LABELS: Record<string, string> = {
+  COMPANY_REGISTRATION: "Company Registration (KVK / SIRET / Registry)",
+  TAX_CERTIFICATE: "Tax & VAT Registration Certificate",
+  ORGANIC_CERTIFICATION: "Organic Farming Certificate (EU Organic, etc.)",
+  QUALITY_CERTIFICATE: "Quality & Agricultural Standard (GlobalGAP, ISO)",
+  FARM_OWNERSHIP_LEASE: "Land Deed / Parcel Lease Agreement",
+  OTHER_COMPLIANCE: "Other Supporting Compliance Document",
+};
+
 export function SupplierDashboard({
   userEmail,
   onLogout,
@@ -78,12 +98,19 @@ export function SupplierDashboard({
   const [activeSection, setActiveSection] = useState<NavSection>("organisation");
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<OrganisationProfile | null>(null);
+  const [documents, setDocuments] = useState<ComplianceDocumentSummary[]>([]);
   const [orgId, setOrgId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isAddingSite, setIsAddingSite] = useState(false);
   const [editingSiteId, setEditingSiteId] = useState<string | null>(null);
+
+  // Document upload state
+  const [selectedDocType, setSelectedDocType] = useState("COMPANY_REGISTRATION");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploadingDoc, setIsUploadingDoc] = useState(false);
+  const [docUploadError, setDocUploadError] = useState<string | null>(null);
 
   const {
     register: regProfile,
@@ -106,21 +133,21 @@ export function SupplierDashboard({
   } = useForm<CreateSiteInput>();
 
   useEffect(() => {
-    let active = true;
+    let isMounted = true;
 
-    void (async () => {
+    async function initialize() {
       try {
-        setLoading(true);
-        setErrorMessage(null);
         const memberships = await getSelfMemberships();
-        if (!active) return;
-
+        if (!isMounted) return;
         if (memberships.items.length > 0) {
-          const currentOrg = memberships.items[0].organisation;
-          setOrgId(currentOrg.id);
-          const fullProfile = await getOrganisationProfile(currentOrg.id);
-          if (!active) return;
+          const first = memberships.items[0];
+          setOrgId(first.organisation.id);
+          const fullProfile = await getOrganisationProfile(first.organisation.id);
+          if (!isMounted) return;
           setProfile(fullProfile);
+          const docCollection = await listComplianceDocuments(first.organisation.id);
+          if (!isMounted) return;
+          setDocuments([...docCollection.items]);
           resetProfileForm({
             name: fullProfile.name,
             legalName: fullProfile.legalName,
@@ -137,77 +164,102 @@ export function SupplierDashboard({
           });
         } else {
           setProfile(null);
-          setOrgId(null);
+          setDocuments([]);
         }
-      } catch {
-        if (active) {
-          setErrorMessage("Unable to load organisation information. Please check your connection.");
-        }
+      } catch (err: unknown) {
+        if (!isMounted) return;
+        setErrorMessage(
+          err instanceof Error ? err.message : "Failed to load supplier organisation.",
+        );
       } finally {
-        if (active) {
+        if (isMounted) {
           setLoading(false);
         }
       }
-    })();
+    }
+
+    void initialize();
 
     return () => {
-      active = false;
+      isMounted = false;
     };
   }, [resetProfileForm]);
 
   async function onSaveProfile(data: UpdateOrganisationProfileInput) {
     if (!orgId) return;
+    setErrorMessage(null);
+    setSuccessMessage(null);
     try {
-      setErrorMessage(null);
-      setSuccessMessage(null);
       const updated = await updateOrganisationProfile(orgId, data);
       setProfile(updated);
       setIsEditingProfile(false);
-      setSuccessMessage("Company profile updated successfully.");
-    } catch {
-      setErrorMessage("Failed to update organisation profile.");
+      setSuccessMessage("Organisation profile updated successfully.");
+    } catch (err: unknown) {
+      setErrorMessage(
+        err instanceof Error ? err.message : "Failed to update profile.",
+      );
     }
   }
 
   async function onCreateOrg(data: CreateOrganisationInput) {
+    setErrorMessage(null);
+    setSuccessMessage(null);
     try {
-      setErrorMessage(null);
-      setSuccessMessage(null);
       const created = await createOrganisation(data);
-      setProfile(created);
       setOrgId(created.id);
+      setProfile(created);
       setSuccessMessage("Organisation registered successfully.");
-    } catch {
-      setErrorMessage("Failed to create organisation.");
+    } catch (err: unknown) {
+      setErrorMessage(
+        err instanceof Error ? err.message : "Failed to register organisation.",
+      );
     }
   }
 
   async function onSaveSite(data: CreateSiteInput) {
     if (!orgId) return;
+    setErrorMessage(null);
+    setSuccessMessage(null);
     try {
-      setErrorMessage(null);
-      setSuccessMessage(null);
-      const payload: CreateSiteInput = {
-        ...data,
-        latitude: data.latitude ? Number(data.latitude) : null,
-        longitude: data.longitude ? Number(data.longitude) : null,
-        landAreaHectares: data.landAreaHectares ? Number(data.landAreaHectares) : null,
-      };
-
       if (editingSiteId) {
-        await updateSite(orgId, editingSiteId, payload as UpdateSiteInput);
+        await updateSite(orgId, editingSiteId, data as UpdateSiteInput);
         setSuccessMessage("Production site updated successfully.");
       } else {
-        await createSite(orgId, payload);
-        setSuccessMessage("Production site registered successfully.");
+        await createSite(orgId, data);
+        setSuccessMessage("Production site added successfully.");
       }
       setIsAddingSite(false);
       setEditingSiteId(null);
       resetSiteForm({});
-      const refreshed = await getOrganisationProfile(orgId);
-      setProfile(refreshed);
-    } catch {
-      setErrorMessage("Failed to save production site.");
+      const updatedProfile = await getOrganisationProfile(orgId);
+      setProfile(updatedProfile);
+    } catch (err: unknown) {
+      setErrorMessage(
+        err instanceof Error ? err.message : "Failed to save production site.",
+      );
+    }
+  }
+
+  async function onUploadDocumentSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!orgId || !selectedFile) return;
+    setIsUploadingDoc(true);
+    setDocUploadError(null);
+    setSuccessMessage(null);
+    try {
+      await uploadComplianceDocument(orgId, selectedDocType, selectedFile);
+      setSelectedFile(null);
+      setSuccessMessage("Compliance document uploaded successfully.");
+      const updatedDocs = await listComplianceDocuments(orgId);
+      setDocuments([...updatedDocs.items]);
+      const updatedProfile = await getOrganisationProfile(orgId);
+      setProfile(updatedProfile);
+    } catch (err: unknown) {
+      setDocUploadError(
+        err instanceof Error ? err.message : "Failed to upload compliance document.",
+      );
+    } finally {
+      setIsUploadingDoc(false);
     }
   }
 
@@ -227,701 +279,858 @@ export function SupplierDashboard({
     setIsAddingSite(true);
   }
 
+  if (loading) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-[#faf8f1]">
+        <div className="flex items-center gap-3 text-sm font-medium text-[#245347]">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#173f35] border-t-transparent" />
+          <span>Loading Supplier Portal...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-[#faf8f1] p-6 sm:p-12">
+        <div className="mx-auto max-w-xl rounded-2xl border border-[#e2dccd] bg-white p-8 shadow-xs">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#173f35] text-[#e5b84b]">
+              <Building2Icon className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-[#173f35]">Register Your Organisation</h2>
+              <p className="text-xs text-[#52635c]">
+                Join I Do Grow as a verified natural fibre supplier
+              </p>
+            </div>
+          </div>
+
+          {errorMessage && (
+            <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+              {errorMessage}
+            </div>
+          )}
+
+          <form onSubmit={handleNewOrgSubmit(onCreateOrg)} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-[#203e35]" htmlFor="reg-name">
+                Organisation / Commercial Name *
+              </label>
+              <input
+                id="reg-name"
+                {...regNewOrg("name", { required: true })}
+                placeholder="e.g. Green Fields Hemp Cooperative"
+                className="mt-1 w-full rounded-lg border border-[#d4cdbc] bg-white px-3.5 py-2 text-sm text-[#173f35] placeholder:text-[#9e9686] focus:border-[#173f35] focus:outline-hidden"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-[#203e35]" htmlFor="reg-legalName">
+                Legal Entity Name
+              </label>
+              <input
+                id="reg-legalName"
+                {...regNewOrg("legalName")}
+                placeholder="e.g. Green Fields Agricultural Coop BV"
+                className="mt-1 w-full rounded-lg border border-[#d4cdbc] bg-white px-3.5 py-2 text-sm text-[#173f35] placeholder:text-[#9e9686] focus:border-[#173f35] focus:outline-hidden"
+              />
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="block text-xs font-semibold text-[#203e35]" htmlFor="reg-businessType">
+                  Business Activity
+                </label>
+                <select
+                  id="reg-businessType"
+                  {...regNewOrg("businessType")}
+                  className="mt-1 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 py-2 text-sm text-[#173f35] focus:border-[#173f35] focus:outline-hidden"
+                >
+                  <option value="farmer">Farmer / Grower</option>
+                  <option value="cooperative">Producer Cooperative</option>
+                  <option value="processor">Primary Processor</option>
+                  <option value="trader">Agricultural Trader</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-[#203e35]" htmlFor="reg-country">
+                  Country
+                </label>
+                <input
+                  id="reg-country"
+                  {...regNewOrg("country")}
+                  placeholder="e.g. Netherlands"
+                  className="mt-1 w-full rounded-lg border border-[#d4cdbc] bg-white px-3.5 py-2 text-sm text-[#173f35] placeholder:text-[#9e9686] focus:border-[#173f35] focus:outline-hidden"
+                />
+              </div>
+            </div>
+
+            <button
+              disabled={isCreatingOrg}
+              type="submit"
+              className="mt-4 flex w-full items-center justify-center rounded-lg bg-[#173f35] py-2.5 text-sm font-semibold text-[#fffaf0] transition-colors hover:bg-[#204e42] disabled:opacity-50"
+            >
+              {isCreatingOrg ? "Creating Organisation..." : "Register Organisation"}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <AuthenticatedAppShell
       activeSection={activeSection}
       onSelectSection={setActiveSection}
       userEmail={userEmail}
-      companyName={profile?.name}
-      verificationStatus={profile?.verificationStatus}
+      companyName={profile.name}
+      verificationStatus={profile.verificationStatus}
       onLogout={onLogout}
       isLoggingOut={isLoggingOut}
     >
-      {errorMessage && (
-        <div className="mb-6 rounded-xl border border-[#e7c4bd] bg-[#fff5f2] p-4 text-sm text-[#8c352d] shadow-xs">
-          {errorMessage}
-        </div>
-      )}
-
+      {/* Notifications */}
       {successMessage && (
-        <div className="mb-6 rounded-xl border border-[#c4e3d3] bg-[#f2faf5] p-4 text-sm text-[#206649] shadow-xs">
-          {successMessage}
+        <div className="mb-6 flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800 shadow-2xs">
+          <span>{successMessage}</span>
+          <button
+            onClick={() => setSuccessMessage(null)}
+            className="text-emerald-600 hover:text-emerald-900"
+            type="button"
+          >
+            ✕
+          </button>
         </div>
       )}
 
-      {loading ? (
-        <div className="flex min-h-96 flex-col items-center justify-center text-center">
-          <span className="h-9 w-9 animate-spin rounded-full border-[3px] border-[#ddd6c6] border-t-[#284f41]" />
-          <p className="mt-4 text-sm font-medium text-[#5d6e68]">Loading organisation information...</p>
+      {errorMessage && (
+        <div className="mb-6 flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-medium text-red-800 shadow-2xs">
+          <span>{errorMessage}</span>
+          <button
+            onClick={() => setErrorMessage(null)}
+            className="text-red-600 hover:text-red-900"
+            type="button"
+          >
+            ✕
+          </button>
         </div>
-      ) : !profile ? (
-        /* First-Time Onboarding Form */
-        <div className="mx-auto max-w-2xl rounded-2xl border border-[#e2dccd] bg-white p-6 shadow-sm sm:p-10">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e7f1eb] px-3 py-1 text-xs font-semibold text-[#285d4a]">
-            <span className="h-2 w-2 rounded-full bg-[#3b876b]" />
-            Supplier Onboarding
-          </span>
-          <h1 className="mt-4 text-2xl font-bold tracking-tight text-[#203e35] sm:text-3xl">
-            Register Your Supplier Organisation
-          </h1>
-          <p className="mt-2 text-sm leading-relaxed text-[#60706a]">
-            Join I Do Grow to offer European natural fibres directly to international buyers and processors.
-          </p>
+      )}
 
-          <form className="mt-8 space-y-5" onSubmit={handleNewOrgSubmit(onCreateOrg)}>
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-[#304f45]" htmlFor="onboard-name">
-                Company / Commercial Name *
-              </label>
-              <input
-                id="onboard-name"
-                required
-                placeholder="e.g. Green Fields Hemp Cooperative"
-                className="mt-1.5 h-11 w-full rounded-lg border border-[#d4cdbc] bg-white px-3.5 text-sm text-[#203e35] outline-none transition focus:border-[#356a57] focus:ring-2 focus:ring-[#356a57]/20"
-                {...regNewOrg("name", { required: true })}
+      {/* Top Organisation Header & Progress Overview */}
+      <div className="mb-8 rounded-2xl border border-[#e2dccd] bg-white p-6 shadow-2xs">
+        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-xl font-bold tracking-tight text-[#173f35] sm:text-2xl">
+                {profile.name}
+              </h1>
+              <span
+                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                  profile.verificationStatus === "VERIFIED"
+                    ? "bg-[#e2f3ea] text-[#1b6b47]"
+                    : profile.verificationStatus === "UNDER_REVIEW"
+                    ? "bg-[#eaf1fb] text-[#1e58a9]"
+                    : "bg-[#fef4dd] text-[#875908]"
+                }`}
+              >
+                {profile.verificationStatus === "PENDING"
+                  ? "Pending Verification"
+                  : profile.verificationStatus}
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-[#52635c]">
+              {profile.legalName || "Legal name not set"} • {profile.businessType || "Supplier"} •{" "}
+              {profile.country || "Location not set"}
+            </p>
+          </div>
+
+          {/* Compact Completeness Progress */}
+          <div className="w-full rounded-xl bg-[#faf8f1] p-3.5 sm:w-72">
+            <div className="mb-1.5 flex items-center justify-between text-xs">
+              <span className="font-semibold text-[#203e35]">Profile Readiness</span>
+              <span className="font-bold text-[#173f35]">{profile.completenessPercent}%</span>
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-[#e8e2d2]">
+              <div
+                className="h-full rounded-full bg-[#173f35] transition-all duration-500"
+                style={{ width: `${profile.completenessPercent}%` }}
               />
             </div>
+            {profile.missingFields.length > 0 && (
+              <p className="mt-1.5 truncate text-[11px] text-[#718079]">
+                Missing: {profile.missingFields.slice(0, 2).join(", ")}
+                {profile.missingFields.length > 2 && ` +${profile.missingFields.length - 2} more`}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+      {/* VIEW 1: ORGANISATION PROFILE */}
+      {activeSection === "organisation" && (
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+          {/* Main 2/3 Column: General Information Card */}
+          <div className="rounded-2xl border border-[#e2dccd] bg-white p-6 shadow-2xs lg:col-span-2">
+            <div className="mb-6 flex items-center justify-between border-b border-[#f0ece1] pb-4">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-[#304f45]" htmlFor="onboard-legalName">
-                  Legal Entity Name
-                </label>
-                <input
-                  id="onboard-legalName"
-                  placeholder="e.g. Green Fields Hemp Coop B.V."
-                  className="mt-1.5 h-11 w-full rounded-lg border border-[#d4cdbc] bg-white px-3.5 text-sm text-[#203e35] outline-none transition focus:border-[#356a57] focus:ring-2 focus:ring-[#356a57]/20"
-                  {...regNewOrg("legalName")}
-                />
+                <h2 className="text-base font-bold text-[#173f35]">General Information</h2>
+                <p className="text-xs text-[#6e7d77]">Official legal registry & business details</p>
               </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-[#304f45]" htmlFor="onboard-businessType">
-                  Business Activity
-                </label>
-                <select
-                  id="onboard-businessType"
-                  className="mt-1.5 h-11 w-full rounded-lg border border-[#d4cdbc] bg-white px-3.5 text-sm text-[#203e35] outline-none transition focus:border-[#356a57] focus:ring-2 focus:ring-[#356a57]/20"
-                  {...regNewOrg("businessType")}
-                >
-                  <option value="">Select Activity</option>
-                  <option value="farmer">Farmer / Primary Grower</option>
-                  <option value="cooperative">Agricultural Cooperative</option>
-                  <option value="producer">Raw Material Producer</option>
-                  <option value="processor">Primary Processor</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-[#304f45]" htmlFor="onboard-reg">
-                  Registration Number (KVK / SIRET)
-                </label>
-                <input
-                  id="onboard-reg"
-                  placeholder="e.g. 12345678"
-                  className="mt-1.5 h-11 w-full rounded-lg border border-[#d4cdbc] bg-white px-3.5 text-sm text-[#203e35] outline-none transition focus:border-[#356a57] focus:ring-2 focus:ring-[#356a57]/20"
-                  {...regNewOrg("registrationNumber")}
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-[#304f45]" htmlFor="onboard-vat">
-                  VAT / Tax ID
-                </label>
-                <input
-                  id="onboard-vat"
-                  placeholder="e.g. NL123456789B01"
-                  className="mt-1.5 h-11 w-full rounded-lg border border-[#d4cdbc] bg-white px-3.5 text-sm text-[#203e35] outline-none transition focus:border-[#356a57] focus:ring-2 focus:ring-[#356a57]/20"
-                  {...regNewOrg("vatNumber")}
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-[#304f45]" htmlFor="onboard-addr">
-                  Address
-                </label>
-                <input
-                  id="onboard-addr"
-                  placeholder="e.g. Hemp Street 10"
-                  className="mt-1.5 h-11 w-full rounded-lg border border-[#d4cdbc] bg-white px-3.5 text-sm text-[#203e35] outline-none transition focus:border-[#356a57] focus:ring-2 focus:ring-[#356a57]/20"
-                  {...regNewOrg("address")}
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-[#304f45]" htmlFor="onboard-country">
-                  Country
-                </label>
-                <input
-                  id="onboard-country"
-                  placeholder="e.g. Netherlands"
-                  className="mt-1.5 h-11 w-full rounded-lg border border-[#d4cdbc] bg-white px-3.5 text-sm text-[#203e35] outline-none transition focus:border-[#356a57] focus:ring-2 focus:ring-[#356a57]/20"
-                  {...regNewOrg("country")}
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-[#304f45]" htmlFor="onboard-contactName">
-                  Primary Contact Name
-                </label>
-                <input
-                  id="onboard-contactName"
-                  placeholder="e.g. Jan de Vries"
-                  className="mt-1.5 h-11 w-full rounded-lg border border-[#d4cdbc] bg-white px-3.5 text-sm text-[#203e35] outline-none transition focus:border-[#356a57] focus:ring-2 focus:ring-[#356a57]/20"
-                  {...regNewOrg("contactName")}
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-[#304f45]" htmlFor="onboard-contactEmail">
-                  Contact Email
-                </label>
-                <input
-                  id="onboard-contactEmail"
-                  type="email"
-                  placeholder="jan@coop.nl"
-                  className="mt-1.5 h-11 w-full rounded-lg border border-[#d4cdbc] bg-white px-3.5 text-sm text-[#203e35] outline-none transition focus:border-[#356a57] focus:ring-2 focus:ring-[#356a57]/20"
-                  {...regNewOrg("contactEmail")}
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-[#304f45]" htmlFor="onboard-contactPhone">
-                  Phone Number
-                </label>
-                <input
-                  id="onboard-contactPhone"
-                  placeholder="+31 6 12345678"
-                  className="mt-1.5 h-11 w-full rounded-lg border border-[#d4cdbc] bg-white px-3.5 text-sm text-[#203e35] outline-none transition focus:border-[#356a57] focus:ring-2 focus:ring-[#356a57]/20"
-                  {...regNewOrg("contactPhone")}
-                />
-              </div>
-            </div>
-
-            <div className="pt-4">
               <button
-                type="submit"
-                disabled={isCreatingOrg}
-                className="h-11 w-full rounded-lg bg-[#284f41] px-6 text-sm font-semibold text-[#fffaf0] shadow-sm transition hover:bg-[#1f4035] focus-visible:outline-2 focus-visible:outline-[#356a57] disabled:opacity-60"
+                onClick={() => setIsEditingProfile(!isEditingProfile)}
+                type="button"
+                className="rounded-lg border border-[#d4cdbc] bg-white px-3 py-1.5 text-xs font-semibold text-[#173f35] transition-colors hover:bg-[#faf8f1]"
               >
-                {isCreatingOrg ? "Creating Organisation..." : "Complete Organisation Registration"}
+                {isEditingProfile ? "Cancel" : "Edit Profile"}
               </button>
             </div>
-          </form>
-        </div>
-      ) : (
-        /* Full-Width Authenticated Supplier Portal */
-        <div className="space-y-6">
-          {/* Section 1: Organisation Profile */}
-          {activeSection === "organisation" && (
-            <>
-              {/* Page Header with Compact Completeness Summary */}
-              <div className="flex flex-col justify-between gap-4 border-b border-[#e2dccd] pb-6 sm:flex-row sm:items-end">
-                <div>
-                  <h1 className="text-2xl font-bold tracking-tight text-[#203e35] sm:text-3xl">
-                    {profile.name}
-                  </h1>
-                  <p className="mt-1 text-sm text-[#6e7d77]">
-                    {profile.legalName || profile.name} · {profile.businessType ? profile.businessType.toUpperCase() : "SUPPLIER"} · {profile.country || "Country Not Set"}
-                  </p>
-                </div>
 
-                {/* Compact Completeness Widget */}
-                <div className="w-full rounded-xl border border-[#e2dccd] bg-white p-4 shadow-2xs sm:w-72">
-                  <div className="flex items-center justify-between text-xs font-semibold">
-                    <span className="text-[#304f45]">Profile Completeness</span>
-                    <span className="font-bold text-[#284f41]">{profile.completenessPercent}%</span>
-                  </div>
-                  <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[#eee9dc]">
-                    <div
-                      className="h-full rounded-full bg-[#284f41] transition-all duration-500"
-                      style={{ width: `${profile.completenessPercent}%` }}
+            {isEditingProfile ? (
+              <form onSubmit={handleProfileSubmit(onSaveProfile)} className="space-y-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-xs font-semibold text-[#203e35]" htmlFor="edit-name">
+                      Commercial Name *
+                    </label>
+                    <input
+                      id="edit-name"
+                      {...regProfile("name", { required: true })}
+                      className="mt-1 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 py-2 text-sm text-[#173f35] focus:border-[#173f35] focus:outline-hidden"
                     />
                   </div>
-                  {profile.missingFields.length > 0 ? (
-                    <p className="mt-1.5 truncate text-[11px] text-[#837760]">
-                      Missing: {profile.missingFields.slice(0, 2).join(", ")}
-                      {profile.missingFields.length > 2 ? ` (+${profile.missingFields.length - 2})` : ""}
-                    </p>
-                  ) : (
-                    <p className="mt-1.5 text-[11px] font-medium text-[#1b6b47]">
-                      ✓ Profile complete
-                    </p>
-                  )}
+                  <div>
+                    <label className="block text-xs font-semibold text-[#203e35]" htmlFor="edit-legalName">
+                      Legal Entity Name
+                    </label>
+                    <input
+                      id="edit-legalName"
+                      {...regProfile("legalName")}
+                      className="mt-1 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 py-2 text-sm text-[#173f35] focus:border-[#173f35] focus:outline-hidden"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              {/* Profile Grid: 2/3 Main Card + 1/3 At A Glance Card */}
-              <div className="grid gap-6 lg:grid-cols-3">
-                {/* 2/3 Column: General Information */}
-                <div className="rounded-2xl border border-[#e2dccd] bg-white p-6 shadow-2xs lg:col-span-2 sm:p-8">
-                  <div className="flex items-center justify-between border-b border-[#e2dccd] pb-4">
-                    <div>
-                      <h2 className="text-base font-bold text-[#203e35]">General Information</h2>
-                      <p className="text-xs text-[#6e7d77]">Legal and operational details for trading</p>
-                    </div>
-                    <button
-                      className="rounded-lg border border-[#d4cdbc] bg-white px-3.5 py-1.5 text-xs font-semibold text-[#284f41] transition hover:bg-[#f5f1e7]"
-                      onClick={() => setIsEditingProfile(!isEditingProfile)}
-                      type="button"
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-[#203e35]" htmlFor="edit-businessType">
+                      Business Activity
+                    </label>
+                    <select
+                      id="edit-businessType"
+                      {...regProfile("businessType")}
+                      className="mt-1 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 py-2 text-sm text-[#173f35] focus:border-[#173f35] focus:outline-hidden"
                     >
-                      {isEditingProfile ? "Cancel" : "Edit Profile"}
-                    </button>
+                      <option value="farmer">Farmer / Grower</option>
+                      <option value="cooperative">Producer Cooperative</option>
+                      <option value="processor">Primary Processor</option>
+                      <option value="trader">Agricultural Trader</option>
+                    </select>
                   </div>
-
-                  {isEditingProfile ? (
-                    <form className="mt-6 space-y-4" onSubmit={handleProfileSubmit(onSaveProfile)}>
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <div>
-                          <label className="block text-xs font-semibold text-[#304f45]">Commercial Name *</label>
-                          <input
-                            required
-                            className="mt-1.5 h-10 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 text-sm text-[#203e35] outline-none focus:border-[#356a57]"
-                            {...regProfile("name", { required: true })}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-[#304f45]">Legal Entity Name</label>
-                          <input
-                            className="mt-1.5 h-10 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 text-sm text-[#203e35] outline-none focus:border-[#356a57]"
-                            {...regProfile("legalName")}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <div>
-                          <label className="block text-xs font-semibold text-[#304f45]">Business Activity</label>
-                          <select
-                            className="mt-1.5 h-10 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 text-sm text-[#203e35] outline-none focus:border-[#356a57]"
-                            {...regProfile("businessType")}
-                          >
-                            <option value="">Select Activity</option>
-                            <option value="farmer">Farmer / Primary Grower</option>
-                            <option value="cooperative">Agricultural Cooperative</option>
-                            <option value="producer">Raw Material Producer</option>
-                            <option value="processor">Primary Processor</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-[#304f45]">Country</label>
-                          <input
-                            className="mt-1.5 h-10 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 text-sm text-[#203e35] outline-none focus:border-[#356a57]"
-                            {...regProfile("country")}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <div>
-                          <label className="block text-xs font-semibold text-[#304f45]">Registration Number (KVK/SIRET)</label>
-                          <input
-                            className="mt-1.5 h-10 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 text-sm text-[#203e35] outline-none focus:border-[#356a57]"
-                            {...regProfile("registrationNumber")}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-[#304f45]">VAT Number</label>
-                          <input
-                            className="mt-1.5 h-10 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 text-sm text-[#203e35] outline-none focus:border-[#356a57]"
-                            {...regProfile("vatNumber")}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid gap-4 sm:grid-cols-3">
-                        <div className="sm:col-span-2">
-                          <label className="block text-xs font-semibold text-[#304f45]">Address</label>
-                          <input
-                            className="mt-1.5 h-10 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 text-sm text-[#203e35] outline-none focus:border-[#356a57]"
-                            {...regProfile("address")}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-[#304f45]">City</label>
-                          <input
-                            className="mt-1.5 h-10 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 text-sm text-[#203e35] outline-none focus:border-[#356a57]"
-                            {...regProfile("city")}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid gap-4 sm:grid-cols-3">
-                        <div>
-                          <label className="block text-xs font-semibold text-[#304f45]">Primary Contact Name</label>
-                          <input
-                            className="mt-1.5 h-10 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 text-sm text-[#203e35] outline-none focus:border-[#356a57]"
-                            {...regProfile("contactName")}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-[#304f45]">Contact Email</label>
-                          <input
-                            type="email"
-                            className="mt-1.5 h-10 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 text-sm text-[#203e35] outline-none focus:border-[#356a57]"
-                            {...regProfile("contactEmail")}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-[#304f45]">Contact Phone</label>
-                          <input
-                            className="mt-1.5 h-10 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 text-sm text-[#203e35] outline-none focus:border-[#356a57]"
-                            {...regProfile("contactPhone")}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="flex justify-end gap-3 pt-4 border-t border-[#e2dccd]">
-                        <button
-                          type="button"
-                          className="rounded-lg border border-[#d4cdbc] px-4 py-2 text-xs font-semibold text-[#53625d] hover:bg-[#f1eee6]"
-                          onClick={() => setIsEditingProfile(false)}
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="submit"
-                          disabled={isSavingProfile}
-                          className="rounded-lg bg-[#284f41] px-5 py-2 text-xs font-semibold text-[#fffaf0] hover:bg-[#1f4035] disabled:opacity-60"
-                        >
-                          {isSavingProfile ? "Saving..." : "Save Changes"}
-                        </button>
-                      </div>
-                    </form>
-                  ) : (
-                    <div className="mt-6 grid gap-y-6 text-sm sm:grid-cols-2 sm:gap-x-8">
-                      <div>
-                        <span className="block text-xs font-semibold uppercase tracking-wider text-[#837760]">Commercial Name</span>
-                        <p className="mt-1 font-medium text-[#203e35] text-base">{profile.name}</p>
-                      </div>
-                      <div>
-                        <span className="block text-xs font-semibold uppercase tracking-wider text-[#837760]">Legal Entity</span>
-                        <p className="mt-1 font-medium text-[#203e35] text-base">{profile.legalName || "—"}</p>
-                      </div>
-                      <div>
-                        <span className="block text-xs font-semibold uppercase tracking-wider text-[#837760]">Business Activity</span>
-                        <p className="mt-1 font-medium capitalize text-[#203e35] text-base">{profile.businessType || "—"}</p>
-                      </div>
-                      <div>
-                        <span className="block text-xs font-semibold uppercase tracking-wider text-[#837760]">Country</span>
-                        <p className="mt-1 font-medium text-[#203e35] text-base">{profile.country || "—"}</p>
-                      </div>
-                      <div>
-                        <span className="block text-xs font-semibold uppercase tracking-wider text-[#837760]">Registration Number</span>
-                        <p className="mt-1 font-medium text-[#203e35] text-base">{profile.registrationNumber || "—"}</p>
-                      </div>
-                      <div>
-                        <span className="block text-xs font-semibold uppercase tracking-wider text-[#837760]">VAT Number</span>
-                        <p className="mt-1 font-medium text-[#203e35] text-base">{profile.vatNumber || "—"}</p>
-                      </div>
-                      <div className="sm:col-span-2">
-                        <span className="block text-xs font-semibold uppercase tracking-wider text-[#837760]">Address</span>
-                        <p className="mt-1 font-medium text-[#203e35] text-base">
-                          {[profile.address, profile.postalCode, profile.city].filter(Boolean).join(", ") || "—"}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* 1/3 Column: At A Glance Card */}
-                <div className="rounded-2xl border border-[#e2dccd] bg-white p-6 shadow-2xs sm:p-8">
-                  <h2 className="border-b border-[#e2dccd] pb-3 text-base font-bold text-[#203e35]">At a Glance</h2>
-                  <div className="mt-5 space-y-4 text-sm">
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-[#e7f1eb] text-[#284f41]">
-                        <Building2Icon className="h-4 w-4" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-[#837760]">Primary Contact</p>
-                        <p className="text-sm font-semibold text-[#203e35] truncate">{profile.contactName || "—"}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-[#e7f1eb] text-[#284f41]">
-                        <MailIcon className="h-4 w-4" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-[#837760]">Email</p>
-                        <p className="text-sm font-semibold text-[#203e35] truncate">{profile.contactEmail || "—"}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-[#e7f1eb] text-[#284f41]">
-                        <PhoneIcon className="h-4 w-4" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-[#837760]">Phone</p>
-                        <p className="text-sm font-semibold text-[#203e35] truncate">{profile.contactPhone || "—"}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-[#e7f1eb] text-[#284f41]">
-                        <MapPinIcon className="h-4 w-4" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-[#837760]">Location</p>
-                        <p className="text-sm font-semibold text-[#203e35] truncate">
-                          {[profile.city, profile.country].filter(Boolean).join(", ") || "—"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-[#e7f1eb] text-[#284f41]">
-                        <SproutSmallIcon className="h-4 w-4" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-[#837760]">Production Sites</p>
-                        <p className="text-sm font-semibold text-[#203e35]">{profile.sites.length} site(s) registered</p>
-                      </div>
-                    </div>
-
-                    <div className="border-t border-[#e2dccd] pt-4 mt-6">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-[#837760]">Verification Status</span>
-                        <span className="font-semibold text-[#203e35]">{profile.verificationStatus}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs mt-2">
-                        <span className="text-[#837760]">Member Since</span>
-                        <span className="font-semibold text-[#203e35]">
-                          {new Date(profile.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#203e35]" htmlFor="edit-regNum">
+                      Registration (KVK/SIRET)
+                    </label>
+                    <input
+                      id="edit-regNum"
+                      {...regProfile("registrationNumber")}
+                      className="mt-1 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 py-2 text-sm text-[#173f35] focus:border-[#173f35] focus:outline-hidden"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#203e35]" htmlFor="edit-vat">
+                      VAT Number
+                    </label>
+                    <input
+                      id="edit-vat"
+                      {...regProfile("vatNumber")}
+                      className="mt-1 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 py-2 text-sm text-[#173f35] focus:border-[#173f35] focus:outline-hidden"
+                    />
                   </div>
                 </div>
-              </div>
-            </>
-          )}
 
-          {/* Section 2: Production Sites & Farms */}
-          {activeSection === "sites" && (
-            <>
-              {/* Page Header with Add Action */}
-              <div className="flex flex-col justify-between gap-4 border-b border-[#e2dccd] pb-6 sm:flex-row sm:items-end">
                 <div>
-                  <h1 className="text-2xl font-bold tracking-tight text-[#203e35] sm:text-3xl">
-                    Production Sites & Farms
-                  </h1>
-                  <p className="mt-1 text-sm text-[#6e7d77]">
-                    Agricultural parcels and storage facilities linked to your supplier profile
+                  <label className="block text-xs font-semibold text-[#203e35]" htmlFor="edit-address">
+                    Physical Address
+                  </label>
+                  <input
+                    id="edit-address"
+                    {...regProfile("address")}
+                    className="mt-1 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 py-2 text-sm text-[#173f35] focus:border-[#173f35] focus:outline-hidden"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-[#203e35]" htmlFor="edit-city">
+                      City
+                    </label>
+                    <input
+                      id="edit-city"
+                      {...regProfile("city")}
+                      className="mt-1 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 py-2 text-sm text-[#173f35] focus:border-[#173f35] focus:outline-hidden"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#203e35]" htmlFor="edit-postal">
+                      Postal Code
+                    </label>
+                    <input
+                      id="edit-postal"
+                      {...regProfile("postalCode")}
+                      className="mt-1 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 py-2 text-sm text-[#173f35] focus:border-[#173f35] focus:outline-hidden"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#203e35]" htmlFor="edit-country">
+                      Country
+                    </label>
+                    <input
+                      id="edit-country"
+                      {...regProfile("country")}
+                      className="mt-1 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 py-2 text-sm text-[#173f35] focus:border-[#173f35] focus:outline-hidden"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-[#203e35]" htmlFor="edit-cName">
+                      Primary Contact Name
+                    </label>
+                    <input
+                      id="edit-cName"
+                      {...regProfile("contactName")}
+                      className="mt-1 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 py-2 text-sm text-[#173f35] focus:border-[#173f35] focus:outline-hidden"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#203e35]" htmlFor="edit-cEmail">
+                      Contact Email
+                    </label>
+                    <input
+                      id="edit-cEmail"
+                      {...regProfile("contactEmail")}
+                      className="mt-1 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 py-2 text-sm text-[#173f35] focus:border-[#173f35] focus:outline-hidden"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#203e35]" htmlFor="edit-cPhone">
+                      Contact Phone
+                    </label>
+                    <input
+                      id="edit-cPhone"
+                      {...regProfile("contactPhone")}
+                      className="mt-1 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 py-2 text-sm text-[#173f35] focus:border-[#173f35] focus:outline-hidden"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4">
+                  <button
+                    onClick={() => setIsEditingProfile(false)}
+                    type="button"
+                    className="rounded-lg border border-[#d4cdbc] px-4 py-2 text-xs font-semibold text-[#455750] hover:bg-[#faf8f1]"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    disabled={isSavingProfile}
+                    type="submit"
+                    className="rounded-lg bg-[#173f35] px-5 py-2 text-xs font-semibold text-[#fffaf0] transition-colors hover:bg-[#204e42] disabled:opacity-50"
+                  >
+                    {isSavingProfile ? "Saving..." : "Save Changes"}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-[#8b9993]">
+                    Commercial Name
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-[#173f35]">{profile.name}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-[#8b9993]">
+                    Legal Entity
+                  </p>
+                  <p className="mt-1 text-sm text-[#203e35]">{profile.legalName || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-[#8b9993]">
+                    Business Activity
+                  </p>
+                  <p className="mt-1 text-sm capitalize text-[#203e35]">{profile.businessType || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-[#8b9993]">
+                    Registration Number (KVK)
+                  </p>
+                  <p className="mt-1 font-mono text-sm text-[#203e35]">
+                    {profile.registrationNumber || "—"}
                   </p>
                 </div>
-                {!isAddingSite && (
-                  <button
-                    className="inline-flex items-center gap-2 rounded-lg bg-[#284f41] px-4 py-2.5 text-xs font-semibold text-[#fffaf0] shadow-sm transition hover:bg-[#1f4035]"
-                    onClick={() => {
-                      setEditingSiteId(null);
-                      resetSiteForm({});
-                      setIsAddingSite(true);
-                    }}
-                    type="button"
-                  >
-                    <span>+ Add Production Site</span>
-                  </button>
-                )}
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-[#8b9993]">
+                    VAT Number
+                  </p>
+                  <p className="mt-1 font-mono text-sm text-[#203e35]">{profile.vatNumber || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-[#8b9993]">
+                    Location / Address
+                  </p>
+                  <p className="mt-1 text-sm text-[#203e35]">
+                    {[profile.address, profile.city, profile.country].filter(Boolean).join(", ") || "—"}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 1/3 Side Column: "At a Glance" Card */}
+          <div className="rounded-2xl border border-[#e2dccd] bg-white p-6 shadow-2xs">
+            <h3 className="mb-4 border-b border-[#f0ece1] pb-3 text-sm font-bold text-[#173f35]">
+              At a Glance
+            </h3>
+            <div className="space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#faf8f1] text-[#245347]">
+                  <Building2Icon className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-[#8b9993]">
+                    Contact Person
+                  </p>
+                  <p className="text-xs font-semibold text-[#173f35]">
+                    {profile.contactName || "No contact specified"}
+                  </p>
+                </div>
               </div>
 
-              {/* Add / Edit Site Form Modal/Card */}
-              {isAddingSite && (
-                <div className="rounded-2xl border border-[#d4cdbc] bg-white p-6 shadow-sm sm:p-8">
-                  <h3 className="border-b border-[#e2dccd] pb-3 text-base font-bold text-[#203e35]">
-                    {editingSiteId ? "Edit Production Site" : "New Production Site / Farm"}
+              <div className="flex items-start gap-3">
+                <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#faf8f1] text-[#245347]">
+                  <MailIcon className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-[#8b9993]">Email</p>
+                  <p className="truncate text-xs font-medium text-[#203e35]">
+                    {profile.contactEmail || "—"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#faf8f1] text-[#245347]">
+                  <PhoneIcon className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-[#8b9993]">Phone</p>
+                  <p className="text-xs font-medium text-[#203e35]">{profile.contactPhone || "—"}</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#faf8f1] text-[#245347]">
+                  <SproutSmallIcon className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-[#8b9993]">
+                    Registered Sites
+                  </p>
+                  <p className="text-xs font-semibold text-[#173f35]">
+                    {profile.sites.length} {profile.sites.length === 1 ? "Site" : "Sites"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW 2: PRODUCTION SITES */}
+      {activeSection === "sites" && (
+        <div>
+          <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+            <div>
+              <h2 className="text-lg font-bold text-[#173f35]">Production Sites</h2>
+              <p className="text-xs text-[#6e7d77]">
+                Manage agricultural parcels, drying facilities, and storage hubs
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setEditingSiteId(null);
+                resetSiteForm({});
+                setIsAddingSite(true);
+              }}
+              type="button"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#173f35] px-4 py-2 text-xs font-semibold text-[#fffaf0] transition-colors hover:bg-[#204e42]"
+            >
+              <span>+ Add Production Site</span>
+            </button>
+          </div>
+
+          {/* Site Cards Grid */}
+          {profile.sites.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-[#d4cdbc] bg-white p-12 text-center">
+              <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[#faf8f1] text-[#245347]">
+                <SproutSmallIcon className="h-6 w-6" />
+              </div>
+              <h3 className="mt-4 text-sm font-bold text-[#173f35]">No Production Sites Added</h3>
+              <p className="mx-auto mt-1 max-w-sm text-xs text-[#6e7d77]">
+                Add your farms, retting fields, or warehouses to enable full traceability.
+              </p>
+              <button
+                onClick={() => setIsAddingSite(true)}
+                type="button"
+                className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#173f35] px-4 py-2 text-xs font-semibold text-[#fffaf0] hover:bg-[#204e42]"
+              >
+                + Add First Site
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {profile.sites.map((site) => (
+                <div
+                  key={site.id}
+                  className="flex flex-col justify-between rounded-2xl border border-[#e2dccd] bg-white p-5 shadow-2xs transition-shadow hover:shadow-xs"
+                >
+                  <div>
+                    <div className="mb-3 flex items-center justify-between">
+                      <span className="rounded-md bg-[#faf8f1] px-2 py-0.5 text-[11px] font-semibold text-[#245347] capitalize">
+                        {site.facilityType?.replace("_", " ") || "Farm"}
+                      </span>
+                      {site.landAreaHectares && (
+                        <span className="text-xs font-bold text-[#173f35]">
+                          {site.landAreaHectares} ha
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="text-sm font-bold text-[#173f35]">{site.name}</h3>
+                    <p className="mt-1 text-xs text-[#6e7d77]">
+                      {[site.address, site.city, site.country].filter(Boolean).join(", ") ||
+                        "No address provided"}
+                    </p>
+                    {site.latitude && site.longitude && (
+                      <p className="mt-2 font-mono text-[11px] text-[#8b9993]">
+                        GPS: {site.latitude.toFixed(4)}, {site.longitude.toFixed(4)}
+                      </p>
+                    )}
+                  </div>
+                  <div className="mt-4 border-t border-[#f0ece1] pt-3">
+                    <button
+                      onClick={() => startEditSite(site)}
+                      type="button"
+                      className="text-xs font-semibold text-[#173f35] hover:underline"
+                    >
+                      Edit Details →
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Add / Edit Site Modal */}
+          {isAddingSite && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+              <div className="w-full max-w-lg rounded-2xl border border-[#e2dccd] bg-white p-6 shadow-xl">
+                <div className="mb-4 flex items-center justify-between border-b border-[#f0ece1] pb-3">
+                  <h3 className="text-base font-bold text-[#173f35]">
+                    {editingSiteId ? "Edit Production Site" : "Add Production Site"}
                   </h3>
-                  <form className="mt-6 space-y-4" onSubmit={handleSiteSubmit(onSaveSite)}>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div>
-                        <label className="block text-xs font-semibold text-[#304f45]">Site Name *</label>
-                        <input
-                          required
-                          placeholder="e.g. North Parcel Farm"
-                          className="mt-1.5 h-10 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 text-sm text-[#203e35] outline-none focus:border-[#356a57]"
-                          {...regSite("name", { required: true })}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-[#304f45]">Facility Type</label>
-                        <select
-                          className="mt-1.5 h-10 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 text-sm text-[#203e35] outline-none focus:border-[#356a57]"
-                          {...regSite("facilityType")}
-                        >
-                          <option value="farm">Farm / Agricultural Land</option>
-                          <option value="processing_facility">Primary Processing Facility</option>
-                          <option value="storage_warehouse">Storage / Bale Warehouse</option>
-                        </select>
-                      </div>
-                    </div>
+                  <button
+                    onClick={() => {
+                      setIsAddingSite(false);
+                      setEditingSiteId(null);
+                    }}
+                    type="button"
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    ✕
+                  </button>
+                </div>
 
-                    <div className="grid gap-4 sm:grid-cols-3">
-                      <div className="sm:col-span-2">
-                        <label className="block text-xs font-semibold text-[#304f45]">Address</label>
-                        <input
-                          placeholder="e.g. Rural Route 4"
-                          className="mt-1.5 h-10 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 text-sm text-[#203e35] outline-none focus:border-[#356a57]"
-                          {...regSite("address")}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-[#304f45]">City</label>
-                        <input
-                          placeholder="e.g. Reims"
-                          className="mt-1.5 h-10 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 text-sm text-[#203e35] outline-none focus:border-[#356a57]"
-                          {...regSite("city")}
-                        />
-                      </div>
-                    </div>
+                <form onSubmit={handleSiteSubmit(onSaveSite)} className="space-y-3.5">
+                  <div>
+                    <label className="block text-xs font-semibold text-[#203e35]" htmlFor="site-name">
+                      Site Name *
+                    </label>
+                    <input
+                      id="site-name"
+                      {...regSite("name", { required: true })}
+                      placeholder="e.g. North Retting Field"
+                      className="mt-1 w-full rounded-lg border border-[#d4cdbc] px-3 py-2 text-sm text-[#173f35] focus:border-[#173f35] focus:outline-hidden"
+                    />
+                  </div>
 
-                    <div className="grid gap-4 sm:grid-cols-4">
-                      <div>
-                        <label className="block text-xs font-semibold text-[#304f45]">Country</label>
-                        <input
-                          placeholder="e.g. France"
-                          className="mt-1.5 h-10 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 text-sm text-[#203e35] outline-none focus:border-[#356a57]"
-                          {...regSite("country")}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-[#304f45]">Surface (Hectares)</label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          placeholder="e.g. 150.0"
-                          className="mt-1.5 h-10 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 text-sm text-[#203e35] outline-none focus:border-[#356a57]"
-                          {...regSite("landAreaHectares")}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-[#304f45]">Latitude (GPS)</label>
-                        <input
-                          type="number"
-                          step="0.0001"
-                          placeholder="49.2583"
-                          className="mt-1.5 h-10 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 text-sm text-[#203e35] outline-none focus:border-[#356a57]"
-                          {...regSite("latitude")}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-[#304f45]">Longitude (GPS)</label>
-                        <input
-                          type="number"
-                          step="0.0001"
-                          placeholder="4.0317"
-                          className="mt-1.5 h-10 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 text-sm text-[#203e35] outline-none focus:border-[#356a57]"
-                          {...regSite("longitude")}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end gap-3 pt-4 border-t border-[#e2dccd]">
-                      <button
-                        type="button"
-                        className="rounded-lg border border-[#d4cdbc] px-4 py-2 text-xs font-semibold text-[#53625d] hover:bg-[#f1eee6]"
-                        onClick={() => {
-                          setIsAddingSite(false);
-                          setEditingSiteId(null);
-                        }}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-[#203e35]" htmlFor="site-type">
+                        Facility Type
+                      </label>
+                      <select
+                        id="site-type"
+                        {...regSite("facilityType")}
+                        className="mt-1 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 py-2 text-sm text-[#173f35] focus:border-[#173f35] focus:outline-hidden"
                       >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={isSavingSite}
-                        className="rounded-lg bg-[#284f41] px-5 py-2 text-xs font-semibold text-[#fffaf0] hover:bg-[#1f4035] disabled:opacity-60"
-                      >
-                        {isSavingSite ? "Saving..." : editingSiteId ? "Update Site" : "Create Site"}
-                      </button>
+                        <option value="farm">Farm / Parcel</option>
+                        <option value="processing_facility">Processing Facility</option>
+                        <option value="storage_hub">Storage Hub</option>
+                        <option value="warehouse">Warehouse</option>
+                      </select>
                     </div>
-                  </form>
+                    <div>
+                      <label className="block text-xs font-semibold text-[#203e35]" htmlFor="site-area">
+                        Land Area (Hectares)
+                      </label>
+                      <input
+                        id="site-area"
+                        type="number"
+                        step="0.1"
+                        {...regSite("landAreaHectares", { valueAsNumber: true })}
+                        placeholder="e.g. 75.5"
+                        className="mt-1 w-full rounded-lg border border-[#d4cdbc] px-3 py-2 text-sm text-[#173f35] focus:border-[#173f35] focus:outline-hidden"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-[#203e35]" htmlFor="site-addr">
+                      Address
+                    </label>
+                    <input
+                      id="site-addr"
+                      {...regSite("address")}
+                      placeholder="e.g. Rural Route 10"
+                      className="mt-1 w-full rounded-lg border border-[#d4cdbc] px-3 py-2 text-sm text-[#173f35] focus:border-[#173f35] focus:outline-hidden"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-[#203e35]" htmlFor="site-city">
+                        City
+                      </label>
+                      <input
+                        id="site-city"
+                        {...regSite("city")}
+                        className="mt-1 w-full rounded-lg border border-[#d4cdbc] px-3 py-2 text-sm text-[#173f35] focus:border-[#173f35] focus:outline-hidden"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-[#203e35]" htmlFor="site-postal">
+                        Postal Code
+                      </label>
+                      <input
+                        id="site-postal"
+                        {...regSite("postalCode")}
+                        className="mt-1 w-full rounded-lg border border-[#d4cdbc] px-3 py-2 text-sm text-[#173f35] focus:border-[#173f35] focus:outline-hidden"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-[#203e35]" htmlFor="site-country">
+                        Country
+                      </label>
+                      <input
+                        id="site-country"
+                        {...regSite("country")}
+                        className="mt-1 w-full rounded-lg border border-[#d4cdbc] px-3 py-2 text-sm text-[#173f35] focus:border-[#173f35] focus:outline-hidden"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-[#203e35]" htmlFor="site-lat">
+                        Latitude
+                      </label>
+                      <input
+                        id="site-lat"
+                        type="number"
+                        step="0.0001"
+                        {...regSite("latitude", { valueAsNumber: true })}
+                        placeholder="52.3676"
+                        className="mt-1 w-full rounded-lg border border-[#d4cdbc] px-3 py-2 text-sm text-[#173f35] focus:border-[#173f35] focus:outline-hidden"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-[#203e35]" htmlFor="site-lng">
+                        Longitude
+                      </label>
+                      <input
+                        id="site-lng"
+                        type="number"
+                        step="0.0001"
+                        {...regSite("longitude", { valueAsNumber: true })}
+                        placeholder="4.9041"
+                        className="mt-1 w-full rounded-lg border border-[#d4cdbc] px-3 py-2 text-sm text-[#173f35] focus:border-[#173f35] focus:outline-hidden"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-4">
+                    <button
+                      onClick={() => {
+                        setIsAddingSite(false);
+                        setEditingSiteId(null);
+                      }}
+                      type="button"
+                      className="rounded-lg border border-[#d4cdbc] px-4 py-2 text-xs font-semibold text-[#455750] hover:bg-[#faf8f1]"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      disabled={isSavingSite}
+                      type="submit"
+                      className="rounded-lg bg-[#173f35] px-5 py-2 text-xs font-semibold text-[#fffaf0] transition-colors hover:bg-[#204e42] disabled:opacity-50"
+                    >
+                      {isSavingSite ? "Saving..." : "Save Site"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* VIEW 3: COMPLIANCE & DOCUMENTS */}
+      {activeSection === "compliance" && (
+        <div className="space-y-8">
+          <div>
+            <h2 className="text-lg font-bold text-[#173f35]">Compliance & Verification Documents</h2>
+            <p className="text-xs text-[#6e7d77]">
+              Upload company registration extract, VAT certificates, and agricultural certifications
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+            {/* 1/3 Upload Card */}
+            <div className="rounded-2xl border border-[#e2dccd] bg-white p-6 shadow-2xs">
+              <h3 className="mb-3 text-sm font-bold text-[#173f35]">Upload Evidence</h3>
+              <p className="mb-4 text-xs text-[#6e7d77]">
+                Accepted formats: PDF, JPG, PNG (max 10MB per file).
+              </p>
+
+              {docUploadError && (
+                <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs text-red-700">
+                  {docUploadError}
                 </div>
               )}
 
-              {/* Full-Width Site Cards Grid */}
-              {profile.sites.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-[#d4cdbc] bg-white/70 p-12 text-center">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-[#e7f1eb] text-[#284f41]">
-                    <SproutSmallIcon className="h-6 w-6" />
-                  </div>
-                  <h3 className="mt-4 text-base font-bold text-[#203e35]">No Production Sites Registered</h3>
-                  <p className="mt-1 text-xs text-[#6e7d77] max-w-sm mx-auto">
-                    Register your primary farm, parcel, or storage facility to enable lot-level provenance.
-                  </p>
-                  <button
-                    className="mt-5 rounded-lg bg-[#284f41] px-5 py-2 text-xs font-semibold text-[#fffaf0] hover:bg-[#1f4035]"
-                    onClick={() => {
-                      setEditingSiteId(null);
-                      resetSiteForm({});
-                      setIsAddingSite(true);
-                    }}
-                    type="button"
+              <form onSubmit={onUploadDocumentSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-[#203e35]" htmlFor="doc-category">
+                    Document Category *
+                  </label>
+                  <select
+                    id="doc-category"
+                    value={selectedDocType}
+                    onChange={(e) => setSelectedDocType(e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-[#d4cdbc] bg-white px-3 py-2 text-xs text-[#173f35] focus:border-[#173f35] focus:outline-hidden"
                   >
-                    + Add Production Site
-                  </button>
+                    <option value="COMPANY_REGISTRATION">Company Registration (KVK/SIRET)</option>
+                    <option value="TAX_CERTIFICATE">Tax & VAT Registration</option>
+                    <option value="ORGANIC_CERTIFICATION">Organic Farming Certificate</option>
+                    <option value="QUALITY_CERTIFICATE">Quality / Agricultural Standard</option>
+                    <option value="FARM_OWNERSHIP_LEASE">Land Deed / Lease Contract</option>
+                    <option value="OTHER_COMPLIANCE">Other Compliance Document</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#203e35]" htmlFor="file-input">
+                    File Attachment *
+                  </label>
+                  <div className="mt-1 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#d4cdbc] bg-[#faf8f1] p-5 text-center transition-colors hover:border-[#173f35]">
+                    <UploadCloudIcon className="h-7 w-7 text-[#245347]" />
+                    <input
+                      id="file-input"
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png,.webp"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files.length > 0) {
+                          setSelectedFile(e.target.files[0]);
+                        }
+                      }}
+                      className="mt-2 block w-full text-xs text-[#52635c] file:mr-2 file:rounded-md file:border-0 file:bg-[#173f35] file:px-3 file:py-1 file:text-xs file:font-semibold file:text-white hover:file:bg-[#204e42]"
+                    />
+                    {selectedFile && (
+                      <p className="mt-2 text-xs font-semibold text-[#173f35]">
+                        Selected: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <button
+                  disabled={!selectedFile || isUploadingDoc}
+                  type="submit"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#173f35] py-2.5 text-xs font-semibold text-[#fffaf0] transition-colors hover:bg-[#204e42] disabled:opacity-50"
+                >
+                  <UploadCloudIcon className="h-4 w-4" />
+                  <span>{isUploadingDoc ? "Uploading..." : "Upload Document"}</span>
+                </button>
+              </form>
+            </div>
+
+            {/* 2/3 List of Uploaded Documents */}
+            <div className="rounded-2xl border border-[#e2dccd] bg-white p-6 shadow-2xs lg:col-span-2">
+              <div className="mb-4 flex items-center justify-between border-b border-[#f0ece1] pb-3">
+                <h3 className="text-sm font-bold text-[#173f35]">
+                  Submitted Documents ({documents.length})
+                </h3>
+              </div>
+
+              {documents.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-[#d4cdbc] p-8 text-center">
+                  <p className="text-xs text-[#6e7d77]">
+                    No compliance documents uploaded yet. Upload required evidence on the left.
+                  </p>
                 </div>
               ) : (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {profile.sites.map((site) => (
+                <div className="space-y-3">
+                  {documents.map((doc) => (
                     <div
-                      key={site.id}
-                      className="flex flex-col justify-between rounded-2xl border border-[#e2dccd] bg-white p-6 shadow-2xs transition hover:border-[#284f41]/50 hover:shadow-xs"
+                      key={doc.id}
+                      className="flex flex-col justify-between gap-3 rounded-xl border border-[#e8e2d2] bg-[#faf8f1] p-4 sm:flex-row sm:items-center"
                     >
-                      <div>
-                        <div className="flex items-start justify-between gap-2">
-                          <h4 className="font-bold text-[#203e35] text-base">{site.name}</h4>
-                          <span className="rounded-md bg-[#e7f1eb] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#285d4a]">
-                            {site.facilityType === "processing_facility"
-                              ? "Processing"
-                              : site.facilityType === "storage_warehouse"
-                              ? "Warehouse"
-                              : "Farm"}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="rounded-md bg-[#245347] px-2 py-0.5 text-[10px] font-bold text-[#e5b84b]">
+                            {DOCUMENT_TYPE_LABELS[doc.documentType] || doc.documentType}
+                          </span>
+                          <span className="rounded-md bg-[#fef4dd] px-2 py-0.5 text-[10px] font-semibold text-[#875908]">
+                            {doc.status === "PENDING_REVIEW" ? "Pending Review" : doc.status}
                           </span>
                         </div>
-                        <p className="mt-2 text-xs text-[#6e7d77]">
-                          {[site.address, site.city, site.country].filter(Boolean).join(", ") || "Location not specified"}
+                        <p className="mt-1.5 truncate text-xs font-bold text-[#173f35]">
+                          {doc.originalFilename}
                         </p>
-
-                        <div className="mt-5 space-y-2 border-t border-[#f1eee6] pt-4 text-xs">
-                          {site.landAreaHectares ? (
-                            <div className="flex items-center justify-between">
-                              <span className="text-[#837760]">Surface Area:</span>
-                              <span className="font-semibold text-[#203e35]">{site.landAreaHectares} ha</span>
-                            </div>
-                          ) : null}
-                          {site.latitude && site.longitude ? (
-                            <div className="flex items-center justify-between">
-                              <span className="text-[#837760]">GPS Coordinates:</span>
-                              <span className="font-mono font-medium text-[#203e35]">
-                                {site.latitude.toFixed(4)}°, {site.longitude.toFixed(4)}°
-                              </span>
-                            </div>
-                          ) : null}
-                        </div>
+                        <p className="text-[11px] text-[#718079]">
+                          Size: {(doc.fileSize / 1024).toFixed(1)} KB • Uploaded:{" "}
+                          {new Date(doc.createdAt).toLocaleDateString()}
+                        </p>
                       </div>
 
-                      <div className="mt-5 flex justify-end border-t border-[#f1eee6] pt-3">
-                        <button
-                          className="text-xs font-semibold text-[#284f41] hover:underline"
-                          onClick={() => startEditSite(site)}
-                          type="button"
-                        >
-                          Edit Details →
-                        </button>
+                      <div className="flex items-center gap-2">
+                        {orgId && (
+                          <a
+                            href={getComplianceDocumentDownloadUrl(orgId, doc.id)}
+                            download
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-[#d4cdbc] bg-white px-3 py-1.5 text-xs font-semibold text-[#173f35] hover:bg-[#eee9dc]"
+                          >
+                            <DownloadIcon className="h-3.5 w-3.5" />
+                            <span>Download</span>
+                          </a>
+                        )}
                       </div>
                     </div>
                   ))}
                 </div>
               )}
-            </>
-          )}
+            </div>
+          </div>
         </div>
       )}
     </AuthenticatedAppShell>

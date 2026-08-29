@@ -21,6 +21,7 @@ import type {
   UpdateSiteInput,
 } from "../src/organisations/contracts";
 import type {
+  ComplianceDocumentRecord,
   MembershipRecord,
   OrganisationRecord,
   SiteRecord,
@@ -150,6 +151,7 @@ class TestOrganisationsRepository extends OrganisationsRepository {
       createdAt: new Date(),
       updatedAt: new Date(),
       sites: [],
+      complianceDocuments: [],
     };
     this.organisations.set(org.id, org);
     return org;
@@ -206,6 +208,47 @@ class TestOrganisationsRepository extends OrganisationsRepository {
     };
     this.sites.set(siteId, updated);
     return updated;
+  }
+
+  async findComplianceDocumentsByOrganisationId(organisationId: string): Promise<ComplianceDocumentRecord[]> {
+    void organisationId;
+    return [];
+  }
+
+  async findComplianceDocumentById(organisationId: string, documentId: string): Promise<ComplianceDocumentRecord | null> {
+    void organisationId;
+    void documentId;
+    return null;
+  }
+
+  async createComplianceDocument(
+    organisationId: string,
+    input: {
+      documentType: string;
+      originalFilename: string;
+      storageKey: string;
+      mimeType: string;
+      fileSize: number;
+    },
+  ): Promise<ComplianceDocumentRecord> {
+    return {
+      id: "doc-1",
+      organisationId,
+      documentType: input.documentType,
+      originalFilename: input.originalFilename,
+      storageKey: input.storageKey,
+      mimeType: input.mimeType,
+      fileSize: input.fileSize,
+      status: "PENDING_REVIEW",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+  }
+
+  async deleteComplianceDocument(organisationId: string, documentId: string): Promise<boolean> {
+    void organisationId;
+    void documentId;
+    return true;
   }
 }
 
@@ -297,6 +340,48 @@ describe("application-managed authentication (e2e)", () => {
       .set("Cookie", cookie)
       .expect(401);
   });
+
+  it("handles compliance document upload security validation", async () => {
+    const loginRes = await request(app.getHttpServer())
+      .post("/api/v1/auth/login")
+      .send({ email: "synthetic@example.test", password: "correct-password" })
+      .expect(200);
+
+    const cookie = loginRes.headers["set-cookie"];
+    const orgId = "514ab31e-450f-488a-ba02-0e9e1c27ad6f";
+
+    // 1. Valid PDF upload succeeds (201)
+    const validPdf = Buffer.from("%PDF-1.4 sample certification content");
+    const uploadRes = await request(app.getHttpServer())
+      .post(`/api/v1/organisations/${orgId}/documents`)
+      .set("Cookie", cookie)
+      .field("documentType", "COMPANY_REGISTRATION")
+      .attach("file", validPdf, { filename: "kvk.pdf", contentType: "application/pdf" })
+      .expect(201);
+
+    expect(uploadRes.body.documentType).toBe("COMPANY_REGISTRATION");
+    expect(uploadRes.body.originalFilename).toBe("kvk.pdf");
+
+    // 2. Fake PDF (invalid signature) fails with 400
+    const fakePdf = Buffer.from("<html>not a real pdf</html>");
+    await request(app.getHttpServer())
+      .post(`/api/v1/organisations/${orgId}/documents`)
+      .set("Cookie", cookie)
+      .field("documentType", "COMPANY_REGISTRATION")
+      .attach("file", fakePdf, { filename: "fake.pdf", contentType: "application/pdf" })
+      .expect(400);
+
+    // 3. Oversized file (> 10MB) is rejected at Multer boundary
+    const oversizedBuffer = Buffer.alloc(11 * 1024 * 1024);
+    oversizedBuffer.fill(0x25, 0, 5);
+    const largeRes = await request(app.getHttpServer())
+      .post(`/api/v1/organisations/${orgId}/documents`)
+      .set("Cookie", cookie)
+      .field("documentType", "COMPANY_REGISTRATION")
+      .attach("file", oversizedBuffer, { filename: "oversized.pdf", contentType: "application/pdf" });
+
+    expect([400, 413]).toContain(largeRes.status);
+  });
 });
 
 function membershipRecord(
@@ -345,6 +430,7 @@ function membershipRecord(
           updatedAt: timestamp,
         },
       ],
+      complianceDocuments: [],
     },
   };
 }

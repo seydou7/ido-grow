@@ -14,6 +14,22 @@ export type SiteSummary = Readonly<{
   updatedAt: string;
 }>;
 
+export type ComplianceDocumentSummary = Readonly<{
+  id: string;
+  organisationId: string;
+  documentType: string;
+  originalFilename: string;
+  mimeType: string;
+  fileSize: number;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}>;
+
+export type ComplianceDocumentCollection = Readonly<{
+  items: readonly ComplianceDocumentSummary[];
+}>;
+
 export type OrganisationProfile = Readonly<{
   id: string;
   name: string;
@@ -35,6 +51,7 @@ export type OrganisationProfile = Readonly<{
   createdAt: string;
   updatedAt: string;
   sites: readonly SiteSummary[];
+  complianceDocuments: readonly ComplianceDocumentSummary[];
 }>;
 
 export type SelfMembership = Readonly<{

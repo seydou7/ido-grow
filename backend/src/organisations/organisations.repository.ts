@@ -21,6 +21,19 @@ export type SiteRecord = Readonly<{
   updatedAt: Date;
 }>;
 
+export type ComplianceDocumentRecord = Readonly<{
+  id: string;
+  organisationId: string;
+  documentType: string;
+  originalFilename: string;
+  storageKey: string;
+  mimeType: string;
+  fileSize: number;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+}>;
+
 export type OrganisationRecord = Readonly<{
   id: string;
   name: string;
@@ -40,6 +53,7 @@ export type OrganisationRecord = Readonly<{
   createdAt: Date;
   updatedAt: Date;
   sites: readonly SiteRecord[];
+  complianceDocuments: readonly ComplianceDocumentRecord[];
 }>;
 
 export type MembershipRecord = Readonly<{
@@ -61,4 +75,14 @@ export abstract class OrganisationsRepository {
   abstract findSiteById(organisationId: string, siteId: string): Promise<SiteRecord | null>;
   abstract createSite(organisationId: string, input: CreateSiteInput): Promise<SiteRecord>;
   abstract updateSite(organisationId: string, siteId: string, input: UpdateSiteInput): Promise<SiteRecord>;
+  abstract findComplianceDocumentsByOrganisationId(organisationId: string): Promise<ComplianceDocumentRecord[]>;
+  abstract findComplianceDocumentById(organisationId: string, documentId: string): Promise<ComplianceDocumentRecord | null>;
+  abstract createComplianceDocument(organisationId: string, input: {
+    documentType: string;
+    originalFilename: string;
+    storageKey: string;
+    mimeType: string;
+    fileSize: number;
+  }): Promise<ComplianceDocumentRecord>;
+  abstract deleteComplianceDocument(organisationId: string, documentId: string): Promise<boolean>;
 }

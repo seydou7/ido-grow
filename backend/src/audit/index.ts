@@ -7,6 +7,7 @@ export { AuditModule } from "./audit.module";
 export type {
   AuthenticationAuditEvent,
   AuthenticationAuditEventType,
+  ComplianceDocumentUploadedAuditEvent,
   LoginFailedAuditEvent,
   LoginSucceededAuditEvent,
   LogoutSucceededAuditEvent,

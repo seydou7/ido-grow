@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { LanguageSelector } from "@/i18n/language-selector";
 
-export type NavSection = "organisation" | "sites";
+export type NavSection = "organisation" | "sites" | "compliance";
 
 type AppShellProps = Readonly<{
   activeSection: NavSection;
@@ -52,6 +52,14 @@ function SproutIcon({ className = "h-4 w-4" }: Readonly<{ className?: string }>)
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
       <path d="M7 20h10M12 20v-8M12 12a5 5 0 0 1 5-5h2a5 5 0 0 1-5 5M12 12a5 5 0 0 0-5-5H5a5 5 0 0 0 5 5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function DocumentCheckIcon({ className = "h-4 w-4" }: Readonly<{ className?: string }>) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -109,6 +117,12 @@ export function AuthenticatedAppShell({
       sublabel: "Farms, parcels & facilities",
       icon: SproutIcon,
     },
+    {
+      id: "compliance" as const,
+      label: "Compliance & Documents",
+      sublabel: "Certificates & registry evidence",
+      icon: DocumentCheckIcon,
+    },
   ];
 
   return (
@@ -149,42 +163,50 @@ export function AuthenticatedAppShell({
                     : "text-[#d6deda] hover:bg-[#204539] hover:text-[#fffaf0]"
                 }`}
               >
-                <Icon className={`h-4 w-4 shrink-0 ${active ? "text-[#e5b84b]" : "text-[#a8bbb4]"}`} />
-                <span className="flex-1 truncate">{item.label}</span>
-                {active && <span className="h-1.5 w-1.5 rounded-full bg-[#e5b84b]" />}
+                <Icon className={`h-4 w-4 shrink-0 transition-colors ${active ? "text-[#e5b84b]" : "text-[#a8bbb4] group-hover:text-[#fffaf0]"}`} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium">{item.label}</p>
+                </div>
+                {active && (
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#e5b84b]" />
+                )}
               </button>
             );
           })}
         </nav>
 
-        {/* User Account & Logout Footer */}
+        {/* User Account / Sign Out Footer */}
         <div className="border-t border-[#245347] p-4">
           <div className="flex items-center gap-3">
-            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#284f41] text-xs font-bold text-[#e5b84b] ring-1 ring-white/10">
+            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#284f41] text-xs font-bold text-[#e5b84b]">
               {initials}
             </div>
             <div className="min-w-0 flex-1 leading-tight">
-              <p className="truncate text-xs font-semibold text-[#fffaf0]">{companyName || "Supplier"}</p>
+              <p className="truncate text-xs font-semibold text-[#fffaf0]">
+                {companyName || userEmail}
+              </p>
               <p className="truncate text-[11px] text-[#a8bbb4]">{userEmail}</p>
             </div>
           </div>
           <button
             onClick={onLogout}
             disabled={isLoggingOut}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-[#245347] bg-[#204539] py-1.5 text-xs font-medium text-[#d6deda] transition-all hover:border-[#e5b84b]/40 hover:bg-[#284f41] hover:text-[#fffaf0] disabled:opacity-50"
             type="button"
-            className="mt-3.5 flex w-full items-center justify-center gap-2 rounded-lg border border-[#2d5c4f] bg-[#1a4439] py-2 text-xs font-semibold text-[#d6deda] transition hover:border-[#3d7a69] hover:bg-[#235346] hover:text-[#fffaf0] disabled:opacity-50"
           >
             <LogoutIcon className="h-3.5 w-3.5" />
-            <span>{isLoggingOut ? "Signing out..." : "Sign out"}</span>
+            <span>{isLoggingOut ? "Signing out..." : "Sign Out"}</span>
           </button>
         </div>
       </aside>
 
-      {/* Mobile Navigation Drawer Backdrop */}
+      {/* Mobile Backdrop */}
       {mobileMenuOpen && (
-        <div
+        <button
           className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs md:hidden"
           onClick={() => setMobileMenuOpen(false)}
+          type="button"
+          aria-label="Close menu"
         />
       )}
 
@@ -251,18 +273,20 @@ export function AuthenticatedAppShell({
               {initials}
             </div>
             <div className="min-w-0 flex-1 leading-tight">
-              <p className="truncate text-xs font-semibold text-[#fffaf0]">{companyName || "Supplier"}</p>
+              <p className="truncate text-xs font-semibold text-[#fffaf0]">
+                {companyName || userEmail}
+              </p>
               <p className="truncate text-[11px] text-[#a8bbb4]">{userEmail}</p>
             </div>
           </div>
           <button
             onClick={onLogout}
             disabled={isLoggingOut}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-[#245347] bg-[#204539] py-1.5 text-xs font-medium text-[#d6deda] hover:bg-[#284f41] hover:text-[#fffaf0]"
             type="button"
-            className="mt-3.5 flex w-full items-center justify-center gap-2 rounded-lg border border-[#2d5c4f] bg-[#1a4439] py-2 text-xs font-semibold text-[#d6deda]"
           >
             <LogoutIcon className="h-3.5 w-3.5" />
-            <span>{isLoggingOut ? "Signing out..." : "Sign out"}</span>
+            <span>{isLoggingOut ? "Signing out..." : "Sign Out"}</span>
           </button>
         </div>
       </div>
@@ -284,7 +308,11 @@ export function AuthenticatedAppShell({
               <span className="hidden sm:inline">Supplier Portal</span>
               <span className="hidden sm:inline">/</span>
               <span className="font-semibold text-[#203e35]">
-                {activeSection === "organisation" ? "Organisation Profile" : "Production Sites"}
+                {activeSection === "organisation"
+                  ? "Organisation Profile"
+                  : activeSection === "sites"
+                  ? "Production Sites"
+                  : "Compliance & Documents"}
               </span>
             </div>
           </div>

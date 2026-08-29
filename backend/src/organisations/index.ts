@@ -1,4 +1,6 @@
 export type {
+  ComplianceDocumentCollection,
+  ComplianceDocumentSummary,
   CreateOrganisationInput,
   CreateSiteInput,
   OrganisationProfile,

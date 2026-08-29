@@ -8,6 +8,7 @@ import type {
   UpdateSiteInput,
 } from "./contracts";
 import {
+  type ComplianceDocumentRecord,
   type MembershipRecord,
   type OrganisationRecord,
   type SiteRecord,
@@ -29,6 +30,9 @@ export class PrismaOrganisationsRepository extends OrganisationsRepository {
           include: {
             sites: {
               orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+            },
+            complianceDocuments: {
+              orderBy: [{ createdAt: "desc" }, { id: "asc" }],
             },
           },
         },
@@ -55,6 +59,9 @@ export class PrismaOrganisationsRepository extends OrganisationsRepository {
             sites: {
               orderBy: [{ createdAt: "asc" }, { id: "asc" }],
             },
+            complianceDocuments: {
+              orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+            },
           },
         },
       },
@@ -69,6 +76,9 @@ export class PrismaOrganisationsRepository extends OrganisationsRepository {
       include: {
         sites: {
           orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        },
+        complianceDocuments: {
+          orderBy: [{ createdAt: "desc" }, { id: "asc" }],
         },
       },
     });
@@ -110,6 +120,7 @@ export class PrismaOrganisationsRepository extends OrganisationsRepository {
       return {
         ...org,
         sites: [],
+        complianceDocuments: [],
       };
     });
   }
@@ -137,6 +148,9 @@ export class PrismaOrganisationsRepository extends OrganisationsRepository {
       include: {
         sites: {
           orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        },
+        complianceDocuments: {
+          orderBy: [{ createdAt: "desc" }, { id: "asc" }],
         },
       },
     });
@@ -214,6 +228,68 @@ export class PrismaOrganisationsRepository extends OrganisationsRepository {
 
     return toSiteRecord(record);
   }
+
+  async findComplianceDocumentsByOrganisationId(organisationId: string): Promise<ComplianceDocumentRecord[]> {
+    const records = await this.prisma.complianceDocument.findMany({
+      where: { organisationId },
+      orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+    });
+
+    return records.map(toComplianceDocumentRecord);
+  }
+
+  async findComplianceDocumentById(
+    organisationId: string,
+    documentId: string,
+  ): Promise<ComplianceDocumentRecord | null> {
+    const record = await this.prisma.complianceDocument.findFirst({
+      where: {
+        id: documentId,
+        organisationId,
+      },
+    });
+
+    return record ? toComplianceDocumentRecord(record) : null;
+  }
+
+  async createComplianceDocument(
+    organisationId: string,
+    input: {
+      documentType: string;
+      originalFilename: string;
+      storageKey: string;
+      mimeType: string;
+      fileSize: number;
+    },
+  ): Promise<ComplianceDocumentRecord> {
+    const record = await this.prisma.complianceDocument.create({
+      data: {
+        organisationId,
+        documentType: input.documentType,
+        originalFilename: input.originalFilename,
+        storageKey: input.storageKey,
+        mimeType: input.mimeType,
+        fileSize: input.fileSize,
+        status: "PENDING_REVIEW",
+      },
+    });
+
+    return toComplianceDocumentRecord(record);
+  }
+
+  async deleteComplianceDocument(
+    organisationId: string,
+    documentId: string,
+  ): Promise<boolean> {
+    const result = await this.prisma.complianceDocument.deleteMany({
+      where: {
+        id: documentId,
+        organisationId,
+      },
+    });
+
+    return result.count > 0;
+  }
 }
 
 function toSiteRecord(record: {
@@ -243,6 +319,32 @@ function toSiteRecord(record: {
     latitude: record.latitude,
     longitude: record.longitude,
     landAreaHectares: record.landAreaHectares,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+  };
+}
+
+function toComplianceDocumentRecord(record: {
+  id: string;
+  organisationId: string;
+  documentType: string;
+  originalFilename: string;
+  storageKey: string;
+  mimeType: string;
+  fileSize: number;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+}): ComplianceDocumentRecord {
+  return {
+    id: record.id,
+    organisationId: record.organisationId,
+    documentType: record.documentType,
+    originalFilename: record.originalFilename,
+    storageKey: record.storageKey,
+    mimeType: record.mimeType,
+    fileSize: record.fileSize,
+    status: record.status,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
   };
@@ -281,6 +383,18 @@ function toOrganisationRecord(record: {
     createdAt: Date;
     updatedAt: Date;
   }[];
+  complianceDocuments: {
+    id: string;
+    organisationId: string;
+    documentType: string;
+    originalFilename: string;
+    storageKey: string;
+    mimeType: string;
+    fileSize: number;
+    status: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }[];
 }): OrganisationRecord {
   return {
     id: record.id,
@@ -301,6 +415,7 @@ function toOrganisationRecord(record: {
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
     sites: record.sites.map(toSiteRecord),
+    complianceDocuments: record.complianceDocuments.map(toComplianceDocumentRecord),
   };
 }
 

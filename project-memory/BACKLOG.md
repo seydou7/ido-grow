@@ -39,9 +39,8 @@ Sprint 02 activates the capability backlog for Organisation lifecycle, verificat
 Guardrails: build only from approved foundations; keep behavior marked **OPEN** blocked until approved; preserve all legal/privacy, authority, and verification gates.
 
 ### Sprint 02 Scope: Organisations & Supplier Onboarding
-- **Supplier Organisation Profile & Lifecycle:** Organisation types (Supplier, Buyer, Trader, Partner), company identity (commercial name, registration/tax IDs, legal address), contact points.
-- **Supplier Farm & Site Registration:** Multiple production sites, physical addresses, GPS coordinates, land area/capacity, facilities.
-- **Supplier Verification & Compliance Onboarding:** Verification statuses (`PENDING`, `UNDER_REVIEW`, `VERIFIED`, `REJECTED`), compliance document uploads (certifications, organic licenses, company registry), document review workflow.
+- **COMPLETE (PROJECT OWNER VALIDATED) — Supplier Organisation Profile & Production Sites (Vertical Block 01):** Commercial and legal entity profile, business activity, contact info, production sites (land area, GPS, facilities), completeness calculation, and authenticated full-width app shell.
+- **COMPLETE (PROJECT OWNER VALIDATED) — Supplier Compliance Documents & Verification Foundation (Vertical Block 02):** Additive ComplianceDocument persistence, provider-neutral file storage with local development adapter, upload boundary limits (10MB, 1 file), magic-byte binary signature validation (PDF/JPEG/PNG/WEBP), compliance document upload/download, verification status tracking (`PENDING_REVIEW`), append-only audit events, and compliance management UI. Supplier document removal remains OPEN / unsupported. Trader/Admin approval workflow remains OPEN.
 - **Organisation Membership & Invitation Management:** Multi-user organisation access, roles within organisation (`ADMIN`, `OPERATOR`, `MEMBER`), invitations and user association.
 - **Supplier Onboarding Flow (Self-Serve & Trader-Assisted):** Guided step-by-step onboarding experience, completeness scoring, trader review and activation interface.
 

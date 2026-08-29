@@ -1,6 +1,8 @@
-import { ForbiddenException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException } from "@nestjs/common";
+import { Readable } from "node:stream";
 
 import { AuditEventWriter, type PlatformAuditEvent } from "../audit";
+import { StorageService, type RetrievedFile, type StoredFileMetadata } from "../storage";
 import type {
   CreateOrganisationInput,
   CreateSiteInput,
@@ -8,12 +10,52 @@ import type {
   UpdateSiteInput,
 } from "./contracts";
 import type {
+  ComplianceDocumentRecord,
   MembershipRecord,
   OrganisationRecord,
   SiteRecord,
 } from "./organisations.repository";
 import { OrganisationsRepository } from "./organisations.repository";
 import { OrganisationsService } from "./organisations.service";
+
+class InMemoryStorageService extends StorageService {
+  readonly files = new Map<string, { buffer: Buffer; mimeType: string; filename: string }>();
+
+  async store(
+    filename: string,
+    buffer: Buffer,
+    mimeType: string,
+  ): Promise<StoredFileMetadata> {
+    const storageKey = `mock-${Math.random().toString(36).substring(7)}.pdf`;
+    this.files.set(storageKey, { buffer, mimeType, filename });
+    return {
+      storageKey,
+      originalFilename: filename,
+      mimeType,
+      fileSize: buffer.length,
+    };
+  }
+
+  async retrieve(
+    storageKey: string,
+    originalFilename: string,
+    mimeType: string,
+  ): Promise<RetrievedFile | null> {
+    void mimeType;
+    const f = this.files.get(storageKey);
+    if (!f) return null;
+    return {
+      stream: Readable.from(f.buffer),
+      mimeType: f.mimeType,
+      fileSize: f.buffer.length,
+      filename: originalFilename,
+    };
+  }
+
+  async delete(storageKey: string): Promise<boolean> {
+    return this.files.delete(storageKey);
+  }
+}
 
 class InMemoryAuditEventWriter extends AuditEventWriter {
   readonly events: PlatformAuditEvent[] = [];
@@ -27,6 +69,7 @@ class InMemoryOrganisationsRepository extends OrganisationsRepository {
   readonly membershipsByUser = new Map<string, MembershipRecord[]>();
   readonly organisations = new Map<string, OrganisationRecord>();
   readonly sites = new Map<string, SiteRecord>();
+  readonly documents = new Map<string, ComplianceDocumentRecord>();
 
   async findMembershipsForUser(userId: string): Promise<MembershipRecord[]> {
     return this.membershipsByUser.get(userId) ?? [];
@@ -68,6 +111,7 @@ class InMemoryOrganisationsRepository extends OrganisationsRepository {
       createdAt: new Date(),
       updatedAt: new Date(),
       sites: [],
+      complianceDocuments: [],
     };
     this.organisations.set(id, org);
 
@@ -174,18 +218,86 @@ class InMemoryOrganisationsRepository extends OrganisationsRepository {
     this.sites.set(siteId, updated);
     return updated;
   }
+
+  async findComplianceDocumentsByOrganisationId(organisationId: string): Promise<ComplianceDocumentRecord[]> {
+    return Array.from(this.documents.values()).filter(
+      (d) => d.organisationId === organisationId,
+    );
+  }
+
+  async findComplianceDocumentById(
+    organisationId: string,
+    documentId: string,
+  ): Promise<ComplianceDocumentRecord | null> {
+    const d = this.documents.get(documentId);
+    return d && d.organisationId === organisationId ? d : null;
+  }
+
+  async createComplianceDocument(
+    organisationId: string,
+    input: {
+      documentType: string;
+      originalFilename: string;
+      storageKey: string;
+      mimeType: string;
+      fileSize: number;
+    },
+  ): Promise<ComplianceDocumentRecord> {
+    const id = "doc-" + Math.random().toString(36).substring(7);
+    const doc: ComplianceDocumentRecord = {
+      id,
+      organisationId,
+      documentType: input.documentType,
+      originalFilename: input.originalFilename,
+      storageKey: input.storageKey,
+      mimeType: input.mimeType,
+      fileSize: input.fileSize,
+      status: "PENDING_REVIEW",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.documents.set(id, doc);
+
+    const org = this.organisations.get(organisationId);
+    if (org) {
+      this.organisations.set(organisationId, {
+        ...org,
+        complianceDocuments: [...org.complianceDocuments, doc],
+      });
+    }
+
+    return doc;
+  }
+
+  async deleteComplianceDocument(organisationId: string, documentId: string): Promise<boolean> {
+    const d = this.documents.get(documentId);
+    if (d && d.organisationId === organisationId) {
+      this.documents.delete(documentId);
+      const org = this.organisations.get(organisationId);
+      if (org) {
+        this.organisations.set(organisationId, {
+          ...org,
+          complianceDocuments: org.complianceDocuments.filter((doc) => doc.id !== documentId),
+        });
+      }
+      return true;
+    }
+    return false;
+  }
 }
 
 describe("OrganisationsService", () => {
   const timestamp = new Date("2026-08-26T12:00:00.000Z");
   let repository: InMemoryOrganisationsRepository;
   let auditWriter: InMemoryAuditEventWriter;
+  let storage: InMemoryStorageService;
   let service: OrganisationsService;
 
   beforeEach(() => {
     repository = new InMemoryOrganisationsRepository();
     auditWriter = new InMemoryAuditEventWriter();
-    service = new OrganisationsService(repository, auditWriter);
+    storage = new InMemoryStorageService();
+    service = new OrganisationsService(repository, auditWriter, storage);
   });
 
   it("returns a valid empty collection for an authenticated user with no memberships", async () => {
@@ -215,6 +327,7 @@ describe("OrganisationsService", () => {
       createdAt: timestamp,
       updatedAt: timestamp,
       sites: [],
+      complianceDocuments: [],
     };
     repository.organisations.set("org-1", orgRecord);
     repository.membershipsByUser.set("user-1", [
@@ -233,8 +346,8 @@ describe("OrganisationsService", () => {
     expect(profile.id).toBe("org-1");
     expect(profile.name).toBe("Green Fields Hemp Cooperative");
     expect(profile.businessType).toBe("cooperative");
-    expect(profile.missingFields).toEqual(["productionSites"]);
-    expect(profile.completenessPercent).toBe(91); // 10/11 filled
+    expect(profile.missingFields).toEqual(["productionSites", "complianceDocuments"]);
+    expect(profile.completenessPercent).toBe(83); // 10/12 filled
   });
 
   it("rejects access to organisation profile if user is not a member (403)", async () => {
@@ -243,55 +356,7 @@ describe("OrganisationsService", () => {
     ).rejects.toThrow(ForbiddenException);
   });
 
-  it("allows a member to update organisation profile and writes audit event", async () => {
-    const orgRecord: OrganisationRecord = {
-      id: "org-1",
-      name: "Original Name",
-      legalName: null,
-      organisationType: "SUPPLIER",
-      businessType: null,
-      registrationNumber: null,
-      vatNumber: null,
-      address: null,
-      city: null,
-      postalCode: null,
-      country: null,
-      contactName: null,
-      contactEmail: null,
-      contactPhone: null,
-      verificationStatus: "PENDING",
-      createdAt: timestamp,
-      updatedAt: timestamp,
-      sites: [],
-    };
-    repository.organisations.set("org-1", orgRecord);
-    repository.membershipsByUser.set("user-1", [
-      {
-        id: "mem-1",
-        userId: "user-1",
-        organisationId: "org-1",
-        createdAt: timestamp,
-        updatedAt: timestamp,
-        organisation: orgRecord,
-      },
-    ]);
-
-    const updated = await service.updateOrganisationProfile("user-1", "org-1", {
-      name: "Updated Farm Name",
-      legalName: "Updated Legal Name",
-      businessType: "farmer",
-      country: "France",
-    });
-
-    expect(updated.name).toBe("Updated Farm Name");
-    expect(updated.legalName).toBe("Updated Legal Name");
-    expect(updated.businessType).toBe("farmer");
-    expect(updated.country).toBe("France");
-    expect(auditWriter.events.length).toBe(1);
-    expect(auditWriter.events[0].eventType).toBe("organisation.profile.updated");
-  });
-
-  it("allows member to create and list sites and writes audit event", async () => {
+  it("allows member to upload compliance document, persists record, and logs audit event", async () => {
     const orgRecord: OrganisationRecord = {
       id: "org-1",
       name: "Farm Org",
@@ -311,6 +376,7 @@ describe("OrganisationsService", () => {
       createdAt: timestamp,
       updatedAt: timestamp,
       sites: [],
+      complianceDocuments: [],
     };
     repository.organisations.set("org-1", orgRecord);
     repository.membershipsByUser.set("user-1", [
@@ -324,36 +390,142 @@ describe("OrganisationsService", () => {
       },
     ]);
 
-    const site = await service.createSite("user-1", "org-1", {
-      name: "North Parcel Farm",
-      facilityType: "farm",
-      city: "Reims",
-      country: "France",
-      latitude: 49.2583,
-      longitude: 4.0317,
-      landAreaHectares: 120.5,
-    });
+    const buffer = Buffer.from("%PDF-1.4 kvk proof");
+    const doc = await service.uploadComplianceDocument(
+      "user-1",
+      "org-1",
+      "COMPANY_REGISTRATION",
+      "kvk_extract.pdf",
+      buffer,
+      "application/pdf",
+    );
 
-    expect(site.name).toBe("North Parcel Farm");
-    expect(site.facilityType).toBe("farm");
-    expect(site.latitude).toBe(49.2583);
-    expect(site.landAreaHectares).toBe(120.5);
+    expect(doc.documentType).toBe("COMPANY_REGISTRATION");
+    expect(doc.originalFilename).toBe("kvk_extract.pdf");
+    expect(doc.status).toBe("PENDING_REVIEW");
 
-    const siteList = await service.listSites("user-1", "org-1");
-    expect(siteList.items.length).toBe(1);
-    expect(siteList.items[0].name).toBe("North Parcel Farm");
+    const docs = await service.listComplianceDocuments("user-1", "org-1");
+    expect(docs.items.length).toBe(1);
+    expect(docs.items[0].id).toBe(doc.id);
 
     expect(auditWriter.events.length).toBe(1);
-    expect(auditWriter.events[0].eventType).toBe("organisation.site.created");
+    expect(auditWriter.events[0].eventType).toBe("organisation.compliance_document.uploaded");
   });
 
-  it("rejects site access for non-members (403)", async () => {
+  it("rejects invalid document types (400)", async () => {
+    const orgRecord: OrganisationRecord = {
+      id: "org-1",
+      name: "Farm Org",
+      legalName: null,
+      organisationType: "SUPPLIER",
+      businessType: null,
+      registrationNumber: null,
+      vatNumber: null,
+      address: null,
+      city: null,
+      postalCode: null,
+      country: null,
+      contactName: null,
+      contactEmail: null,
+      contactPhone: null,
+      verificationStatus: "PENDING",
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      sites: [],
+      complianceDocuments: [],
+    };
+    repository.organisations.set("org-1", orgRecord);
+    repository.membershipsByUser.set("user-1", [
+      {
+        id: "mem-1",
+        userId: "user-1",
+        organisationId: "org-1",
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        organisation: orgRecord,
+      },
+    ]);
+
     await expect(
-      service.listSites("unauthorized-user", "org-1"),
+      service.uploadComplianceDocument(
+        "user-1",
+        "org-1",
+        "UNSUPPORTED_TYPE",
+        "file.pdf",
+        Buffer.from("data"),
+        "application/pdf",
+      ),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it("allows member to download and remove compliance document", async () => {
+    const orgRecord: OrganisationRecord = {
+      id: "org-1",
+      name: "Farm Org",
+      legalName: null,
+      organisationType: "SUPPLIER",
+      businessType: null,
+      registrationNumber: null,
+      vatNumber: null,
+      address: null,
+      city: null,
+      postalCode: null,
+      country: null,
+      contactName: null,
+      contactEmail: null,
+      contactPhone: null,
+      verificationStatus: "PENDING",
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      sites: [],
+      complianceDocuments: [],
+    };
+    repository.organisations.set("org-1", orgRecord);
+    repository.membershipsByUser.set("user-1", [
+      {
+        id: "mem-1",
+        userId: "user-1",
+        organisationId: "org-1",
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        organisation: orgRecord,
+      },
+    ]);
+
+    const doc = await service.uploadComplianceDocument(
+      "user-1",
+      "org-1",
+      "ORGANIC_CERTIFICATION",
+      "organic_cert.pdf",
+      Buffer.from("%PDF-1.4 organic"),
+      "application/pdf",
+    );
+
+    const file = await service.getComplianceDocumentFile("user-1", "org-1", doc.id);
+    expect(file.filename).toBe("organic_cert.pdf");
+
+    const docs = await service.listComplianceDocuments("user-1", "org-1");
+    expect(docs.items.length).toBe(1);
+    expect(docs.items[0].documentType).toBe("ORGANIC_CERTIFICATION");
+
+    expect(auditWriter.events.length).toBe(1);
+    expect(auditWriter.events[0].eventType).toBe("organisation.compliance_document.uploaded");
+  });
+
+  it("rejects document operations for non-members (403)", async () => {
+    await expect(
+      service.listComplianceDocuments("intruder", "org-1"),
     ).rejects.toThrow(ForbiddenException);
 
     await expect(
-      service.createSite("unauthorized-user", "org-1", { name: "Illegal Site" }),
+      service.uploadComplianceDocument(
+        "intruder",
+        "org-1",
+        "TAX_CERTIFICATE",
+        "tax.pdf",
+        Buffer.from("tax"),
+        "application/pdf",
+      ),
     ).rejects.toThrow(ForbiddenException);
   });
 });

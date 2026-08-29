@@ -1,5 +1,7 @@
 import { getLocalApiBaseUrl } from "@/auth/config";
 import type {
+  ComplianceDocumentCollection,
+  ComplianceDocumentSummary,
   CreateOrganisationInput,
   CreateSiteInput,
   OrganisationProfile,
@@ -129,4 +131,55 @@ export async function updateSite(
     throw new OrganisationRequestError("Unable to update production site.");
   }
   return response.json();
+}
+
+export async function listComplianceDocuments(
+  organisationId: string,
+): Promise<ComplianceDocumentCollection> {
+  const response = await send(`/api/v1/organisations/${organisationId}/documents`, {
+    method: "GET",
+  });
+  if (!response.ok) {
+    throw new OrganisationRequestError("Unable to list compliance documents.");
+  }
+  return response.json();
+}
+
+export async function uploadComplianceDocument(
+  organisationId: string,
+  documentType: string,
+  file: File,
+): Promise<ComplianceDocumentSummary> {
+  const formData = new FormData();
+  formData.append("documentType", documentType);
+  formData.append("file", file);
+
+  try {
+    const response = await fetch(endpoint(`/api/v1/organisations/${organisationId}/documents`), {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    });
+    if (!response.ok) {
+      let detail = "Unable to upload compliance document.";
+      try {
+        const errorJson = await response.json();
+        if (errorJson.detail) detail = errorJson.detail;
+      } catch {
+        // Fallback to default message
+      }
+      throw new OrganisationRequestError(detail);
+    }
+    return response.json();
+  } catch (err: unknown) {
+    if (err instanceof OrganisationRequestError) throw err;
+    throw new OrganisationRequestError("Network error during file upload.");
+  }
+}
+
+export function getComplianceDocumentDownloadUrl(
+  organisationId: string,
+  documentId: string,
+): string {
+  return endpoint(`/api/v1/organisations/${organisationId}/documents/${documentId}/download`);
 }

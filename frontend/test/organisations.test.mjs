@@ -39,6 +39,19 @@ test("organisations client contracts support supplier profile and production sit
         updatedAt: "2026-08-29T12:00:00.000Z",
       },
     ],
+    complianceDocuments: [
+      {
+        id: "doc-1",
+        organisationId: "org-1",
+        documentType: "COMPANY_REGISTRATION",
+        originalFilename: "kvk_extract_2026.pdf",
+        mimeType: "application/pdf",
+        fileSize: 10240,
+        status: "PENDING_REVIEW",
+        createdAt: "2026-08-29T12:00:00.000Z",
+        updatedAt: "2026-08-29T12:00:00.000Z",
+      },
+    ],
   };
 
   assert.equal(profile.organisationType, "SUPPLIER");
@@ -46,5 +59,8 @@ test("organisations client contracts support supplier profile and production sit
   assert.equal(profile.sites.length, 1);
   assert.equal(profile.sites[0].facilityType, "farm");
   assert.equal(profile.sites[0].landAreaHectares, 120.5);
+  assert.equal(profile.complianceDocuments.length, 1);
+  assert.equal(profile.complianceDocuments[0].documentType, "COMPANY_REGISTRATION");
+  assert.equal(profile.complianceDocuments[0].status, "PENDING_REVIEW");
   assert.equal(profile.completenessPercent, 91);
 });
