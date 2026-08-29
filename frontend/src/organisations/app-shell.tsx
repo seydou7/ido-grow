@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { LanguageSelector } from "@/i18n/language-selector";
 
-export type NavSection = "organisation" | "sites" | "compliance" | "members";
+export type NavSection = "overview" | "organisation" | "sites" | "compliance" | "members";
 
 type AppShellProps = Readonly<{
   activeSection: NavSection;
@@ -36,6 +36,14 @@ function BrandMark() {
         />
       </svg>
     </div>
+  );
+}
+
+function ClipboardCheckIcon({ className = "h-4 w-4" }: Readonly<{ className?: string }>) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 
@@ -113,6 +121,12 @@ export function AuthenticatedAppShell({
     : "ID";
 
   const navigationItems = [
+    {
+      id: "overview" as const,
+      label: "Onboarding Overview",
+      sublabel: "Getting started & readiness",
+      icon: ClipboardCheckIcon,
+    },
     {
       id: "organisation" as const,
       label: "Organisation Profile",
@@ -322,7 +336,9 @@ export function AuthenticatedAppShell({
               <span className="hidden sm:inline">Supplier Portal</span>
               <span className="hidden sm:inline">/</span>
               <span className="font-semibold text-[#203e35]">
-                {activeSection === "organisation"
+                {activeSection === "overview"
+                  ? "Onboarding Overview"
+                  : activeSection === "organisation"
                   ? "Organisation Profile"
                   : activeSection === "sites"
                   ? "Production Sites"

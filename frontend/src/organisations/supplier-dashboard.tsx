@@ -83,6 +83,14 @@ function UploadCloudIcon({ className = "h-5 w-5" }: Readonly<{ className?: strin
   );
 }
 
+function ArrowRightIcon({ className = "h-4 w-4" }: Readonly<{ className?: string }>) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path d="M14 5l7 7m0 0l-7 7m7-7H3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 const DOCUMENT_TYPE_LABELS: Record<string, string> = {
   COMPANY_REGISTRATION: "Company Registration (KVK / SIRET / Registry)",
   TAX_CERTIFICATE: "Tax & VAT Registration Certificate",
@@ -97,7 +105,7 @@ export function SupplierDashboard({
   onLogout,
   isLoggingOut,
 }: SupplierDashboardProps) {
-  const [activeSection, setActiveSection] = useState<NavSection>("organisation");
+  const [activeSection, setActiveSection] = useState<NavSection>("overview");
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<OrganisationProfile | null>(null);
   const [documents, setDocuments] = useState<ComplianceDocumentSummary[]>([]);
@@ -470,6 +478,210 @@ export function SupplierDashboard({
           </div>
         </div>
       </div>
+
+      {/* VIEW 0: ONBOARDING OVERVIEW & READINESS CHECKLIST */}
+      {activeSection === "overview" && (
+        <div className="space-y-6">
+          <div className="flex flex-col justify-between gap-4 border-b border-[#e2dccd] pb-5 sm:flex-row sm:items-center">
+            <div>
+              <h2 className="text-xl font-bold tracking-tight text-[#173f35]">
+                Supplier Onboarding & Readiness
+              </h2>
+              <p className="text-xs text-[#52635c]">
+                Complete your organisation profile, production sites, and compliance evidence.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#173f35]/10 px-3 py-1 text-xs font-semibold text-[#173f35]">
+                <span className="h-2 w-2 rounded-full bg-[#173f35]" />
+                {profile.completenessPercent}% Complete
+              </span>
+            </div>
+          </div>
+
+          {/* 4 Step Cards Grid */}
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+            {/* Step 1: Organisation Profile */}
+            <div className="flex flex-col justify-between rounded-2xl border border-[#e2dccd] bg-white p-6 shadow-2xs">
+              <div>
+                <div className="flex items-center justify-between">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#e2dccd] bg-[#faf8f1] text-[#173f35]">
+                    <Building2Icon className="h-5 w-5" />
+                  </div>
+                  <span className="text-xs font-bold text-[#718079]">Step 1</span>
+                </div>
+                <h3 className="mt-4 text-base font-bold text-[#173f35]">
+                  Organisation Profile
+                </h3>
+                <p className="mt-1 text-xs text-[#52635c]">
+                  Company registration, VAT number, legal entity details, physical address, and contact information.
+                </p>
+                <div className="mt-4 space-y-1.5 border-t border-[#f0ece1] pt-3 text-xs">
+                  <div className="flex items-center justify-between text-[#52635c]">
+                    <span>Legal Entity:</span>
+                    <span className="font-semibold text-[#173f35]">{profile.legalName || "Not set"}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[#52635c]">
+                    <span>Registration (KVK/SIRET):</span>
+                    <span className="font-semibold text-[#173f35]">{profile.registrationNumber || "Not set"}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[#52635c]">
+                    <span>Location:</span>
+                    <span className="font-semibold text-[#173f35]">{profile.country || "Not set"}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 border-t border-[#f0ece1] pt-4">
+                <button
+                  onClick={() => {
+                    setActiveSection("organisation");
+                    setIsEditingProfile(true);
+                  }}
+                  type="button"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#173f35] py-2 text-xs font-semibold text-[#fffaf0] hover:bg-[#204e42]"
+                >
+                  <span>Edit Organisation Profile</span>
+                  <ArrowRightIcon className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Step 2: Production Sites */}
+            <div className="flex flex-col justify-between rounded-2xl border border-[#e2dccd] bg-white p-6 shadow-2xs">
+              <div>
+                <div className="flex items-center justify-between">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#e2dccd] bg-[#faf8f1] text-[#173f35]">
+                    <SproutSmallIcon className="h-5 w-5" />
+                  </div>
+                  <span className="text-xs font-bold text-[#718079]">Step 2</span>
+                </div>
+                <h3 className="mt-4 text-base font-bold text-[#173f35]">
+                  Production Sites & Facilities
+                </h3>
+                <p className="mt-1 text-xs text-[#52635c]">
+                  Agricultural land parcels, cultivation farms, and processing facilities.
+                </p>
+                <div className="mt-4 space-y-1.5 border-t border-[#f0ece1] pt-3 text-xs">
+                  <div className="flex items-center justify-between text-[#52635c]">
+                    <span>Registered Sites:</span>
+                    <span className="font-semibold text-[#173f35]">
+                      {profile.sites.length} {profile.sites.length === 1 ? "site" : "sites"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[#52635c]">
+                    <span>Status:</span>
+                    <span className={`font-semibold ${profile.sites.length > 0 ? "text-emerald-700" : "text-amber-700"}`}>
+                      {profile.sites.length > 0 ? "Configured" : "Site registration needed"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 border-t border-[#f0ece1] pt-4">
+                <button
+                  onClick={() => {
+                    setActiveSection("sites");
+                  }}
+                  type="button"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#173f35] py-2 text-xs font-semibold text-[#fffaf0] hover:bg-[#204e42]"
+                >
+                  <span>Manage Production Sites</span>
+                  <ArrowRightIcon className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Step 3: Compliance & Documents */}
+            <div className="flex flex-col justify-between rounded-2xl border border-[#e2dccd] bg-white p-6 shadow-2xs">
+              <div>
+                <div className="flex items-center justify-between">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#e2dccd] bg-[#faf8f1] text-[#173f35]">
+                    <DownloadIcon className="h-5 w-5" />
+                  </div>
+                  <span className="text-xs font-bold text-[#718079]">Step 3</span>
+                </div>
+                <h3 className="mt-4 text-base font-bold text-[#173f35]">
+                  Compliance & Verification Documents
+                </h3>
+                <p className="mt-1 text-xs text-[#52635c]">
+                  Company registration certificate, tax/VAT records, organic certifications, and land deeds.
+                </p>
+                <div className="mt-4 space-y-1.5 border-t border-[#f0ece1] pt-3 text-xs">
+                  <div className="flex items-center justify-between text-[#52635c]">
+                    <span>Uploaded Documents:</span>
+                    <span className="font-semibold text-[#173f35]">
+                      {documents.length} {documents.length === 1 ? "document" : "documents"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[#52635c]">
+                    <span>Status:</span>
+                    <span className={`font-semibold ${documents.length > 0 ? "text-emerald-700" : "text-amber-700"}`}>
+                      {documents.length > 0 ? "Evidence submitted" : "Document upload needed"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 border-t border-[#f0ece1] pt-4">
+                <button
+                  onClick={() => {
+                    setActiveSection("compliance");
+                  }}
+                  type="button"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#173f35] py-2 text-xs font-semibold text-[#fffaf0] hover:bg-[#204e42]"
+                >
+                  <span>Upload Documents</span>
+                  <ArrowRightIcon className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Step 4: Team & Members */}
+            <div className="flex flex-col justify-between rounded-2xl border border-[#e2dccd] bg-white p-6 shadow-2xs">
+              <div>
+                <div className="flex items-center justify-between">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#e2dccd] bg-[#faf8f1] text-[#173f35]">
+                    <Building2Icon className="h-5 w-5" />
+                  </div>
+                  <span className="text-xs font-bold text-[#718079]">Step 4</span>
+                </div>
+                <h3 className="mt-4 text-base font-bold text-[#173f35]">
+                  Team & Organisation Members
+                </h3>
+                <p className="mt-1 text-xs text-[#52635c]">
+                  Associated users with access to manage this organisation context.
+                </p>
+                <div className="mt-4 space-y-1.5 border-t border-[#f0ece1] pt-3 text-xs">
+                  <div className="flex items-center justify-between text-[#52635c]">
+                    <span>Active Team:</span>
+                    <span className="font-semibold text-[#173f35]">
+                      {members.length} {members.length === 1 ? "member" : "members"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[#52635c]">
+                    <span>Primary User:</span>
+                    <span className="truncate font-semibold text-[#173f35]">{userEmail}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 border-t border-[#f0ece1] pt-4">
+                <button
+                  onClick={() => {
+                    setActiveSection("members");
+                  }}
+                  type="button"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#173f35] py-2 text-xs font-semibold text-[#fffaf0] hover:bg-[#204e42]"
+                >
+                  <span>View Team Members</span>
+                  <ArrowRightIcon className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* VIEW 1: ORGANISATION PROFILE */}
       {activeSection === "organisation" && (
