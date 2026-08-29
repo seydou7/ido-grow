@@ -4,6 +4,10 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
+import { useI18n } from "@/i18n/i18n-provider";
+import { LanguageSelector } from "@/i18n/language-selector";
+import type { Translate } from "@/i18n/runtime";
+
 import { getAuthenticationSession, login, logout } from "./api";
 import type { AuthenticationSession } from "./contracts";
 
@@ -14,10 +18,8 @@ type LoginFormValues = Readonly<{
 
 type ViewState = "checking" | "ready" | "submitting";
 
-const SAFE_FALLBACK_ERROR = "Something went wrong. Please try again.";
-
-function safeErrorMessage(error: unknown): string {
-  return error instanceof Error && error.message ? error.message : SAFE_FALLBACK_ERROR;
+function safeErrorMessage(t: Translate): string {
+  return t("auth.errorGeneric");
 }
 
 function BrandMark({ inverted = false }: Readonly<{ inverted?: boolean }>) {
@@ -72,6 +74,7 @@ function FieldIcon({ name }: Readonly<{ name: "email" | "password" }>) {
 }
 
 export function AuthenticationPanel() {
+  const { t } = useI18n();
   const [session, setSession] = useState<AuthenticationSession>({
     status: "unauthenticated",
   });
@@ -96,9 +99,9 @@ export function AuthenticationPanel() {
           setRequestError(null);
         }
       })
-      .catch((error: unknown) => {
+      .catch(() => {
         if (active) {
-          setRequestError(safeErrorMessage(error));
+          setRequestError(safeErrorMessage(t));
         }
       })
       .finally(() => {
@@ -110,7 +113,7 @@ export function AuthenticationPanel() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [t]);
 
   const submitLogin = handleSubmit(async (values) => {
     setViewState("submitting");
@@ -123,8 +126,8 @@ export function AuthenticationPanel() {
       });
       setSession(authenticatedSession);
       reset();
-    } catch (error) {
-      setRequestError(safeErrorMessage(error));
+    } catch {
+      setRequestError(safeErrorMessage(t));
     } finally {
       setViewState("ready");
     }
@@ -137,8 +140,8 @@ export function AuthenticationPanel() {
     try {
       await logout();
       setSession({ status: "unauthenticated" });
-    } catch (error) {
-      setRequestError(safeErrorMessage(error));
+    } catch {
+      setRequestError(safeErrorMessage(t));
     } finally {
       setViewState("ready");
     }
@@ -172,23 +175,26 @@ export function AuthenticationPanel() {
 
           <div className="mt-auto max-w-lg pb-3 text-[#fffaf0]">
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#e5b84b]">
-              Professional workspace
+              {t("presentation.eyebrow")}
             </p>
             <p className="mt-4 max-w-md text-4xl font-semibold leading-[1.12] tracking-tight xl:text-[2.75rem]">
               Natural-fibre trade, brought into focus.
             </p>
             <p className="mt-5 max-w-md text-sm leading-6 text-[#fffaf0]/78">
-              Sign in to continue to your secure I Do Grow workspace.
+              {t("presentation.intro")}
             </p>
           </div>
         </div>
       </section>
 
       <section
-        aria-label="Authentication"
+        aria-label={t("auth.sectionLabel")}
         className="relative flex min-h-screen items-center justify-center px-6 py-10 sm:px-10 lg:px-12"
       >
         <div className="absolute inset-x-0 top-0 h-1 bg-[#e5b84b] lg:hidden" />
+        <div className="absolute right-6 top-5 sm:right-10 lg:right-12">
+          <LanguageSelector />
+        </div>
         <div className="w-full max-w-sm">
           <div className="mb-10 flex items-center gap-3 lg:hidden">
             <BrandMark />
@@ -203,23 +209,23 @@ export function AuthenticationPanel() {
           {viewState === "checking" ? (
             <div className="flex min-h-80 flex-col items-center justify-center text-center" role="status">
               <span className="h-8 w-8 animate-spin rounded-full border-[3px] border-[#ddd6c6] border-t-[#284f41]" />
-              <p className="mt-4 text-sm font-medium text-[#5d6e68]">Checking your session…</p>
+              <p className="mt-4 text-sm font-medium text-[#5d6e68]">{t("auth.checkingSession")}</p>
             </div>
           ) : session.status === "authenticated" ? (
             <div className="min-h-80">
               <span className="inline-flex items-center gap-2 rounded-full bg-[#e7f1eb] px-3 py-1 text-xs font-semibold text-[#285d4a]">
                 <span className="h-2 w-2 rounded-full bg-[#3b876b]" />
-                Authenticated
+                {t("auth.authenticated")}
               </span>
               <h1 className="mt-6 text-3xl font-semibold tracking-tight text-[#203e35]" id="authentication-heading">
-                Welcome back
+                {t("auth.welcomeBack")}
               </h1>
               <p className="mt-2 text-sm leading-6 text-[#66736f]">
-                Your secure local application session is active.
+                {t("auth.sessionActive")}
               </p>
               <div className="mt-8 rounded-xl border border-[#e2dccd] bg-white p-4 shadow-[0_1px_2px_rgba(31,70,57,0.04)]">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#837760]">
-                  Signed in as
+                  {t("auth.signedInAs")}
                 </p>
                 <p className="mt-2 break-all text-sm font-medium text-[#203e35]">
                   {session.user.email}
@@ -231,21 +237,21 @@ export function AuthenticationPanel() {
                 onClick={() => void submitLogout()}
                 type="button"
               >
-                {busy ? "Signing out…" : "Sign out"}
+                {busy ? t("auth.logoutPending") : t("auth.logout")}
               </button>
             </div>
           ) : (
             <form className="min-h-80" noValidate onSubmit={submitLogin}>
               <h1 className="text-3xl font-semibold tracking-tight text-[#203e35]" id="authentication-heading">
-                Sign in to your workspace
+                {t("auth.loginHeading")}
               </h1>
               <p className="mt-3 text-sm leading-6 text-[#66736f]">
-                Enter your I Do Grow account details to continue.
+                {t("auth.loginDescription")}
               </p>
 
               <div className="mt-8">
                 <label className="text-sm font-medium text-[#304f45]" htmlFor="email">
-                  Email address
+                  {t("auth.email")}
                 </label>
                 <div className="relative mt-2">
                   <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#7b8984]">
@@ -259,12 +265,12 @@ export function AuthenticationPanel() {
                     aria-describedby={errors.email ? "email-error" : undefined}
                     aria-invalid={errors.email ? "true" : "false"}
                     disabled={busy}
-                    placeholder="you@company.com"
+                    placeholder={t("auth.emailPlaceholder")}
                     {...register("email", {
-                      required: "Enter your email address.",
+                      required: t("auth.emailRequired"),
                       pattern: {
                         value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                        message: "Enter a valid email address.",
+                        message: t("auth.emailInvalid"),
                       },
                     })}
                   />
@@ -278,7 +284,7 @@ export function AuthenticationPanel() {
 
               <div className="mt-5">
                 <label className="text-sm font-medium text-[#304f45]" htmlFor="password">
-                  Password
+                  {t("auth.password")}
                 </label>
                 <div className="relative mt-2">
                   <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#7b8984]">
@@ -294,7 +300,7 @@ export function AuthenticationPanel() {
                     disabled={busy}
                     placeholder="••••••••"
                     {...register("password", {
-                      required: "Enter your password.",
+                      required: t("auth.passwordRequired"),
                     })}
                   />
                 </div>
@@ -310,7 +316,7 @@ export function AuthenticationPanel() {
                 disabled={busy}
                 type="submit"
               >
-                {busy ? "Signing in…" : "Sign in"}
+                {busy ? t("auth.signInPending") : t("auth.signIn")}
               </button>
             </form>
           )}

@@ -203,3 +203,35 @@ Record important architectural and product decisions here. Previous decisions mu
 - Provider-neutral authentication contracts may remain where they accurately represent internal application identity and sessions.
 - The initial implementation may establish a conservative local authentication baseline without claiming that its parameters are final production policy.
 - PostgreSQL remains the required database; SQLite is not an authorised substitute.
+
+## DEC-005 — Frontend Internationalization Runtime Conventions
+
+- **Status:** Approved
+- **Decision type:** Supplemental project decision
+- **Scope:** Sprint 01 frontend internationalization runtime conventions for non-business platform copy only. DEC-001 through DEC-004 remain unchanged.
+
+### Decision
+
+- Use a small internal typed internationalization runtime over the existing locale configuration and typed catalogs; do not add an external internationalization library for the Sprint 01 baseline.
+- Support exactly English (`en`), Dutch (`nl`) and French (`fr`). English is the default locale and missing-copy fallback.
+- Resolve the locale deterministically from the validated first-party `ido_grow_locale` preference cookie; use English when the cookie is missing or invalid.
+- Store only the non-sensitive locale preference in a `SameSite=Lax`, `Path=/` cookie with a one-year preference-style duration. This duration is an implementation convention, not a legal or privacy retention policy.
+- Do not use browser or `Accept-Language` auto-detection and do not introduce locale-specific routes in Sprint 01.
+- Provide an explicit accessible language selector that updates the preference and refreshes the current route without changing its URL. The server-rendered locale, client runtime and HTML `lang` value must remain consistent.
+- Translate only approved non-business platform and authentication-shell copy. Business, legal, status and domain terminology marked OPEN remains excluded.
+
+### Explicitly still open or future work
+
+- Browser or `Accept-Language` detection
+- Locale-specific URLs, localized SEO and related routing strategy
+- Account-level preference synchronization
+- Advanced pluralization and date, time, number or currency formatting conventions
+- Translation-management workflow or service
+- Additional locales and right-to-left support
+- Business, legal, status and domain terminology
+
+### Consequences and constraints
+
+- The Sprint 01 runtime remains dependency-light and deterministic across server rendering and client hydration.
+- Locale preference must not affect authentication sessions, backend authorization or application URLs.
+- Future internationalization requirements may replace or extend the internal runtime through a later approved decision without changing the approved locale content silently.

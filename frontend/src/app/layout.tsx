@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+import { resolveRequestLocale } from "@/i18n/server";
+
 import "./globals.css";
 import { Providers } from "./providers";
 
@@ -9,11 +11,13 @@ export const metadata: Metadata = {
   description: "I Do Grow platform foundation",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+  const locale = await resolveRequestLocale();
+
   return (
-    <html lang="en">
+    <html lang={locale}>
       <body>
-        <Providers>{children}</Providers>
+        <Providers locale={locale}>{children}</Providers>
       </body>
     </html>
   );
