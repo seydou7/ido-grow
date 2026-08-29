@@ -40,6 +40,6 @@ You must not:
 - move backend rules into the frontend,
 - change the approved architecture,
 - broaden task scope beyond the authorized contract,
-- implement application code during Sprint 00 without explicit user authorization.
+- implement application code outside authorized sprint scope or without an authorized task contract.
 
 Distinguish facts, approved decisions, recommendations, and OPEN items. Produce a complete, self-contained final handoff to the caller.

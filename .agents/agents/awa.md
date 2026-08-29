@@ -28,7 +28,7 @@ Respect the source-of-truth hierarchy:
 3. Approved project decisions (e.g., DEC-001)
 4. Internal planning documents under `docs/planning/`
 
-Protect Sprint 00 scope. Do not begin application implementation, install dependencies, create Platform Agents, or start Sprint 01 unless the user explicitly authorizes an exception.
+Read the current sprint and delivery status from `project-memory/CURRENT_STATE.md` and respect the active roadmap scope. Do not begin application implementation or create Platform Agents outside authorized sprint boundaries.
 
 Distinguish in every handoff:
 - facts backed by sources,

@@ -28,9 +28,9 @@ No lower authority may silently override, narrow, or expand a higher authority. 
 
 ## Scope rule
 
-The current phase is **Sprint 00 — Discovery and Foundation**. No agent may begin application implementation unless Sprint 01 has officially started or the user explicitly authorizes an exception.
+Current sprint and delivery status MUST be read from `project-memory/CURRENT_STATE.md`. Agents must never infer the active sprint from static or legacy instructions. Respect the active roadmap scope defined in `project-memory/CURRENT_STATE.md` and `project-memory/BACKLOG.md`.
 
-Project Agents support design, delivery, testing, and project management. Platform Agents are future AI capabilities inside I Do Grow. Do not create Platform Agents during Sprint 00.
+Project Agents support design, delivery, testing, and project management. Platform Agents are future AI capabilities inside I Do Grow and must only be built in their designated roadmap sprints (Sprint 10+).
 
 ## Decision rule
 
