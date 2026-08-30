@@ -1,12 +1,13 @@
 # Current State
 
-- **ACTIVE — Phase:** Sprint 02 — Organisations & Supplier Onboarding is CLOSED. Sprint 03 — Product Catalogue & Listings is READY under the locked roadmap.
-- **CLOSED — Sprint 02 (Organisations & Supplier Onboarding):** Delivered and Project Owner-validated 4 vertical blocks: (1) Supplier Organisation Profile & Production Sites Onboarding, (2) Supplier Compliance Documents & Verification Foundation, (3) Organisation Members & Multi-User Foundation, and (4) Guided Supplier Onboarding & Readiness Overview. Invitation lifecycles, internal organisation roles (ADMIN/OPERATOR/MEMBER), Trader-assisted onboarding authority, Trader review/approval/activation interfaces, and marketplace/listing gating remain OPEN or UNSUPPORTED.
+- **ACTIVE — Phase:** Sprint 03 — Product Catalogue & Listings is ACTIVE under the locked roadmap.
+- **COMPLETE (PROJECT OWNER VALIDATED) — Sprint 03 Block 01 (Supplier Catalogue & Listing Foundation):** Delivered and Project Owner-validated tenant-owned Listing model, Supplier listing CRUD and detail views, natural fibre and product form taxonomy, quantity and units, optional price with EUR baseline and neutral missing-price copy, optional origin country and harvest year, optional production site association, Draft / Published status management, Supplier Portal Product Listings view with material filtering, and immutable audit logging (`organisation.listing.created`, `organisation.listing.updated`). All deferred catalogue semantics remain OPEN.
+- **CLOSED — Sprint 02 (Organisations & Supplier Onboarding):** Delivered and Project Owner-validated 4 vertical blocks: (1) Supplier Organisation Profile & Production Sites Onboarding, (2) Supplier Compliance Documents & Verification Foundation, (3) Organisation Members & Multi-User Foundation, and (4) Guided Supplier Onboarding & Readiness Overview.
 - **LOCKED ROADMAP:**
   - Sprint 00 — Discovery & Foundation (CLOSED)
   - Sprint 01 — Platform Foundation (CLOSED)
   - Sprint 02 — Organisations & Supplier Onboarding (CLOSED)
-  - Sprint 03 — Product Catalogue & Listings (READY)
+  - Sprint 03 — Product Catalogue & Listings (ACTIVE)
   - Sprint 04 — Buyer Marketplace & Buy Orders
   - Sprint 05 — Trader Cockpit & Manual Matching
   - Sprint 06 — Quotes & Trade Lifecycle

@@ -8,6 +8,8 @@ export type {
   AuthenticationAuditEvent,
   AuthenticationAuditEventType,
   ComplianceDocumentUploadedAuditEvent,
+  ListingCreatedAuditEvent,
+  ListingUpdatedAuditEvent,
   LoginFailedAuditEvent,
   LoginSucceededAuditEvent,
   LogoutSucceededAuditEvent,

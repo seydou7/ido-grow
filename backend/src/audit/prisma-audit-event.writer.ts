@@ -106,6 +106,21 @@ export function sanitizePlatformEvent(
           filename: event.metadata.filename,
         },
       };
+    case "organisation.listing.created":
+    case "organisation.listing.updated":
+      assertUuid(event.actor.userId, "actor.userId");
+      assertUuid(event.target.id, "target.id");
+      return {
+        eventType: event.eventType,
+        outcome: "succeeded",
+        actorType: "user",
+        actorUserId: event.actor.userId,
+        targetType: "listing",
+        targetId: event.target.id,
+        correlationId: event.correlationId,
+        occurredAt: event.occurredAt,
+        metadata: event.metadata,
+      };
   }
 }
 

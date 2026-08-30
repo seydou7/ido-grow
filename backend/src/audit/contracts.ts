@@ -9,6 +9,8 @@ export const ORGANISATION_AUDIT_EVENT_TYPES = [
   "organisation.site.created",
   "organisation.site.updated",
   "organisation.compliance_document.uploaded",
+  "organisation.listing.created",
+  "organisation.listing.updated",
 ] as const;
 
 export const AUDIT_EVENT_TYPES = [
@@ -92,6 +94,24 @@ export type ComplianceDocumentUploadedAuditEvent = AuditEventBase &
     metadata: Readonly<{ organisationId: string; documentType: string; filename: string }>;
   }>;
 
+export type ListingCreatedAuditEvent = AuditEventBase &
+  Readonly<{
+    eventType: "organisation.listing.created";
+    outcome: "succeeded";
+    actor: Readonly<{ type: "user"; userId: string }>;
+    target: Readonly<{ type: "listing"; id: string }>;
+    metadata: Readonly<{ organisationId: string; title: string; materialType: string }>;
+  }>;
+
+export type ListingUpdatedAuditEvent = AuditEventBase &
+  Readonly<{
+    eventType: "organisation.listing.updated";
+    outcome: "succeeded";
+    actor: Readonly<{ type: "user"; userId: string }>;
+    target: Readonly<{ type: "listing"; id: string }>;
+    metadata: Readonly<{ organisationId: string; title?: string; status?: string }>;
+  }>;
+
 export type AuthenticationAuditEvent =
   | LoginSucceededAuditEvent
   | LoginFailedAuditEvent
@@ -101,6 +121,8 @@ export type OrganisationAuditEvent =
   | OrganisationProfileUpdatedAuditEvent
   | SiteCreatedAuditEvent
   | SiteUpdatedAuditEvent
-  | ComplianceDocumentUploadedAuditEvent;
+  | ComplianceDocumentUploadedAuditEvent
+  | ListingCreatedAuditEvent
+  | ListingUpdatedAuditEvent;
 
 export type PlatformAuditEvent = AuthenticationAuditEvent | OrganisationAuditEvent;

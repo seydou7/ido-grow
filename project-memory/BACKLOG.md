@@ -48,9 +48,12 @@ The formal closure assessment returned PASS. Sprint 02 is closed and complete.
 
 ---
 
-## Sprint 03 — Product Catalogue & Listings — READY
+## Sprint 03 — Product Catalogue & Listings — ACTIVE
 
-Sprint 03 is READY under the locked roadmap (implementation not started in this run).
+Sprint 03 covers the Product Catalogue and Supplier Listing capabilities on top of the validated organisation and onboarding foundation.
+
+### Sprint 03 Scope: Product Catalogue & Listings
+- **COMPLETE (PROJECT OWNER VALIDATED) — Supplier Catalogue & Listing Foundation (Vertical Block 01):** Tenant-owned Listing persistence model, Supplier listing creation, editing, retrieval, detail view, natural fibre taxonomy, product form taxonomy, quantity with approved units (TONNES, KILOGRAMS, BALES), optional price with EUR baseline and neutral missing-price semantics ("Price not specified"), optional origin country, optional harvest year, optional production site association, Draft / Published status lifecycle, Supplier Portal Product Listings view with material filtering, and immutable audit events (`organisation.listing.created`, `organisation.listing.updated`). Deferred: available vs total quantity, reservation/allocation, MOQ, negotiable pricing, availability date, Lot/Batch, structured quality parameters, listing certifications/photos/documents, Trader review/approval gating, Buyer marketplace browsing, sold/reserved status, DPP association, hard deletion, future advanced taxonomy inheritance.
 
 ---
 

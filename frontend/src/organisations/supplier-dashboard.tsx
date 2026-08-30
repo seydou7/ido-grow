@@ -26,6 +26,28 @@ import type {
   UpdateOrganisationProfileInput,
   UpdateSiteInput,
 } from "./contracts";
+import {
+  createListing,
+  listListings,
+  updateListing,
+} from "../listings/api";
+import {
+  APPROVED_MATERIAL_TYPES,
+  APPROVED_PRICE_UNITS,
+  APPROVED_PRODUCT_FORMS,
+  APPROVED_QUANTITY_UNITS,
+  type CreateListingInput,
+  type ListingStatus,
+  type ListingSummary,
+  MATERIAL_TYPE_LABELS,
+  type MaterialType,
+  PRICE_UNIT_LABELS,
+  type PriceUnit,
+  PRODUCT_FORM_LABELS,
+  type ProductForm,
+  QUANTITY_UNIT_LABELS,
+  type QuantityUnit,
+} from "../listings/contracts";
 
 type SupplierDashboardProps = Readonly<{
   userEmail: string;
@@ -117,6 +139,12 @@ export function SupplierDashboard({
   const [isAddingSite, setIsAddingSite] = useState(false);
   const [editingSiteId, setEditingSiteId] = useState<string | null>(null);
 
+  const [listings, setListings] = useState<ListingSummary[]>([]);
+  const [isAddingListing, setIsAddingListing] = useState(false);
+  const [editingListingId, setEditingListingId] = useState<string | null>(null);
+  const [selectedMaterialFilter, setSelectedMaterialFilter] =
+    useState<string>("ALL");
+
   // Document upload state
   const [selectedDocType, setSelectedDocType] = useState("COMPANY_REGISTRATION");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -143,6 +171,13 @@ export function SupplierDashboard({
     formState: { isSubmitting: isSavingSite },
   } = useForm<CreateSiteInput>();
 
+  const {
+    register: regListing,
+    handleSubmit: handleListingSubmit,
+    reset: resetListingForm,
+    formState: { isSubmitting: isSavingListing },
+  } = useForm<CreateListingInput>();
+
   useEffect(() => {
     let isMounted = true;
 
@@ -162,6 +197,9 @@ export function SupplierDashboard({
           const memberCollection = await listOrganisationMembers(first.organisation.id);
           if (!isMounted) return;
           setMembers([...memberCollection.items]);
+          const listingCollection = await listListings(first.organisation.id);
+          if (!isMounted) return;
+          setListings([...listingCollection.items]);
           resetProfileForm({
             name: fullProfile.name,
             legalName: fullProfile.legalName,
@@ -180,6 +218,7 @@ export function SupplierDashboard({
           setProfile(null);
           setDocuments([]);
           setMembers([]);
+          setListings([]);
         }
       } catch (err: unknown) {
         if (!isMounted) return;
@@ -292,6 +331,95 @@ export function SupplierDashboard({
       landAreaHectares: site.landAreaHectares,
     });
     setIsAddingSite(true);
+  }
+
+  async function onSaveListing(data: CreateListingInput) {
+    if (!orgId) return;
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    try {
+      const payload: CreateListingInput = {
+        title: data.title,
+        description: data.description || null,
+        materialType: data.materialType,
+        productForm: data.productForm || null,
+        quantity: Number(data.quantity),
+        quantityUnit: data.quantityUnit || "TONNES",
+        priceAmount:
+          data.priceAmount !== undefined &&
+          data.priceAmount !== null &&
+          String(data.priceAmount).trim() !== ""
+            ? Number(data.priceAmount)
+            : null,
+        priceUnit: data.priceUnit || "PER_TONNE",
+        currency: "EUR",
+        originCountry: data.originCountry || null,
+        harvestYear: data.harvestYear ? Number(data.harvestYear) : null,
+        siteId: data.siteId && data.siteId !== "" ? data.siteId : null,
+        status: data.status || "DRAFT",
+      };
+
+      if (editingListingId) {
+        const updated = await updateListing(orgId, editingListingId, payload);
+        setListings((prev) =>
+          prev.map((l) => (l.id === updated.id ? updated : l)),
+        );
+        setSuccessMessage("Product listing updated successfully.");
+      } else {
+        const created = await createListing(orgId, payload);
+        setListings((prev) => [created, ...prev]);
+        setSuccessMessage("Product listing created successfully.");
+      }
+      setIsAddingListing(false);
+      setEditingListingId(null);
+      resetListingForm({});
+    } catch (err: unknown) {
+      setErrorMessage(
+        err instanceof Error ? err.message : "Failed to save product listing.",
+      );
+    }
+  }
+
+  async function toggleListingStatus(listing: ListingSummary) {
+    if (!orgId) return;
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    try {
+      const nextStatus =
+        listing.status === "PUBLISHED" ? "DRAFT" : "PUBLISHED";
+      const updated = await updateListing(orgId, listing.id, {
+        status: nextStatus,
+      });
+      setListings((prev) =>
+        prev.map((l) => (l.id === updated.id ? updated : l)),
+      );
+      setSuccessMessage(
+        `Listing "${listing.title}" is now ${nextStatus.toLowerCase()}.`,
+      );
+    } catch (err: unknown) {
+      setErrorMessage(
+        err instanceof Error ? err.message : "Failed to update listing status.",
+      );
+    }
+  }
+
+  function startEditListing(listing: ListingSummary) {
+    setEditingListingId(listing.id);
+    resetListingForm({
+      title: listing.title,
+      description: listing.description ?? "",
+      materialType: listing.materialType as MaterialType,
+      productForm: (listing.productForm || undefined) as ProductForm | undefined,
+      quantity: listing.quantity,
+      quantityUnit: (listing.quantityUnit || "TONNES") as QuantityUnit,
+      priceAmount: listing.priceAmount ?? undefined,
+      priceUnit: (listing.priceUnit || "PER_TONNE") as PriceUnit,
+      originCountry: listing.originCountry ?? "",
+      harvestYear: listing.harvestYear ?? undefined,
+      siteId: listing.siteId ?? "",
+      status: (listing.status || "DRAFT") as ListingStatus,
+    });
+    setIsAddingListing(true);
   }
 
   if (loading) {
@@ -1415,6 +1543,447 @@ export function SupplierDashboard({
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* SECTION: Product Listings */}
+      {activeSection === "listings" && (
+        <div className="space-y-6">
+          <div className="flex flex-col justify-between gap-4 border-b border-[#e2dccd] pb-5 sm:flex-row sm:items-center">
+            <div>
+              <h2 className="text-xl font-bold tracking-tight text-[#173f35]">
+                Product Listings & Material Inventory
+              </h2>
+              <p className="text-xs text-[#52635c]">
+                Manage natural fibre inventory, specifications, pricing, and availability.
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingListingId(null);
+                  resetListingForm({
+                    title: "",
+                    description: "",
+                    materialType: "HEMP",
+                    productForm: "STRAW_RETTED",
+                    quantity: 50,
+                    quantityUnit: "TONNES",
+                    priceAmount: undefined,
+                    priceUnit: "PER_TONNE",
+                    originCountry: profile.country || "Netherlands",
+                    harvestYear: new Date().getFullYear(),
+                    siteId: profile.sites && profile.sites.length > 0 ? profile.sites[0].id : "",
+                    status: "DRAFT",
+                  });
+                  setIsAddingListing(true);
+                }}
+                className="inline-flex items-center gap-2 rounded-xl bg-[#173f35] px-4 py-2.5 text-xs font-bold text-[#fffaf0] shadow-sm hover:bg-[#245347]"
+              >
+                <span>+ Create New Listing</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Material Type Filter Chips */}
+          <div className="flex flex-wrap items-center gap-2 pb-1">
+            <button
+              type="button"
+              onClick={() => setSelectedMaterialFilter("ALL")}
+              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                selectedMaterialFilter === "ALL"
+                  ? "bg-[#173f35] text-[#fffaf0] shadow-2xs"
+                  : "bg-white text-[#52635c] border border-[#e2dccd] hover:bg-[#f6f2e8]"
+              }`}
+            >
+              All Materials ({listings.length})
+            </button>
+            {APPROVED_MATERIAL_TYPES.map((mat) => {
+              const count = listings.filter((l) => l.materialType === mat).length;
+              return (
+                <button
+                  key={mat}
+                  type="button"
+                  onClick={() => setSelectedMaterialFilter(mat)}
+                  className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                    selectedMaterialFilter === mat
+                      ? "bg-[#173f35] text-[#fffaf0] shadow-2xs"
+                      : "bg-white text-[#52635c] border border-[#e2dccd] hover:bg-[#f6f2e8]"
+                  }`}
+                >
+                  {mat} ({count})
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Modal / Form Drawer for Adding/Editing Listing */}
+          {isAddingListing && (
+            <div className="rounded-2xl border-2 border-[#173f35]/20 bg-white p-6 shadow-md">
+              <div className="mb-5 flex items-center justify-between border-b border-[#f0ece1] pb-3">
+                <h3 className="text-sm font-bold text-[#173f35]">
+                  {editingListingId ? "Edit Product Listing" : "Create New Product Listing"}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAddingListing(false);
+                    setEditingListingId(null);
+                  }}
+                  className="rounded-lg p-1.5 text-[#6e7d77] hover:bg-[#f6f2e8]"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleListingSubmit(onSaveListing)} className="space-y-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <label className="mb-1 block text-xs font-semibold text-[#173f35]">
+                      Listing Title *
+                    </label>
+                    <input
+                      {...regListing("title", { required: true })}
+                      placeholder="e.g. European Retted Hemp Straw — Grade A"
+                      className="w-full rounded-xl border border-[#d4cdbc] bg-[#faf8f1] px-3.5 py-2 text-xs font-medium text-[#173f35] placeholder:text-[#9ba8a2] focus:border-[#173f35] focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-[#173f35]">
+                      Natural Fibre Material *
+                    </label>
+                    <select
+                      {...regListing("materialType", { required: true })}
+                      className="w-full rounded-xl border border-[#d4cdbc] bg-[#faf8f1] px-3.5 py-2 text-xs font-medium text-[#173f35] focus:border-[#173f35] focus:outline-none"
+                    >
+                      {APPROVED_MATERIAL_TYPES.map((mat) => (
+                        <option key={mat} value={mat}>
+                          {MATERIAL_TYPE_LABELS[mat]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-[#173f35]">
+                      Product Form
+                    </label>
+                    <select
+                      {...regListing("productForm")}
+                      className="w-full rounded-xl border border-[#d4cdbc] bg-[#faf8f1] px-3.5 py-2 text-xs font-medium text-[#173f35] focus:border-[#173f35] focus:outline-none"
+                    >
+                      <option value="">Select form...</option>
+                      {APPROVED_PRODUCT_FORMS.map((form) => (
+                        <option key={form} value={form}>
+                          {PRODUCT_FORM_LABELS[form]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-[#173f35]">
+                      Available Quantity *
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        step="any"
+                        {...regListing("quantity", { required: true, valueAsNumber: true })}
+                        placeholder="e.g. 100"
+                        className="w-full rounded-xl border border-[#d4cdbc] bg-[#faf8f1] px-3.5 py-2 text-xs font-medium text-[#173f35] placeholder:text-[#9ba8a2] focus:border-[#173f35] focus:outline-none"
+                      />
+                      <select
+                        {...regListing("quantityUnit")}
+                        className="w-40 rounded-xl border border-[#d4cdbc] bg-[#faf8f1] px-3 py-2 text-xs font-medium text-[#173f35] focus:border-[#173f35] focus:outline-none"
+                      >
+                        {APPROVED_QUANTITY_UNITS.map((unit) => (
+                          <option key={unit} value={unit}>
+                            {QUANTITY_UNIT_LABELS[unit]}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-[#173f35]">
+                      Indicative Price (€ EUR)
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        step="any"
+                        {...regListing("priceAmount")}
+                        placeholder="e.g. 240 (optional)"
+                        className="w-full rounded-xl border border-[#d4cdbc] bg-[#faf8f1] px-3.5 py-2 text-xs font-medium text-[#173f35] placeholder:text-[#9ba8a2] focus:border-[#173f35] focus:outline-none"
+                      />
+                      <select
+                        {...regListing("priceUnit")}
+                        className="w-36 rounded-xl border border-[#d4cdbc] bg-[#faf8f1] px-3 py-2 text-xs font-medium text-[#173f35] focus:border-[#173f35] focus:outline-none"
+                      >
+                        {APPROVED_PRICE_UNITS.map((unit) => (
+                          <option key={unit} value={unit}>
+                            {PRICE_UNIT_LABELS[unit]}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-[#173f35]">
+                      Origin Country
+                    </label>
+                    <input
+                      {...regListing("originCountry")}
+                      placeholder="e.g. Netherlands"
+                      className="w-full rounded-xl border border-[#d4cdbc] bg-[#faf8f1] px-3.5 py-2 text-xs font-medium text-[#173f35] placeholder:text-[#9ba8a2] focus:border-[#173f35] focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-[#173f35]">
+                      Harvest Year
+                    </label>
+                    <input
+                      type="number"
+                      {...regListing("harvestYear")}
+                      placeholder="e.g. 2026"
+                      className="w-full rounded-xl border border-[#d4cdbc] bg-[#faf8f1] px-3.5 py-2 text-xs font-medium text-[#173f35] placeholder:text-[#9ba8a2] focus:border-[#173f35] focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-[#173f35]">
+                      Production Site
+                    </label>
+                    <select
+                      {...regListing("siteId")}
+                      className="w-full rounded-xl border border-[#d4cdbc] bg-[#faf8f1] px-3.5 py-2 text-xs font-medium text-[#173f35] focus:border-[#173f35] focus:outline-none"
+                    >
+                      <option value="">No site linked / Multi-site</option>
+                      {profile.sites?.map((site) => (
+                        <option key={site.id} value={site.id}>
+                          {site.name} ({site.facilityType || "Plot"})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-[#173f35]">
+                      Status *
+                    </label>
+                    <select
+                      {...regListing("status")}
+                      className="w-full rounded-xl border border-[#d4cdbc] bg-[#faf8f1] px-3.5 py-2 text-xs font-medium text-[#173f35] focus:border-[#173f35] focus:outline-none"
+                    >
+                      <option value="DRAFT">Draft (Internal preparation)</option>
+                      <option value="PUBLISHED">Published (Active listing offer)</option>
+                    </select>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="mb-1 block text-xs font-semibold text-[#173f35]">
+                      Commercial Description & Specifications
+                    </label>
+                    <textarea
+                      rows={3}
+                      {...regListing("description")}
+                      placeholder="Specify quality parameters, retting method, moisture content, packaging (bales/big bags), or minimum order quantities."
+                      className="w-full rounded-xl border border-[#d4cdbc] bg-[#faf8f1] px-3.5 py-2 text-xs font-medium text-[#173f35] placeholder:text-[#9ba8a2] focus:border-[#173f35] focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAddingListing(false);
+                      setEditingListingId(null);
+                    }}
+                    className="rounded-xl border border-[#d4cdbc] px-4 py-2 text-xs font-semibold text-[#52635c] hover:bg-[#f6f2e8]"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingListing}
+                    className="rounded-xl bg-[#173f35] px-5 py-2 text-xs font-bold text-[#fffaf0] hover:bg-[#245347] disabled:opacity-50"
+                  >
+                    {isSavingListing ? "Saving..." : editingListingId ? "Update Listing" : "Create Listing"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Listings Grid */}
+          {(() => {
+            const filtered =
+              selectedMaterialFilter === "ALL"
+                ? listings
+                : listings.filter((l) => l.materialType === selectedMaterialFilter);
+
+            if (filtered.length === 0) {
+              return (
+                <div className="rounded-2xl border border-dashed border-[#d4cdbc] bg-white p-12 text-center shadow-2xs">
+                  <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[#faf8f1] text-[#173f35]">
+                    <span className="text-xl">🌿</span>
+                  </div>
+                  <h3 className="mt-4 text-sm font-bold text-[#173f35]">
+                    {selectedMaterialFilter === "ALL"
+                      ? "No Product Listings Created Yet"
+                      : `No ${selectedMaterialFilter} Listings Found`}
+                  </h3>
+                  <p className="mx-auto mt-1 max-w-md text-xs text-[#6e7d77]">
+                    Create your first product listing to showcase natural fibre materials, stock levels, and commercial offers.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingListingId(null);
+                      resetListingForm({
+                        title: "",
+                        description: "",
+                        materialType:
+                          selectedMaterialFilter === "ALL"
+                            ? "HEMP"
+                            : (selectedMaterialFilter as MaterialType),
+                        productForm: "STRAW_RETTED",
+                        quantity: 50,
+                        quantityUnit: "TONNES",
+                        priceAmount: undefined,
+                        priceUnit: "PER_TONNE",
+                        originCountry: profile.country || "Netherlands",
+                        harvestYear: new Date().getFullYear(),
+                        siteId: profile.sites && profile.sites.length > 0 ? profile.sites[0].id : "",
+                        status: "DRAFT",
+                      });
+                      setIsAddingListing(true);
+                    }}
+                    className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#173f35] px-4 py-2 text-xs font-bold text-[#fffaf0] hover:bg-[#245347]"
+                  >
+                    + Create First Listing
+                  </button>
+                </div>
+              );
+            }
+
+            return (
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+                {filtered.map((listing) => {
+                  const isPublished = listing.status === "PUBLISHED";
+                  return (
+                    <div
+                      key={listing.id}
+                      className="flex flex-col justify-between rounded-2xl border border-[#e2dccd] bg-white p-5 shadow-2xs transition-shadow hover:shadow-xs"
+                    >
+                      <div className="space-y-3">
+                        {/* Top badges */}
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="inline-flex items-center rounded-md bg-[#173f35]/10 px-2.5 py-1 text-[11px] font-bold text-[#173f35]">
+                            {listing.materialType}
+                          </span>
+                          <span
+                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                              isPublished
+                                ? "bg-[#e2f3ea] text-[#1b6b47]"
+                                : "bg-[#fef4dd] text-[#875908]"
+                            }`}
+                          >
+                            {isPublished ? "● Published" : "○ Draft"}
+                          </span>
+                        </div>
+
+                        {/* Title & Product Form */}
+                        <div>
+                          <h3 className="text-sm font-bold text-[#173f35] leading-snug">
+                            {listing.title}
+                          </h3>
+                          {listing.productForm && (
+                            <p className="mt-0.5 text-xs text-[#52635c]">
+                              {PRODUCT_FORM_LABELS[listing.productForm as keyof typeof PRODUCT_FORM_LABELS] || listing.productForm}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Quantity and Price Metrics */}
+                        <div className="grid grid-cols-2 gap-2 rounded-xl bg-[#faf8f1] p-3">
+                          <div>
+                            <span className="block text-[10px] font-medium text-[#6e7d77] uppercase tracking-wider">
+                              Quantity
+                            </span>
+                            <span className="text-xs font-bold text-[#173f35]">
+                              {listing.quantity} {QUANTITY_UNIT_LABELS[listing.quantityUnit as keyof typeof QUANTITY_UNIT_LABELS] || listing.quantityUnit}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="block text-[10px] font-medium text-[#6e7d77] uppercase tracking-wider">
+                              Price
+                            </span>
+                            <span className="text-xs font-bold text-[#173f35]">
+                              {listing.priceAmount !== null && listing.priceAmount !== undefined
+                                ? `€${listing.priceAmount} / ${listing.priceUnit === "PER_KG" ? "kg" : "t"}`
+                                : "Price not specified"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Production Site & Harvest Details */}
+                        <div className="space-y-1 text-[11px] text-[#6e7d77]">
+                          {listing.siteName && (
+                            <div className="flex items-center gap-1.5">
+                              <span>🌱</span>
+                              <span className="font-medium text-[#173f35]">{listing.siteName}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2">
+                            {listing.harvestYear && <span>Harvest {listing.harvestYear}</span>}
+                            {listing.harvestYear && listing.originCountry && <span>•</span>}
+                            {listing.originCountry && <span>{listing.originCountry}</span>}
+                          </div>
+                        </div>
+
+                        {/* Description snippet */}
+                        {listing.description && (
+                          <p className="line-clamp-2 text-xs text-[#52635c]">
+                            {listing.description}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Card Actions */}
+                      <div className="mt-5 flex items-center justify-between border-t border-[#f0ece1] pt-3">
+                        <button
+                          type="button"
+                          onClick={() => startEditListing(listing)}
+                          className="rounded-lg px-3 py-1.5 text-xs font-semibold text-[#173f35] hover:bg-[#f6f2e8]"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => toggleListingStatus(listing)}
+                          className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                            isPublished
+                              ? "text-[#875908] hover:bg-[#fef4dd]"
+                              : "text-[#1b6b47] hover:bg-[#e2f3ea]"
+                          }`}
+                        >
+                          {isPublished ? "Set to Draft" : "Publish Listing"}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
       )}
     </AuthenticatedAppShell>

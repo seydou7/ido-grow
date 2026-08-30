@@ -59,6 +59,7 @@ model Organisation {
   sites              Site[]
   memberships        Membership[]
   complianceDocuments ComplianceDocument[]
+  listings           Listing[]
 }
 
 model ComplianceDocument {
@@ -94,8 +95,36 @@ model Site {
   createdAt        DateTime     @default(now()) @db.Timestamptz(6)
   updatedAt        DateTime     @updatedAt @db.Timestamptz(6)
   organisation     Organisation @relation(fields: [organisationId], references: [id], onDelete: Restrict)
+  listings         Listing[]
 
   @@index([organisationId])
+}
+
+model Listing {
+  id               String       @id @default(uuid()) @db.Uuid
+  organisationId   String       @db.Uuid
+  siteId           String?      @db.Uuid
+  title            String       @db.VarChar(200)
+  description      String?      @db.Text
+  materialType     String       @db.VarChar(50)
+  productForm      String?      @db.VarChar(50)
+  quantity         Float
+  quantityUnit     String       @default("TONNES") @db.VarChar(30)
+  priceAmount      Float?
+  currency         String       @default("EUR") @db.VarChar(10)
+  priceUnit        String       @default("PER_TONNE") @db.VarChar(30)
+  originCountry    String?      @db.VarChar(100)
+  harvestYear      Int?
+  status           String       @default("DRAFT") @db.VarChar(50)
+  createdAt        DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime     @updatedAt @db.Timestamptz(6)
+  organisation     Organisation @relation(fields: [organisationId], references: [id], onDelete: Restrict)
+  site             Site?        @relation(fields: [siteId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId])
+  @@index([materialType])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model Membership {

@@ -3,7 +3,13 @@
 import { useState } from "react";
 import { LanguageSelector } from "@/i18n/language-selector";
 
-export type NavSection = "overview" | "organisation" | "sites" | "compliance" | "members";
+export type NavSection =
+  | "overview"
+  | "organisation"
+  | "sites"
+  | "compliance"
+  | "members"
+  | "listings";
 
 type AppShellProps = Readonly<{
   activeSection: NavSection;
@@ -80,6 +86,14 @@ function UsersIcon({ className = "h-4 w-4" }: Readonly<{ className?: string }>) 
   );
 }
 
+function TagIcon({ className = "h-4 w-4" }: Readonly<{ className?: string }>) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function LogoutIcon({ className = "h-4 w-4" }: Readonly<{ className?: string }>) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -150,6 +164,12 @@ export function AuthenticatedAppShell({
       label: "Team & Members",
       sublabel: "Organisation users & access",
       icon: UsersIcon,
+    },
+    {
+      id: "listings" as const,
+      label: "Product Listings",
+      sublabel: "Material inventory & offers",
+      icon: TagIcon,
     },
   ];
 
@@ -344,7 +364,9 @@ export function AuthenticatedAppShell({
                   ? "Production Sites"
                   : activeSection === "compliance"
                   ? "Compliance & Documents"
-                  : "Team & Members"}
+                  : activeSection === "members"
+                  ? "Team & Members"
+                  : "Product Listings"}
               </span>
             </div>
           </div>
