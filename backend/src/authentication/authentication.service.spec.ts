@@ -191,8 +191,14 @@ describe("AuthenticationService", () => {
     await expect(service.session(login.rawToken)).resolves.toEqual(login.response);
   });
 
-  it("rejects missing, expired, revoked, and disabled-user sessions", async () => {
-    await expect(service.session(null)).rejects.toMatchObject({ status: 401 });
+  it("returns unauthenticated for missing, expired, revoked, and disabled-user sessions", async () => {
+    await expect(service.session(null)).resolves.toEqual({
+      status: "unauthenticated",
+      user: null,
+    });
+    await expect(service.resolveIdentity(null)).rejects.toMatchObject({
+      status: 401,
+    });
 
     const expired = await service.login(
       "synthetic@example.test",
@@ -200,7 +206,11 @@ describe("AuthenticationService", () => {
       CORRELATION_ID,
     );
     clock.set(new Date(now.getTime() + LOCAL_SESSION_DURATION_MS));
-    await expect(service.session(expired.rawToken)).rejects.toMatchObject({
+    await expect(service.session(expired.rawToken)).resolves.toEqual({
+      status: "unauthenticated",
+      user: null,
+    });
+    await expect(service.resolveIdentity(expired.rawToken)).rejects.toMatchObject({
       status: 401,
     });
 
@@ -211,7 +221,11 @@ describe("AuthenticationService", () => {
       CORRELATION_ID,
     );
     await service.logout(revoked.rawToken, CORRELATION_ID);
-    await expect(service.session(revoked.rawToken)).rejects.toMatchObject({
+    await expect(service.session(revoked.rawToken)).resolves.toEqual({
+      status: "unauthenticated",
+      user: null,
+    });
+    await expect(service.resolveIdentity(revoked.rawToken)).rejects.toMatchObject({
       status: 401,
     });
 
@@ -227,7 +241,11 @@ describe("AuthenticationService", () => {
       ...stored,
       user: { ...stored.user, isActive: false },
     });
-    await expect(service.session(disabled.rawToken)).rejects.toMatchObject({
+    await expect(service.session(disabled.rawToken)).resolves.toEqual({
+      status: "unauthenticated",
+      user: null,
+    });
+    await expect(service.resolveIdentity(disabled.rawToken)).rejects.toMatchObject({
       status: 401,
     });
   });
@@ -243,7 +261,11 @@ describe("AuthenticationService", () => {
     await service.logout(login.rawToken, CORRELATION_ID);
     await service.logout(null, CORRELATION_ID);
 
-    await expect(service.session(login.rawToken)).rejects.toMatchObject({
+    await expect(service.session(login.rawToken)).resolves.toEqual({
+      status: "unauthenticated",
+      user: null,
+    });
+    await expect(service.resolveIdentity(login.rawToken)).rejects.toMatchObject({
       status: 401,
     });
     expect(
@@ -277,7 +299,11 @@ describe("AuthenticationService", () => {
     await expect(
       service.logout(login.rawToken, CORRELATION_ID),
     ).rejects.toThrow("audit unavailable");
-    await expect(service.session(login.rawToken)).rejects.toMatchObject({
+    await expect(service.session(login.rawToken)).resolves.toEqual({
+      status: "unauthenticated",
+      user: null,
+    });
+    await expect(service.resolveIdentity(login.rawToken)).rejects.toMatchObject({
       status: 401,
     });
   });

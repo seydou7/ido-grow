@@ -10,10 +10,19 @@ import { PasswordHasher } from "./password-hasher";
 import { LOCAL_SESSION_DURATION_MS } from "./runtime-config";
 import { hashSessionToken, SessionTokenService } from "./session-token";
 
+export type UnauthenticatedSessionResult = Readonly<{
+  status: "unauthenticated";
+  user: null;
+}>;
+
 export type AuthenticatedSessionResult = Readonly<{
   status: "authenticated";
   user: Readonly<{ id: string; email: string }>;
 }>;
+
+export type SessionStatusResult =
+  | UnauthenticatedSessionResult
+  | AuthenticatedSessionResult;
 
 @Injectable()
 export class AuthenticationService {
@@ -77,8 +86,30 @@ export class AuthenticationService {
     };
   }
 
-  async session(rawToken: string | null): Promise<AuthenticatedSessionResult> {
-    return authenticatedResponse(await this.resolveIdentity(rawToken));
+  async session(rawToken: string | null): Promise<SessionStatusResult> {
+    if (!rawToken) {
+      return { status: "unauthenticated", user: null };
+    }
+
+    const now = this.clock.now();
+    const session = await this.repository.findActiveSessionByTokenHash(
+      hashSessionToken(rawToken),
+      now,
+    );
+
+    if (
+      !session ||
+      session.revokedAt !== null ||
+      session.expiresAt.getTime() <= now.getTime() ||
+      !session.user.isActive
+    ) {
+      return { status: "unauthenticated", user: null };
+    }
+
+    return authenticatedResponse({
+      userId: session.user.id,
+      email: session.user.email,
+    });
   }
 
   async resolveIdentity(

@@ -55,6 +55,23 @@ test("authenticated session parsing exposes only safe user identity fields", asy
     },
   );
 
+  assert.deepEqual(
+    parseAuthenticatedSession({
+      status: "unauthenticated",
+      user: null,
+    }),
+    {
+      status: "unauthenticated",
+    },
+  );
+  assert.deepEqual(
+    parseAuthenticatedSession({
+      status: "unauthenticated",
+    }),
+    {
+      status: "unauthenticated",
+    },
+  );
   assert.equal(parseAuthenticatedSession({ status: "authenticated", user: null }), null);
   assert.equal(
     parseAuthenticatedSession({

@@ -83,7 +83,6 @@ export function AuthenticationPanel() {
   const [requestError, setRequestError] = useState<string | null>(null);
   const {
     register,
-    handleSubmit,
     reset,
     formState: { errors },
   } = useForm<LoginFormValues>({
@@ -117,14 +116,37 @@ export function AuthenticationPanel() {
     };
   }, [t]);
 
-  const submitLogin = handleSubmit(async (values) => {
+  const submitLogin = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setViewState("submitting");
     setRequestError(null);
 
+    const formData = new FormData(event.currentTarget);
+    const email = ((formData.get("email") as string) || "").trim();
+    const password = (formData.get("password") as string) || "";
+
+    if (!email) {
+      setRequestError(t("auth.emailRequired"));
+      setViewState("ready");
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setRequestError(t("auth.emailInvalid"));
+      setViewState("ready");
+      return;
+    }
+
+    if (!password) {
+      setRequestError(t("auth.passwordRequired"));
+      setViewState("ready");
+      return;
+    }
+
     try {
       const nextSession = await login({
-        email: values.email.trim(),
-        password: values.password,
+        email,
+        password,
       });
 
       setSession(nextSession);
@@ -136,7 +158,7 @@ export function AuthenticationPanel() {
     } finally {
       setViewState("ready");
     }
-  });
+  };
 
   const submitLogout = async () => {
     setViewState("submitting");
@@ -249,7 +271,7 @@ export function AuthenticationPanel() {
                     <FieldIcon name="email" />
                   </span>
                   <input
-                    autoComplete="email"
+                    autoComplete="username"
                     className="h-11 w-full rounded-lg border border-[#d4cdbc] bg-white pl-10 pr-3 text-base text-[#203e35] outline-none transition placeholder:text-[#65736e] focus:border-[#356a57] focus:ring-3 focus:ring-[#356a57]/12 disabled:bg-[#f1eee6]"
                     id="email"
                     type="email"

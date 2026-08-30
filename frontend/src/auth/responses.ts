@@ -1,4 +1,4 @@
-import type { AuthenticatedSession } from "./contracts";
+import type { AuthenticationSession } from "./contracts";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -6,8 +6,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 export function parseAuthenticatedSession(
   value: unknown,
-): AuthenticatedSession | null {
-  if (!isRecord(value) || value.status !== "authenticated" || !isRecord(value.user)) {
+): AuthenticationSession | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  if (value.status === "unauthenticated") {
+    return { status: "unauthenticated" };
+  }
+
+  if (value.status !== "authenticated" || !isRecord(value.user)) {
     return null;
   }
 
