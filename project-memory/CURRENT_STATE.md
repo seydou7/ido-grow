@@ -1,14 +1,14 @@
 # Current State
 
-- **ACTIVE — Phase:** Sprint 03 — Product Catalogue & Listings is ACTIVE under the locked roadmap.
-- **COMPLETE (PROJECT OWNER VALIDATED) — Sprint 03 Block 01 (Supplier Catalogue & Listing Foundation):** Delivered and Project Owner-validated tenant-owned Listing model, Supplier listing CRUD and detail views, natural fibre and product form taxonomy, quantity and units, optional price with EUR baseline and neutral missing-price copy, optional origin country and harvest year, optional production site association, Draft / Published status management, Supplier Portal Product Listings view with material filtering, and immutable audit logging (`organisation.listing.created`, `organisation.listing.updated`). All deferred catalogue semantics remain OPEN.
+- **READY — Phase:** Sprint 04 — Buyer Marketplace & Buy Orders is READY under the locked roadmap.
+- **CLOSED (PROJECT OWNER VALIDATED) — Sprint 03 (Product Catalogue & Listings):** Delivered and Project Owner-validated Block 01 (Supplier Catalogue & Listing Foundation) with tenant-owned Listing model, Supplier listing CRUD and detail views, source-approved natural fibre taxonomy (HEMP, SISAL, COIR, JUTE, KENAF, RAFFIA), product form taxonomy (STRAW_RAW, STRAW_RETTED, FIBRE_TECHNICAL, FIBRE_SHORT, HURD_SHIVES, DUST_PELLETS), quantity and approved units (TONNES, KILOGRAMS, BALES), optional price with EUR baseline and neutral missing-price copy, optional origin country and harvest year, optional production site association, Draft / Published status management, Supplier Portal Product Listings view with material filtering, and immutable audit logging (`organisation.listing.created`, `organisation.listing.updated`). Taxonomy final audit returned VERIFIED. All deferred catalogue, quality, and trading semantics remain OPEN.
 - **CLOSED — Sprint 02 (Organisations & Supplier Onboarding):** Delivered and Project Owner-validated 4 vertical blocks: (1) Supplier Organisation Profile & Production Sites Onboarding, (2) Supplier Compliance Documents & Verification Foundation, (3) Organisation Members & Multi-User Foundation, and (4) Guided Supplier Onboarding & Readiness Overview.
 - **LOCKED ROADMAP:**
   - Sprint 00 — Discovery & Foundation (CLOSED)
   - Sprint 01 — Platform Foundation (CLOSED)
   - Sprint 02 — Organisations & Supplier Onboarding (CLOSED)
-  - Sprint 03 — Product Catalogue & Listings (ACTIVE)
-  - Sprint 04 — Buyer Marketplace & Buy Orders
+  - Sprint 03 — Product Catalogue & Listings (CLOSED)
+  - Sprint 04 — Buyer Marketplace & Buy Orders (READY)
   - Sprint 05 — Trader Cockpit & Manual Matching
   - Sprint 06 — Quotes & Trade Lifecycle
   - Sprint 07 — Quality Workflow

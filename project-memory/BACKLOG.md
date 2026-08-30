@@ -48,19 +48,20 @@ The formal closure assessment returned PASS. Sprint 02 is closed and complete.
 
 ---
 
-## Sprint 03 — Product Catalogue & Listings — ACTIVE
+## Sprint 03 — Product Catalogue & Listings — CLOSED
 
-Sprint 03 covers the Product Catalogue and Supplier Listing capabilities on top of the validated organisation and onboarding foundation.
+Sprint 03 delivered the Product Catalogue and Supplier Listing capabilities on top of the validated organisation and onboarding foundation.
 
 ### Sprint 03 Scope: Product Catalogue & Listings
-- **COMPLETE (PROJECT OWNER VALIDATED) — Supplier Catalogue & Listing Foundation (Vertical Block 01):** Tenant-owned Listing persistence model, Supplier listing creation, editing, retrieval, detail view, natural fibre taxonomy, product form taxonomy, quantity with approved units (TONNES, KILOGRAMS, BALES), optional price with EUR baseline and neutral missing-price semantics ("Price not specified"), optional origin country, optional harvest year, optional production site association, Draft / Published status lifecycle, Supplier Portal Product Listings view with material filtering, and immutable audit events (`organisation.listing.created`, `organisation.listing.updated`). Deferred: available vs total quantity, reservation/allocation, MOQ, negotiable pricing, availability date, Lot/Batch, structured quality parameters, listing certifications/photos/documents, Trader review/approval gating, Buyer marketplace browsing, sold/reserved status, DPP association, hard deletion, future advanced taxonomy inheritance.
+- **COMPLETE (PROJECT OWNER VALIDATED) — Supplier Catalogue & Listing Foundation (Vertical Block 01):** Tenant-owned Listing persistence model, Supplier listing creation, editing, retrieval, detail view, canonical natural fibre taxonomy (HEMP, SISAL, COIR, JUTE, KENAF, RAFFIA), canonical product form taxonomy (STRAW_RAW, STRAW_RETTED, FIBRE_TECHNICAL, FIBRE_SHORT, HURD_SHIVES, DUST_PELLETS), quantity with approved units (TONNES, KILOGRAMS, BALES), optional price with EUR baseline and neutral missing-price semantics ("Price not specified"), optional origin country, optional harvest year, optional production site association, Draft / Published status lifecycle, Supplier Portal Product Listings view with material filtering, and immutable audit events (`organisation.listing.created`, `organisation.listing.updated`). Taxonomy final audit returned VERIFIED. Deferred: available vs total quantity, reservation/allocation, MOQ, negotiable pricing, availability date, Lot/Batch, structured quality parameters, listing certifications/photos/documents, Trader review/approval gating, Buyer marketplace browsing, sold/reserved status, DPP association, hard deletion, future advanced taxonomy inheritance.
+
+The formal closure assessment returned PASS. Sprint 03 is closed and complete.
 
 ---
 
 ## Future Sprints Roadmap (Locked)
 
-- **Sprint 03 — Product Catalogue & Listings:** Reusable hemp taxonomy, mobile-first listing creation, photos, lot linking, listing lifecycle (`DRAFT`, `PUBLISHED`, `RESERVED`, `SOLD`).
-- **Sprint 04 — Buyer Marketplace & Buy Orders:** Marketplace search, filters, listing detail/comparison, buy orders, request for quotation.
+- **Sprint 04 — Buyer Marketplace & Buy Orders (READY):** Marketplace search, filters, listing detail/comparison, buy orders, request for quotation.
 - **Sprint 05 — Trader Cockpit & Manual Matching:** Supply/demand comparison, deterministic compatibility scoring, trader recommendation dashboard, landed-cost breakdown.
 - **Sprint 06 — Quotes & Trade Lifecycle:** Quote preparation, fee/commission transparency, negotiation, versioning, contract generation.
 - **Sprint 07 — Quality Workflow:** Inspection records, measurement capture, human-approved grades, certificates, dispute/remedy handling.
