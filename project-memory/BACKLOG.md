@@ -57,11 +57,18 @@ Sprint 03 delivered the Product Catalogue and Supplier Listing capabilities on t
 
 The formal closure assessment returned PASS. Sprint 03 is closed and complete.
 
+## Sprint 04 — Buyer Marketplace & Buy Orders — ACTIVE
+
+Sprint 04 delivers the Buyer Marketplace discovery capabilities and structured Buy Order demand workflows.
+
+### Sprint 04 Scope: Buyer Marketplace & Buy Orders
+- **COMPLETE (PROJECT OWNER VALIDATED) — Buyer Marketplace & Listing Discovery (Vertical Block 01):** Dedicated marketplace domain boundary (`/api/v1/marketplace/listings` & detail), server-enforced `status = 'PUBLISHED'` query filter (DRAFT listings completely inaccessible), role-based marketplace access enforcement (Buyer & Trader allowed; Supplier denied cross-supplier marketplace access with 403 Forbidden), PostgreSQL full-text search across title/description/material/country, faceted filters (materialType, productForm, originCountry, harvestYear, quantity range, price presence/range, units), safe intermediated Supplier transparency without personal contact leakage, synthetic local Buyer/Trader test fixtures, responsive Marketplace catalogue & Listing detail UI, and Project Owner browser validation PASS.
+- **READY — Buy Orders & Demand Management (Vertical Block 02):** BuyOrder persistence model, demand submission form, status lifecycle (`DRAFT`, `OPEN`/`SUBMITTED`, `CANCELLED`), Buyer "My Buy Orders" dashboard, Trader cross-organisation demand review, and audit logging. Block 02 is READY (not started).
+
 ---
 
 ## Future Sprints Roadmap (Locked)
 
-- **Sprint 04 — Buyer Marketplace & Buy Orders (READY):** Marketplace search, filters, listing detail/comparison, buy orders, request for quotation.
 - **Sprint 05 — Trader Cockpit & Manual Matching:** Supply/demand comparison, deterministic compatibility scoring, trader recommendation dashboard, landed-cost breakdown.
 - **Sprint 06 — Quotes & Trade Lifecycle:** Quote preparation, fee/commission transparency, negotiation, versioning, contract generation.
 - **Sprint 07 — Quality Workflow:** Inspection records, measurement capture, human-approved grades, certificates, dispute/remedy handling.

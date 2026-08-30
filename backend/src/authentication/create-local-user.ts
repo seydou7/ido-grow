@@ -7,67 +7,161 @@ import {
 import { PasswordHasher } from "./password-hasher";
 import { isLocalRuntime } from "./runtime-config";
 
-const SYNTHETIC_ORGANISATION_ID = "10000000-0000-4000-8000-000000000001";
-const SYNTHETIC_SITE_ID = "10000000-0000-4000-8000-000000000002";
-const SYNTHETIC_ORGANISATION_NAME = "Synthetic Test Organisation";
-const SYNTHETIC_SITE_NAME = "Synthetic Test Site";
+const SYNTHETIC_SUPPLIER_ORG_ID = "10000000-0000-4000-8000-000000000001";
+const SYNTHETIC_SUPPLIER_SITE_ID = "10000000-0000-4000-8000-000000000002";
+const SYNTHETIC_SUPPLIER_ORG_NAME = "Synthetic Test Supplier Organisation";
+const SYNTHETIC_SUPPLIER_SITE_NAME = "Synthetic Test Production Site";
+
+const SYNTHETIC_BUYER_ORG_ID = "20000000-0000-4000-8000-000000000001";
+const SYNTHETIC_BUYER_ORG_NAME = "Synthetic Test Buyer Organisation";
+const DEFAULT_BUYER_EMAIL = "buyer@example.test";
+
+const SYNTHETIC_TRADER_ORG_ID = "30000000-0000-4000-8000-000000000001";
+const SYNTHETIC_TRADER_ORG_NAME = "Synthetic I Do Grow Trading Desk";
+const DEFAULT_TRADER_EMAIL = "trader@example.test";
 
 async function createLocalUser(): Promise<void> {
   if (!isLocalRuntime()) {
     throw new Error("Synthetic user creation is restricted to the local runtime.");
   }
 
-  const configuredEmail = process.env.IDO_GROW_TEST_USER_EMAIL;
+  const configuredSupplierEmail = process.env.IDO_GROW_TEST_USER_EMAIL;
+  const configuredBuyerEmail =
+    process.env.IDO_GROW_BUYER_TEST_USER_EMAIL || DEFAULT_BUYER_EMAIL;
+  const configuredTraderEmail =
+    process.env.IDO_GROW_TRADER_TEST_USER_EMAIL || DEFAULT_TRADER_EMAIL;
   const password = process.env.IDO_GROW_TEST_USER_PASSWORD;
   const databaseUrl = process.env.DATABASE_URL;
 
-  if (!configuredEmail || !password) {
+  if (!configuredSupplierEmail || !password) {
     throw new Error("Local synthetic-user configuration is incomplete.");
   }
 
-  const email = validateLocalSyntheticUserTarget(databaseUrl, configuredEmail);
+  const supplierEmail = validateLocalSyntheticUserTarget(
+    databaseUrl,
+    configuredSupplierEmail,
+  );
+  const buyerEmail = validateLocalSyntheticUserTarget(
+    databaseUrl,
+    configuredBuyerEmail,
+  );
+  const traderEmail = validateLocalSyntheticUserTarget(
+    databaseUrl,
+    configuredTraderEmail,
+  );
   assertUsableLocalSyntheticUserPassword(password);
 
-  const passwordHash = await new PasswordHasher().hash(password);
+  const passwordHasher = new PasswordHasher();
+  const passwordHash = await passwordHasher.hash(password);
   const prisma = new PrismaClient();
 
   try {
     await prisma.$transaction(async (transaction) => {
-      const user = await transaction.user.upsert({
-        where: { email },
+      // 1. Supplier User & Organisation
+      const supplierUser = await transaction.user.upsert({
+        where: { email: supplierEmail },
         update: { passwordHash, isActive: true },
-        create: { email, passwordHash },
+        create: { email: supplierEmail, passwordHash },
       });
-      const organisation = await transaction.organisation.upsert({
-        where: { id: SYNTHETIC_ORGANISATION_ID },
-        update: { name: SYNTHETIC_ORGANISATION_NAME },
-        create: {
-          id: SYNTHETIC_ORGANISATION_ID,
-          name: SYNTHETIC_ORGANISATION_NAME,
-        },
-      });
-
-      await transaction.site.upsert({
-        where: { id: SYNTHETIC_SITE_ID },
+      const supplierOrg = await transaction.organisation.upsert({
+        where: { id: SYNTHETIC_SUPPLIER_ORG_ID },
         update: {
-          organisationId: organisation.id,
-          name: SYNTHETIC_SITE_NAME,
+          name: SYNTHETIC_SUPPLIER_ORG_NAME,
+          organisationType: "SUPPLIER",
         },
         create: {
-          id: SYNTHETIC_SITE_ID,
-          organisationId: organisation.id,
-          name: SYNTHETIC_SITE_NAME,
+          id: SYNTHETIC_SUPPLIER_ORG_ID,
+          name: SYNTHETIC_SUPPLIER_ORG_NAME,
+          organisationType: "SUPPLIER",
+          country: "France",
+          verificationStatus: "VERIFIED",
+        },
+      });
+      await transaction.site.upsert({
+        where: { id: SYNTHETIC_SUPPLIER_SITE_ID },
+        update: {
+          organisationId: supplierOrg.id,
+          name: SYNTHETIC_SUPPLIER_SITE_NAME,
+        },
+        create: {
+          id: SYNTHETIC_SUPPLIER_SITE_ID,
+          organisationId: supplierOrg.id,
+          name: SYNTHETIC_SUPPLIER_SITE_NAME,
+          country: "France",
+          facilityType: "PROCESSING_PLANT",
         },
       });
       await transaction.membership.upsert({
         where: {
           userId_organisationId: {
-            userId: user.id,
-            organisationId: organisation.id,
+            userId: supplierUser.id,
+            organisationId: supplierOrg.id,
           },
         },
         update: {},
-        create: { userId: user.id, organisationId: organisation.id },
+        create: { userId: supplierUser.id, organisationId: supplierOrg.id },
+      });
+
+      // 2. Buyer User & Organisation
+      const buyerUser = await transaction.user.upsert({
+        where: { email: buyerEmail },
+        update: { passwordHash, isActive: true },
+        create: { email: buyerEmail, passwordHash },
+      });
+      const buyerOrg = await transaction.organisation.upsert({
+        where: { id: SYNTHETIC_BUYER_ORG_ID },
+        update: {
+          name: SYNTHETIC_BUYER_ORG_NAME,
+          organisationType: "BUYER",
+        },
+        create: {
+          id: SYNTHETIC_BUYER_ORG_ID,
+          name: SYNTHETIC_BUYER_ORG_NAME,
+          organisationType: "BUYER",
+          country: "Netherlands",
+          verificationStatus: "VERIFIED",
+        },
+      });
+      await transaction.membership.upsert({
+        where: {
+          userId_organisationId: {
+            userId: buyerUser.id,
+            organisationId: buyerOrg.id,
+          },
+        },
+        update: {},
+        create: { userId: buyerUser.id, organisationId: buyerOrg.id },
+      });
+
+      // 3. Trader User & Organisation
+      const traderUser = await transaction.user.upsert({
+        where: { email: traderEmail },
+        update: { passwordHash, isActive: true },
+        create: { email: traderEmail, passwordHash },
+      });
+      const traderOrg = await transaction.organisation.upsert({
+        where: { id: SYNTHETIC_TRADER_ORG_ID },
+        update: {
+          name: SYNTHETIC_TRADER_ORG_NAME,
+          organisationType: "TRADER",
+        },
+        create: {
+          id: SYNTHETIC_TRADER_ORG_ID,
+          name: SYNTHETIC_TRADER_ORG_NAME,
+          organisationType: "TRADER",
+          country: "Netherlands",
+          verificationStatus: "VERIFIED",
+        },
+      });
+      await transaction.membership.upsert({
+        where: {
+          userId_organisationId: {
+            userId: traderUser.id,
+            organisationId: traderOrg.id,
+          },
+        },
+        update: {},
+        create: { userId: traderUser.id, organisationId: traderOrg.id },
       });
     });
   } finally {
@@ -75,7 +169,7 @@ async function createLocalUser(): Promise<void> {
   }
 
   process.stdout.write(
-    "Synthetic local user and organisation-membership context are ready.\n",
+    "Synthetic local users (Supplier, Buyer, Trader) and organisation-membership contexts are ready.\n",
   );
 }
 

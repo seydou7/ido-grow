@@ -32,6 +32,10 @@ import {
   updateListing,
 } from "../listings/api";
 import {
+  MarketplaceCatalogue,
+  MarketplaceListingDetailView,
+} from "../marketplace";
+import {
   APPROVED_MATERIAL_TYPES,
   APPROVED_PRICE_UNITS,
   APPROVED_PRODUCT_FORMS,
@@ -144,6 +148,8 @@ export function SupplierDashboard({
   const [editingListingId, setEditingListingId] = useState<string | null>(null);
   const [selectedMaterialFilter, setSelectedMaterialFilter] =
     useState<string>("ALL");
+  const [selectedMarketplaceListingId, setSelectedMarketplaceListingId] =
+    useState<string | null>(null);
 
   // Document upload state
   const [selectedDocType, setSelectedDocType] = useState("COMPANY_REGISTRATION");
@@ -200,6 +206,9 @@ export function SupplierDashboard({
           const listingCollection = await listListings(first.organisation.id);
           if (!isMounted) return;
           setListings([...listingCollection.items]);
+          if (first.organisation.organisationType === "BUYER") {
+            setActiveSection("marketplace");
+          }
           resetProfileForm({
             name: fullProfile.name,
             legalName: fullProfile.legalName,
@@ -523,8 +532,12 @@ export function SupplierDashboard({
   return (
     <AuthenticatedAppShell
       activeSection={activeSection}
-      onSelectSection={setActiveSection}
+      onSelectSection={(section) => {
+        setSelectedMarketplaceListingId(null);
+        setActiveSection(section);
+      }}
       userEmail={userEmail}
+      organisationType={profile.organisationType}
       companyName={profile.name}
       verificationStatus={profile.verificationStatus}
       onLogout={onLogout}
@@ -557,8 +570,9 @@ export function SupplierDashboard({
         </div>
       )}
 
-      {/* Top Organisation Header & Progress Overview */}
-      <div className="mb-8 rounded-2xl border border-[#e2dccd] bg-white p-6 shadow-2xs">
+      {/* Top Organisation Header & Progress Overview (Supplier Only) */}
+      {profile.organisationType !== "BUYER" && activeSection !== "marketplace" && (
+        <div className="mb-8 rounded-2xl border border-[#e2dccd] bg-white p-6 shadow-2xs">
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div>
             <div className="flex items-center gap-2.5">
@@ -606,6 +620,7 @@ export function SupplierDashboard({
           </div>
         </div>
       </div>
+      )}
 
       {/* VIEW 0: ONBOARDING OVERVIEW & READINESS CHECKLIST */}
       {activeSection === "overview" && (
@@ -1984,6 +1999,24 @@ export function SupplierDashboard({
               </div>
             );
           })()}
+        </div>
+      )}
+
+      {/* VIEW 6: BUYER MARKETPLACE */}
+      {activeSection === "marketplace" && (
+        <div>
+          {selectedMarketplaceListingId ? (
+            <MarketplaceListingDetailView
+              listingId={selectedMarketplaceListingId}
+              onBack={() => setSelectedMarketplaceListingId(null)}
+            />
+          ) : (
+            <MarketplaceCatalogue
+              onSelectListing={(listingId) =>
+                setSelectedMarketplaceListingId(listingId)
+              }
+            />
+          )}
         </div>
       )}
     </AuthenticatedAppShell>
