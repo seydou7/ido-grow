@@ -121,6 +121,24 @@ export function sanitizePlatformEvent(
         occurredAt: event.occurredAt,
         metadata: event.metadata,
       };
+    case "buyer.buy_order.created":
+    case "buyer.buy_order.updated":
+    case "buyer.buy_order.submitted":
+    case "buyer.buy_order.cancelled":
+    case "buyer.buy_order.deleted":
+      assertUuid(event.actor.userId, "actor.userId");
+      assertUuid(event.target.id, "target.id");
+      return {
+        eventType: event.eventType,
+        outcome: "succeeded",
+        actorType: "user",
+        actorUserId: event.actor.userId,
+        targetType: "buy_order",
+        targetId: event.target.id,
+        correlationId: event.correlationId,
+        occurredAt: event.occurredAt,
+        metadata: event.metadata,
+      };
   }
 }
 

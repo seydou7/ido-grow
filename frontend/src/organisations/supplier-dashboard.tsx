@@ -36,6 +36,10 @@ import {
   MarketplaceListingDetailView,
 } from "../marketplace";
 import {
+  BuyerBuyOrdersView,
+  TraderDemandOverview,
+} from "../buy-orders";
+import {
   APPROVED_MATERIAL_TYPES,
   APPROVED_PRICE_UNITS,
   APPROVED_PRODUCT_FORMS,
@@ -571,7 +575,10 @@ export function SupplierDashboard({
       )}
 
       {/* Top Organisation Header & Progress Overview (Supplier Only) */}
-      {profile.organisationType !== "BUYER" && activeSection !== "marketplace" && (
+      {profile.organisationType !== "BUYER" &&
+        activeSection !== "marketplace" &&
+        activeSection !== "buy-orders" &&
+        activeSection !== "trader-demand" && (
         <div className="mb-8 rounded-2xl border border-[#e2dccd] bg-white p-6 shadow-2xs">
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div>
@@ -2018,6 +2025,16 @@ export function SupplierDashboard({
             />
           )}
         </div>
+      )}
+
+      {/* VIEW 7: BUYER MY BUY ORDERS */}
+      {activeSection === "buy-orders" && (
+        <BuyerBuyOrdersView buyerOrganisationId={orgId ?? undefined} />
+      )}
+
+      {/* VIEW 8: TRADER DEMAND OVERVIEW */}
+      {activeSection === "trader-demand" && (
+        <TraderDemandOverview />
       )}
     </AuthenticatedAppShell>
   );

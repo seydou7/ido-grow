@@ -264,6 +264,14 @@ class TestOrganisationsRepository extends OrganisationsRepository {
     }
     return list;
   }
+
+  async findOrganisationsByType(
+    organisationType: string,
+  ): Promise<OrganisationRecord[]> {
+    return Array.from(this.organisations.values()).filter(
+      (o) => o.organisationType.toUpperCase() === organisationType.toUpperCase(),
+    );
+  }
 }
 
 describe("application-managed authentication (e2e)", () => {

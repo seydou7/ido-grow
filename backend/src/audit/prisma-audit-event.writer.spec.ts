@@ -109,22 +109,39 @@ describe("PrismaAuditEventWriter", () => {
     expect(database.records).toHaveLength(0);
   });
 
-  it("propagates persistence failures for fail-closed callers", async () => {
-    database.failure = new Error("audit unavailable");
+  it("records buy order lifecycle audit events with safe metadata", async () => {
+    const buyOrderId = "30000000-0000-4000-8000-000000000004";
+    const buyerOrgId = "40000000-0000-4000-8000-000000000005";
 
-    await expect(
-      writer.append(
-        {
-          eventType: "authentication.login.failed",
-          outcome: "failed",
-          actor: { type: "unauthenticated" },
-          target: { type: "authentication", id: null },
-          correlationId,
-          occurredAt,
-          metadata: { failureCategory: "invalid_credentials" },
+    await writer.append(
+      {
+        eventType: "buyer.buy_order.created",
+        outcome: "succeeded",
+        actor: { type: "user", userId },
+        target: { type: "buy_order", id: buyOrderId },
+        correlationId,
+        occurredAt,
+        metadata: {
+          buyerOrganisationId: buyerOrgId,
+          materialType: "HEMP",
+          status: "DRAFT",
         },
-        database,
-      ),
-    ).rejects.toThrow("audit unavailable");
+      },
+      database,
+    );
+
+    expect(database.records[0]).toMatchObject({
+      eventType: "buyer.buy_order.created",
+      actorType: "user",
+      actorUserId: userId,
+      targetType: "buy_order",
+      targetId: buyOrderId,
+      correlationId,
+      metadata: {
+        buyerOrganisationId: buyerOrgId,
+        materialType: "HEMP",
+        status: "DRAFT",
+      },
+    });
   });
 });

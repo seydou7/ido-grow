@@ -279,6 +279,14 @@ class InMemoryOrganisationsRepository extends OrganisationsRepository {
     void organisationId;
     return [];
   }
+
+  async findOrganisationsByType(
+    organisationType: string,
+  ): Promise<OrganisationRecord[]> {
+    return Array.from(this.organisations.values()).filter(
+      (o) => o.organisationType.toUpperCase() === organisationType.toUpperCase(),
+    );
+  }
 }
 
 class InMemoryAuditEventWriter extends AuditEventWriter {

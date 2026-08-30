@@ -94,4 +94,5 @@ export abstract class OrganisationsRepository {
     fileSize: number;
   }): Promise<ComplianceDocumentRecord>;
   abstract findMembersByOrganisationId(organisationId: string): Promise<OrganisationMemberRecord[]>;
+  abstract findOrganisationsByType(organisationType: string): Promise<OrganisationRecord[]>;
 }

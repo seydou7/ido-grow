@@ -57,13 +57,21 @@ Sprint 03 delivered the Product Catalogue and Supplier Listing capabilities on t
 
 The formal closure assessment returned PASS. Sprint 03 is closed and complete.
 
-## Sprint 04 — Buyer Marketplace & Buy Orders — ACTIVE
+## Sprint 04 — Buyer Marketplace & Buy Orders — CLOSED
 
-Sprint 04 delivers the Buyer Marketplace discovery capabilities and structured Buy Order demand workflows.
+Sprint 04 delivered the Buyer Marketplace discovery capabilities and structured Buy Order demand workflows.
 
 ### Sprint 04 Scope: Buyer Marketplace & Buy Orders
 - **COMPLETE (PROJECT OWNER VALIDATED) — Buyer Marketplace & Listing Discovery (Vertical Block 01):** Dedicated marketplace domain boundary (`/api/v1/marketplace/listings` & detail), server-enforced `status = 'PUBLISHED'` query filter (DRAFT listings completely inaccessible), role-based marketplace access enforcement (Buyer & Trader allowed; Supplier denied cross-supplier marketplace access with 403 Forbidden), PostgreSQL full-text search across title/description/material/country, faceted filters (materialType, productForm, originCountry, harvestYear, quantity range, price presence/range, units), safe intermediated Supplier transparency without personal contact leakage, synthetic local Buyer/Trader test fixtures, responsive Marketplace catalogue & Listing detail UI, and Project Owner browser validation PASS.
-- **READY — Buy Orders & Demand Management (Vertical Block 02):** BuyOrder persistence model, demand submission form, status lifecycle (`DRAFT`, `OPEN`/`SUBMITTED`, `CANCELLED`), Buyer "My Buy Orders" dashboard, Trader cross-organisation demand review, and audit logging. Block 02 is READY (not started).
+- **COMPLETE (PROJECT OWNER VALIDATED) — Buy Orders & Demand Management (Vertical Block 02):** Additive `BuyOrder` persistence model and migration, additive audit migration `20260830010000_add_buy_order_deleted_audit_event`, structured demand specifications (natural fibre material, product form, volume/quantity, delivery destination/country/date, target price in EUR, quality/packaging/certification requirements, transport & payment terms), status lifecycle (`DRAFT`, `OPEN`, `CANCELLED`), edit and permanent deletion restrictions (DRAFT only), server-enforced role access (Buyer manages and deletes own demands; Trader creates on behalf of Buyer, manages/submits/deletes own drafts, and accesses cross-organisation OPEN demand; private Buyer drafts isolated from Trader; Supplier denied 403 Forbidden), append-only audit logging (`buyer.buy_order.created`, `buyer.buy_order.updated`, `buyer.buy_order.submitted`, `buyer.buy_order.cancelled`, `buyer.buy_order.deleted`), DELETE endpoint returning HTTP 204 No Content, Buyer "My Buy Orders" dashboard, 6-section Create/Edit Modal, Buy Order Detail view with non-binding notice, and Trader demand overview.
+
+The formal closure assessment returned PASS. Sprint 04 is closed and complete.
+
+---
+
+## Sprint 05 — Trader Cockpit & Manual Matching — READY
+
+Sprint 05 is in READY status (NOT ACTIVE). Implementation is held pending completion of the Client Demo Deployment milestone (DEC-006).
 
 ---
 

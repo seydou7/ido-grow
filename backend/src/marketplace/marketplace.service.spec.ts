@@ -27,6 +27,7 @@ class MockOrganisationsRepository extends OrganisationsRepository {
   findComplianceDocumentsByOrganisationId = jest.fn();
   findComplianceDocumentById = jest.fn();
   findMembersByOrganisationId = jest.fn();
+  findOrganisationsByType = jest.fn();
 }
 
 describe("MarketplaceService", () => {

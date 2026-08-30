@@ -10,7 +10,9 @@ export type NavSection =
   | "compliance"
   | "members"
   | "listings"
-  | "marketplace";
+  | "marketplace"
+  | "buy-orders"
+  | "trader-demand";
 
 type AppShellProps = Readonly<{
   activeSection: NavSection;
@@ -168,6 +170,12 @@ export function AuthenticatedAppShell({
           icon: StoreIcon,
         },
         {
+          id: "buy-orders" as const,
+          label: "My Buy Orders",
+          sublabel: "Procurement & demand orders",
+          icon: ClipboardCheckIcon,
+        },
+        {
           id: "organisation" as const,
           label: "Buyer Profile",
           sublabel: "Company details & verification",
@@ -187,6 +195,12 @@ export function AuthenticatedAppShell({
             label: "Marketplace",
             sublabel: "Browse & inspect supply",
             icon: StoreIcon,
+          },
+          {
+            id: "trader-demand" as const,
+            label: "Buyer Demand",
+            sublabel: "Cross-organisation buy orders",
+            icon: ClipboardCheckIcon,
           },
           {
             id: "overview" as const,

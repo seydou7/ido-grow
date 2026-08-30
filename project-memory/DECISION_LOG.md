@@ -235,3 +235,32 @@ Record important architectural and product decisions here. Previous decisions mu
 - The Sprint 01 runtime remains dependency-light and deterministic across server rendering and client hydration.
 - Locale preference must not affect authentication sessions, backend authorization or application URLs.
 - Future internationalization requirements may replace or extend the internal runtime through a later approved decision without changing the approved locale content silently.
+
+## DEC-006 — Client Demo Deployment Exception Following Sprint 04
+
+- **Status:** Approved
+- **Decision type:** Project Owner operational deployment exception
+- **Scope:** Authorizes provisioning and deployment of a client-accessible Demo / Pre-Production environment immediately following Sprint 04 closure and prior to Sprint 05 activation. DEC-001 through DEC-005 remain unchanged; DEC-002 provisional provider preference (OVHcloud) remains active; final production deployment architecture remains deferred.
+
+### Decision
+
+- A remotely accessible Client Demo / Pre-Production environment is authorized to be deployed immediately following Sprint 04 closure.
+- This environment enables the client to review delivered capabilities across Sprints 01–04 (Authentication, Onboarding, Product Catalogue/Listings, Buyer Marketplace, and Buy Orders/Demand Management).
+- Sprint 05 (Trader Cockpit & Manual Matching) remains in `READY` status (not `ACTIVE`) until the Client Demo environment has been deployed and smoke-validated with a verified client URL.
+- OVHcloud remains the preferred hosting direction under DEC-002; the exact production topology, multi-region architecture, scaling, and high-availability design remain deferred.
+- The locked roadmap sprint sequence and scope definitions are unchanged.
+- Local synthetic/test credentials must not be reused in the public Client Demo environment. Fresh demo credentials must be safely provisioned using environment secrets, and no plaintext credentials may be committed.
+
+### Explicitly still open or future work
+
+- Final production deployment architecture, topology, networking, domains, CI/CD, and observability
+- Production secrets management and key rotation policies
+- Production domain and SSL provisioning
+- Privacy due diligence, retention, and DPIA review prior to real-data production use
+
+### Consequences and constraints
+
+- Deployment work is authorized strictly for the Client Demo / Pre-Production boundary.
+- Sprint 05 activation is blocked until the demo environment deployment and smoke validation are complete.
+- No production readiness or regulatory compliance is claimed for the demo environment.
+

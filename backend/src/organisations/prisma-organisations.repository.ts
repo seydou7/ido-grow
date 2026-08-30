@@ -301,6 +301,25 @@ export class PrismaOrganisationsRepository extends OrganisationsRepository {
       updatedAt: r.updatedAt,
     }));
   }
+
+  async findOrganisationsByType(
+    organisationType: string,
+  ): Promise<OrganisationRecord[]> {
+    const records = await this.prisma.organisation.findMany({
+      where: { organisationType },
+      include: {
+        sites: {
+          orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        },
+        complianceDocuments: {
+          orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+        },
+      },
+      orderBy: [{ name: "asc" }, { id: "asc" }],
+    });
+
+    return records.map(toOrganisationRecord);
+  }
 }
 
 function toSiteRecord(record: {

@@ -13,9 +13,18 @@ export const ORGANISATION_AUDIT_EVENT_TYPES = [
   "organisation.listing.updated",
 ] as const;
 
+export const BUY_ORDER_AUDIT_EVENT_TYPES = [
+  "buyer.buy_order.created",
+  "buyer.buy_order.updated",
+  "buyer.buy_order.submitted",
+  "buyer.buy_order.cancelled",
+  "buyer.buy_order.deleted",
+] as const;
+
 export const AUDIT_EVENT_TYPES = [
   ...AUTHENTICATION_AUDIT_EVENT_TYPES,
   ...ORGANISATION_AUDIT_EVENT_TYPES,
+  ...BUY_ORDER_AUDIT_EVENT_TYPES,
 ] as const;
 
 export type AuthenticationAuditEventType =
@@ -23,6 +32,9 @@ export type AuthenticationAuditEventType =
 
 export type OrganisationAuditEventType =
   (typeof ORGANISATION_AUDIT_EVENT_TYPES)[number];
+
+export type BuyOrderAuditEventType =
+  (typeof BUY_ORDER_AUDIT_EVENT_TYPES)[number];
 
 export type AuditEventType = (typeof AUDIT_EVENT_TYPES)[number];
 
@@ -112,6 +124,51 @@ export type ListingUpdatedAuditEvent = AuditEventBase &
     metadata: Readonly<{ organisationId: string; title?: string; status?: string }>;
   }>;
 
+export type BuyOrderCreatedAuditEvent = AuditEventBase &
+  Readonly<{
+    eventType: "buyer.buy_order.created";
+    outcome: "succeeded";
+    actor: Readonly<{ type: "user"; userId: string }>;
+    target: Readonly<{ type: "buy_order"; id: string }>;
+    metadata: Readonly<{ buyerOrganisationId: string; materialType: string; status: string }>;
+  }>;
+
+export type BuyOrderUpdatedAuditEvent = AuditEventBase &
+  Readonly<{
+    eventType: "buyer.buy_order.updated";
+    outcome: "succeeded";
+    actor: Readonly<{ type: "user"; userId: string }>;
+    target: Readonly<{ type: "buy_order"; id: string }>;
+    metadata: Readonly<{ buyerOrganisationId: string; materialType?: string; status?: string }>;
+  }>;
+
+export type BuyOrderSubmittedAuditEvent = AuditEventBase &
+  Readonly<{
+    eventType: "buyer.buy_order.submitted";
+    outcome: "succeeded";
+    actor: Readonly<{ type: "user"; userId: string }>;
+    target: Readonly<{ type: "buy_order"; id: string }>;
+    metadata: Readonly<{ buyerOrganisationId: string; previousStatus: string; newStatus: "OPEN" }>;
+  }>;
+
+export type BuyOrderCancelledAuditEvent = AuditEventBase &
+  Readonly<{
+    eventType: "buyer.buy_order.cancelled";
+    outcome: "succeeded";
+    actor: Readonly<{ type: "user"; userId: string }>;
+    target: Readonly<{ type: "buy_order"; id: string }>;
+    metadata: Readonly<{ buyerOrganisationId: string; previousStatus: string; newStatus: "CANCELLED" }>;
+  }>;
+
+export type BuyOrderDeletedAuditEvent = AuditEventBase &
+  Readonly<{
+    eventType: "buyer.buy_order.deleted";
+    outcome: "succeeded";
+    actor: Readonly<{ type: "user"; userId: string }>;
+    target: Readonly<{ type: "buy_order"; id: string }>;
+    metadata: Readonly<{ buyerOrganisationId: string; deletedStatus: "DRAFT" }>;
+  }>;
+
 export type AuthenticationAuditEvent =
   | LoginSucceededAuditEvent
   | LoginFailedAuditEvent
@@ -125,4 +182,14 @@ export type OrganisationAuditEvent =
   | ListingCreatedAuditEvent
   | ListingUpdatedAuditEvent;
 
-export type PlatformAuditEvent = AuthenticationAuditEvent | OrganisationAuditEvent;
+export type BuyOrderAuditEvent =
+  | BuyOrderCreatedAuditEvent
+  | BuyOrderUpdatedAuditEvent
+  | BuyOrderSubmittedAuditEvent
+  | BuyOrderCancelledAuditEvent
+  | BuyOrderDeletedAuditEvent;
+
+export type PlatformAuditEvent =
+  | AuthenticationAuditEvent
+  | OrganisationAuditEvent
+  | BuyOrderAuditEvent;

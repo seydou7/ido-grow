@@ -17,6 +17,7 @@ model User {
   sessions     Session[]
   memberships  Membership[]
   auditEvents  AuditEvent[]
+  buyOrders    BuyOrder[]
 }
 
 model AuditEvent {
@@ -60,6 +61,7 @@ model Organisation {
   memberships        Membership[]
   complianceDocuments ComplianceDocument[]
   listings           Listing[]
+  buyOrders          BuyOrder[]
 }
 
 model ComplianceDocument {
@@ -151,4 +153,36 @@ model Session {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+model BuyOrder {
+  id                        String       @id @default(uuid()) @db.Uuid
+  buyerOrganisationId       String       @db.Uuid
+  createdByUserId           String?      @db.Uuid
+  materialType              String       @db.VarChar(50)
+  productForm               String?      @db.VarChar(50)
+  quantity                  Float
+  quantityUnit              String       @default("TONNES") @db.VarChar(30)
+  deliveryCountry           String?      @db.VarChar(100)
+  deliveryDestination       String?      @db.VarChar(255)
+  requestedDeliveryDate     DateTime?    @db.Timestamptz(6)
+  targetPriceAmount         Float?
+  currency                  String       @default("EUR") @db.VarChar(10)
+  targetPriceUnit           String       @default("PER_TONNE") @db.VarChar(30)
+  acceptableOriginCountries String?      @db.VarChar(255)
+  qualityRequirements       String?      @db.Text
+  packagingRequirements     String?      @db.Text
+  certificationRequirements String?      @db.Text
+  transportPreferences      String?      @db.Text
+  paymentTerms              String?      @db.Text
+  status                    String       @default("DRAFT") @db.VarChar(50)
+  createdAt                 DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt                 DateTime     @updatedAt @db.Timestamptz(6)
+  buyerOrganisation         Organisation @relation(fields: [buyerOrganisationId], references: [id], onDelete: Restrict)
+  createdByUser             User?        @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([buyerOrganisationId])
+  @@index([status])
+  @@index([materialType])
+  @@index([createdAt])
 }
