@@ -181,13 +181,18 @@ export class BuyOrdersService {
     buyerOrganisationId: string,
     input: CreateBuyOrderInput,
   ): Promise<BuyOrderDetail> {
-    await this.assertBuyerAccess(userId, buyerOrganisationId);
+    const { buyerOrgId } = await this.assertBuyerAccess(
+      userId,
+      buyerOrganisationId && buyerOrganisationId.trim() !== ""
+        ? buyerOrganisationId
+        : undefined,
+    );
     this.validateCreateInput(input);
 
     const initialStatus: BuyOrderStatus = input.submitDirectly ? "OPEN" : "DRAFT";
 
     const record = await this.buyOrdersRepository.createBuyOrder(
-      buyerOrganisationId,
+      buyerOrgId,
       userId,
       input,
       initialStatus,
@@ -204,7 +209,7 @@ export class BuyOrdersService {
       correlationId,
       occurredAt,
       metadata: {
-        buyerOrganisationId,
+        buyerOrganisationId: buyerOrgId,
         materialType: record.materialType,
         status: initialStatus,
       },
@@ -219,7 +224,7 @@ export class BuyOrdersService {
         correlationId: randomUUID(),
         occurredAt: new Date(),
         metadata: {
-          buyerOrganisationId,
+          buyerOrganisationId: buyerOrgId,
           previousStatus: "DRAFT",
           newStatus: "OPEN",
         },
@@ -234,16 +239,21 @@ export class BuyOrdersService {
     buyerOrganisationId: string,
     query?: BuyOrderQuery,
   ): Promise<BuyOrderCollection> {
-    await this.assertBuyerAccess(userId, buyerOrganisationId);
+    const { buyerOrgId } = await this.assertBuyerAccess(
+      userId,
+      buyerOrganisationId && buyerOrganisationId.trim() !== ""
+        ? buyerOrganisationId
+        : undefined,
+    );
 
     const { items, total } =
       await this.buyOrdersRepository.findBuyOrdersForOrganisation(
-        buyerOrganisationId,
+        buyerOrgId,
         query,
       );
 
     return {
-      items: items.map((item) => this.mapToSummary(item)),
+      items: items.map((r) => this.mapToSummary(r)),
       total,
     };
   }
