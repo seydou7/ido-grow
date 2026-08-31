@@ -5,7 +5,7 @@ WORKDIR /app
 
 COPY package.json package-lock.json ./
 COPY frontend/package.json ./frontend/
-RUN npm ci --workspace @ido-grow/frontend
+RUN npm ci --workspace @ido-grow/frontend --ignore-scripts
 
 COPY frontend ./frontend
 
@@ -23,8 +23,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 COPY package.json package-lock.json ./
 COPY frontend/package.json ./frontend/
-RUN npm ci --workspace @ido-grow/frontend --omit=dev
-
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/frontend/.next ./frontend/.next
 COPY --from=builder /app/frontend/public ./frontend/public
 

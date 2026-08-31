@@ -5,7 +5,8 @@ WORKDIR /app
 
 COPY package.json package-lock.json ./
 COPY backend/package.json ./backend/
-RUN npm ci --workspace @ido-grow/backend
+COPY backend/prisma ./backend/prisma
+RUN npm ci --workspace @ido-grow/backend --ignore-scripts
 
 COPY backend ./backend
 
@@ -21,12 +22,9 @@ ENV PORT=3001
 
 COPY package.json package-lock.json ./
 COPY backend/package.json ./backend/
-RUN npm ci --workspace @ido-grow/backend --omit=dev
-
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/backend/dist ./backend/dist
 COPY --from=builder /app/backend/prisma ./backend/prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
 EXPOSE 3001
 
