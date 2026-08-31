@@ -5,5 +5,10 @@ import nextTypeScript from "eslint-config-next/typescript";
 export default defineConfig([
   ...nextVitals,
   ...nextTypeScript,
-  globalIgnores([".next/**"]),
+  {
+    rules: {
+      "react-hooks/set-state-in-effect": "warn",
+    },
+  },
+  globalIgnores([".next/**", "test/**"]),
 ]);

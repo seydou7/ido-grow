@@ -6,6 +6,10 @@ export function isLocalRuntime(): boolean {
   return process.env.IDO_GROW_RUNTIME_ENV === "local";
 }
 
+export function isDemoRuntime(): boolean {
+  return process.env.IDO_GROW_RUNTIME_ENV === "demo";
+}
+
 export function sessionCookieOptions() {
   return {
     httpOnly: true,

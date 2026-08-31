@@ -10,6 +10,7 @@
     "prisma:migrate:dev": "node --env-file=.env.local ../node_modules/prisma/build/index.js migrate dev --schema prisma/schema.prisma",
     "prisma:validate": "node --env-file=.env.local ../node_modules/prisma/build/index.js validate --schema prisma/schema.prisma",
     "auth:create-local-user": "npm run build && node --env-file=.env.local dist/authentication/create-local-user.js",
+    "auth:create-demo-users": "node dist/authentication/create-demo-users.js",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:dev:local": "node --env-file=.env.local ../node_modules/@nestjs/cli/bin/nest.js start --watch",

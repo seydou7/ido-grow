@@ -1,6 +1,7 @@
 import { NestFactory } from "@nestjs/core";
 
 import { AppModule } from "./app.module";
+import { getAllowedOrigins } from "./authentication/request-origin";
 import {
   isLocalRuntime,
   LOCAL_FRONTEND_ORIGIN,
@@ -18,6 +19,16 @@ async function bootstrap() {
       methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
       allowedHeaders: ["Accept", "Content-Type"],
     });
+  } else {
+    const allowedOrigins = Array.from(getAllowedOrigins());
+    if (allowedOrigins.length > 0) {
+      app.enableCors({
+        origin: allowedOrigins,
+        credentials: true,
+        methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
+        allowedHeaders: ["Accept", "Content-Type"],
+      });
+    }
   }
 
   const port = process.env.PORT ?? 3001;
@@ -27,7 +38,7 @@ async function bootstrap() {
     return;
   }
 
-  await app.listen(port);
+  await app.listen(port, "0.0.0.0");
 }
 
 void bootstrap();
