@@ -264,3 +264,30 @@ Record important architectural and product decisions here. Previous decisions mu
 - Sprint 05 activation is blocked until the demo environment deployment and smoke validation are complete.
 - No production readiness or regulatory compliance is claimed for the demo environment.
 
+## DEC-007 — Single Approved Match Invariant & Deferred Multi-Supplier Matching for Sprint 05
+
+- **Status:** Approved
+- **Decision type:** Approved project decision
+- **Scope:** Sprint 05 Trader Cockpit & Manual Matching Workspace. Defines the single active commercial match invariant and explicitly defers multi-supplier matching. DEC-001 through DEC-006 remain unchanged.
+
+### Decision
+
+- In Sprint 05 (Trader Cockpit & Manual Matching), a Trader may view and compare MULTIPLE candidate published Listings for an OPEN Buy Order.
+- However, **ONLY ONE Listing may be APPROVED as the active commercial Match for a given Buy Order at a time**.
+- Server-side transaction-safe invariant enforcement is mandatory: attempting to approve a candidate when another Match is already `APPROVED` for that Buy Order must be rejected, requiring the Trader to explicitly cancel/revoke the existing approved Match first.
+- An approved Match represents the non-binding commercial baseline and operational handoff into Sprint 06 (Quotes & Trade Lifecycle).
+- Multi-supplier fulfilment, split-order allocation, and multi-listing combination are explicitly **DEFERRED** to later automated matching roadmap scopes (Sprint 12+).
+- Matching remains strictly **manual, deterministic, Trader-controlled, and non-binding**. No AI matching, no vector search, no weighted score algorithm, and no automated quote generation.
+
+### Explicitly still open or future work
+
+- Multi-supplier fulfilment and batch combinations (Sprint 12+)
+- Automated quote generation and quotation negotiation lifecycle (Sprint 06)
+- Binding inventory reservations and purchase commitments (Sprint 06)
+- AI-driven match explanation and copilot capabilities (Sprint 12)
+
+### Consequences and constraints
+
+- The `Match` model enforces a maximum of one `APPROVED` match per `BuyOrder` via transaction-safe backend business rules.
+- Cancelling an approved match transitions its status to `CANCELLED`, preserving historical audit records and enabling the Trader to subsequently approve an alternative candidate.
+- Matching only operates on `BuyOrder.status = 'OPEN'` and `Listing.status = 'PUBLISHED'`.

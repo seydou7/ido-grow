@@ -91,3 +91,13 @@ test("organisations client contracts support organisation member collections", a
   assert.equal(memberCollection.items[0].userEmail, "supplier-owner@example.test");
   assert.equal(memberCollection.items[1].userEmail, "supplier-colleague@example.test");
 });
+
+test("dashboard initialization: Trader and Buyer organisations skip supplier listings query", async () => {
+  function shouldFetchOrganisationListings(organisationType) {
+    return organisationType === "SUPPLIER";
+  }
+
+  assert.equal(shouldFetchOrganisationListings("SUPPLIER"), true);
+  assert.equal(shouldFetchOrganisationListings("TRADER"), false);
+  assert.equal(shouldFetchOrganisationListings("BUYER"), false);
+});

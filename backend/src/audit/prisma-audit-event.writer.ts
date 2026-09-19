@@ -4,6 +4,7 @@ import { PrismaService } from "../database";
 import {
   type AuditEventCreateData,
   type AuditEventDatabaseClient,
+  type PersistedAuditEvent,
   AuditEventWriter,
 } from "./audit-event.writer";
 import type { PlatformAuditEvent } from "./contracts";
@@ -19,6 +20,37 @@ export class PrismaAuditEventWriter extends AuditEventWriter {
     database: AuditEventDatabaseClient = this.prisma,
   ): Promise<void> {
     await database.auditEvent.create({ data: sanitizePlatformEvent(event) });
+  }
+
+  async findEventsByTarget(
+    targetType: string,
+    targetId: string,
+  ): Promise<PersistedAuditEvent[]> {
+    if (!this.prisma?.auditEvent?.findMany) return [];
+
+    const events = await this.prisma.auditEvent.findMany({
+      where: { targetType, targetId },
+      include: {
+        actorUser: {
+          select: { email: true },
+        },
+      },
+      orderBy: { occurredAt: "asc" },
+    });
+
+    return events.map((e) => ({
+      id: e.id,
+      eventType: e.eventType,
+      outcome: e.outcome,
+      actorType: e.actorType,
+      actorUserId: e.actorUserId,
+      actorUserEmail: e.actorUser?.email ?? null,
+      targetType: e.targetType,
+      targetId: e.targetId,
+      correlationId: e.correlationId,
+      occurredAt: e.occurredAt,
+      metadata: (e.metadata as Record<string, unknown>) ?? {},
+    }));
   }
 }
 
@@ -134,6 +166,58 @@ export function sanitizePlatformEvent(
         actorType: "user",
         actorUserId: event.actor.userId,
         targetType: "buy_order",
+        targetId: event.target.id,
+        correlationId: event.correlationId,
+        occurredAt: event.occurredAt,
+        metadata: event.metadata,
+      };
+    case "buyer.buy_order.match.created":
+    case "buyer.buy_order.match.approved":
+    case "buyer.buy_order.match.cancelled":
+      assertUuid(event.actor.userId, "actor.userId");
+      assertUuid(event.target.id, "target.id");
+      return {
+        eventType: event.eventType,
+        outcome: "succeeded",
+        actorType: "user",
+        actorUserId: event.actor.userId,
+        targetType: "match",
+        targetId: event.target.id,
+        correlationId: event.correlationId,
+        occurredAt: event.occurredAt,
+        metadata: event.metadata,
+      };
+    case "quote.created":
+    case "quote.version.created":
+    case "quote.submitted_for_internal_review":
+    case "quote.returned_to_draft":
+    case "quote.sent":
+    case "quote.countered":
+    case "quote.accepted":
+    case "quote.rejected":
+    case "quote.counter.revised":
+      assertUuid(event.actor.userId, "actor.userId");
+      assertUuid(event.target.id, "target.id");
+      return {
+        eventType: event.eventType,
+        outcome: "succeeded",
+        actorType: "user",
+        actorUserId: event.actor.userId,
+        targetType: "quote",
+        targetId: event.target.id,
+        correlationId: event.correlationId,
+        occurredAt: event.occurredAt,
+        metadata: event.metadata,
+      };
+    case "trade.created":
+      assertUuid(event.actor.userId, "actor.userId");
+      assertUuid(event.target.id, "target.id");
+      return {
+        eventType: event.eventType,
+        outcome: "succeeded",
+        actorType: "user",
+        actorUserId: event.actor.userId,
+        targetType: "trade",
         targetId: event.target.id,
         correlationId: event.correlationId,
         occurredAt: event.occurredAt,

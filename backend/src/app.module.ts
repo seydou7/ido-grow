@@ -4,6 +4,9 @@ import { AuthenticationModule } from "./authentication";
 import { BuyOrdersModule } from "./buy-orders";
 import { ListingsModule } from "./listings";
 import { MarketplaceModule } from "./marketplace";
+import { MatchingModule } from "./matching/matching.module";
+import { QuotesModule } from "./quotes/quotes.module";
+import { TradesModule } from "./trades";
 import { OrganisationsModule } from "./organisations";
 
 @Module({
@@ -13,6 +16,9 @@ import { OrganisationsModule } from "./organisations";
     ListingsModule,
     MarketplaceModule,
     BuyOrdersModule,
+    MatchingModule,
+    QuotesModule,
+    TradesModule,
   ],
 })
 export class AppModule {}

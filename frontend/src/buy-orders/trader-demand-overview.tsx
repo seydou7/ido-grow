@@ -28,6 +28,7 @@ import {
 } from "./contracts";
 import { BuyOrderDetailView } from "./buy-order-detail-view";
 import { CreateEditBuyOrderModal } from "./create-edit-buy-order-modal";
+import { MatchingWorkspaceView } from "../matching";
 
 export function TraderDemandOverview() {
   const [activeTab, setActiveTab] = useState<"OPEN" | "DRAFT">("OPEN");
@@ -38,6 +39,7 @@ export function TraderDemandOverview() {
 
   const [materialFilter, setMaterialFilter] = useState<string>("ALL");
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [matchingOrderId, setMatchingOrderId] = useState<string | null>(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<BuyOrderDetail | null>(null);
@@ -121,10 +123,27 @@ export function TraderDemandOverview() {
     await loadData();
   };
 
+  if (matchingOrderId) {
+    return (
+      <MatchingWorkspaceView
+        buyOrderId={matchingOrderId}
+        onBack={() => {
+          setMatchingOrderId(null);
+          void loadData();
+        }}
+      />
+    );
+  }
+
   if (selectedOrderId) {
     return (
       <BuyOrderDetailView
         buyOrderId={selectedOrderId}
+        isTrader={true}
+        onOpenMatching={(id) => {
+          setSelectedOrderId(null);
+          setMatchingOrderId(id);
+        }}
         onBack={() => {
           setSelectedOrderId(null);
           void loadData();
@@ -397,12 +416,21 @@ export function TraderDemandOverview() {
                         </button>
                       </>
                     )}
+                    {demand.status === "OPEN" && (
+                      <button
+                        onClick={() => setMatchingOrderId(demand.id)}
+                        type="button"
+                        className="rounded-lg bg-[#e5b84b] px-3 py-1 text-xs font-bold text-[#173f35] transition-colors hover:bg-[#edd07e]"
+                      >
+                        Match Supply →
+                      </button>
+                    )}
                     <button
                       onClick={() => setSelectedOrderId(demand.id)}
                       type="button"
-                      className="rounded-lg bg-[#173f35] px-3 py-1 text-xs font-bold text-[#fffaf0] transition-colors hover:bg-[#204e42]"
+                      className="rounded-lg border border-[#173f35] bg-white px-3 py-1 text-xs font-bold text-[#173f35] transition-colors hover:bg-[#faf8f1]"
                     >
-                      {demand.status === "DRAFT" ? "Details →" : "Inspect Demand →"}
+                      {demand.status === "DRAFT" ? "Details →" : "Inspect →"}
                     </button>
                   </div>
                 </div>

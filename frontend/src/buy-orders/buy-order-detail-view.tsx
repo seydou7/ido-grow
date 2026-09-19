@@ -21,12 +21,16 @@ interface BuyOrderDetailViewProps {
   buyOrderId: string;
   onBack: () => void;
   onEdit?: (order: BuyOrderDetail) => void;
+  isTrader?: boolean;
+  onOpenMatching?: (buyOrderId: string) => void;
 }
 
 export function BuyOrderDetailView({
   buyOrderId,
   onBack,
   onEdit,
+  isTrader,
+  onOpenMatching,
 }: BuyOrderDetailViewProps) {
   const [order, setOrder] = useState<BuyOrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -254,14 +258,25 @@ export function BuyOrderDetailView({
             )}
 
             {order.status === "OPEN" && (
-              <button
-                onClick={handleCancel}
-                type="button"
-                disabled={actionLoading}
-                className="rounded-lg border border-red-200 px-4 py-2 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
-              >
-                {actionLoading ? "Cancelling..." : "Cancel Buy Order"}
-              </button>
+              <>
+                {isTrader && onOpenMatching && (
+                  <button
+                    onClick={() => onOpenMatching(order.id)}
+                    type="button"
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#173f35] px-4 py-2 text-xs font-bold text-[#fffaf0] shadow-2xs transition-colors hover:bg-[#204e42]"
+                  >
+                    <span>Match Supply →</span>
+                  </button>
+                )}
+                <button
+                  onClick={handleCancel}
+                  disabled={actionLoading}
+                  type="button"
+                  className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100 disabled:opacity-50"
+                >
+                  {actionLoading ? "Processing…" : "Cancel Demand"}
+                </button>
+              </>
             )}
           </div>
         </div>

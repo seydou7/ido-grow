@@ -18,9 +18,32 @@ export type AuditEventDatabaseClient = Readonly<{
   }>;
 }>;
 
+export type PersistedAuditEvent = Readonly<{
+  id: string;
+  eventType: string;
+  outcome: string;
+  actorType: string;
+  actorUserId: string | null;
+  actorUserEmail?: string | null;
+  targetType: string;
+  targetId: string | null;
+  correlationId: string;
+  occurredAt: Date;
+  metadata: Record<string, unknown>;
+}>;
+
 export abstract class AuditEventWriter {
   abstract append(
     event: PlatformAuditEvent,
     database?: AuditEventDatabaseClient,
   ): Promise<void>;
+
+  async findEventsByTarget(
+    targetType: string,
+    targetId: string,
+  ): Promise<PersistedAuditEvent[]> {
+    void targetType;
+    void targetId;
+    return [];
+  }
 }

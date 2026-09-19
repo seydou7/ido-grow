@@ -18,6 +18,23 @@ model User {
   memberships  Membership[]
   auditEvents  AuditEvent[]
   buyOrders    BuyOrder[]
+  matchesCreated Match[]    @relation("MatchCreatedByUser")
+  quotesCreated  Quote[]    @relation("QuoteCreatedByUser")
+  quoteVersionsCreated QuoteVersion[] @relation("QuoteVersionCreatedByUser")
+  sentQuotes           Quote[]        @relation("QuoteSentByUser")
+  acceptedQuotes       Quote[]        @relation("QuoteAcceptedByUser")
+  rejectedQuotes       Quote[]        @relation("QuoteRejectedByUser")
+  quoteCounterOffers   QuoteCounterOffer[] @relation("QuoteCounterOfferCreatedByUser")
+  tradesCreated        Trade[]             @relation("TradeCreatedByUser")
+  role                 String?             @default("STANDARD") @db.VarChar(50)
+  inspectionsCreated   Inspection[]        @relation("InspectionCreatedByUser")
+  inspectionsAssigned  Inspection[]        @relation("InspectionAssignedToUser")
+  inspectionEvidenceUploaded InspectionEvidence[] @relation("InspectionEvidenceUploadedByUser")
+  inspectionsAssessed        Inspection[]        @relation("InspectionAssessedByUser")
+  nonConformitiesReported    NonConformity[]     @relation("NonConformityReportedByUser")
+  nonConformitiesResolved    NonConformity[]     @relation("NonConformityResolvedByUser")
+  qualityResultsDecided      QualityResult[]     @relation("QualityResultDecidedByUser")
+  certificatesIssued         InspectionCertificate[] @relation("InspectionCertificateIssuedByUser")
 }
 
 model AuditEvent {
@@ -62,6 +79,15 @@ model Organisation {
   complianceDocuments ComplianceDocument[]
   listings           Listing[]
   buyOrders          BuyOrder[]
+  buyerMatches       Match[]      @relation("MatchBuyerOrganisation")
+  supplierMatches    Match[]      @relation("MatchSupplierOrganisation")
+  buyerQuotes        Quote[]      @relation("QuoteBuyerOrganisation")
+  supplierQuotes     Quote[]      @relation("QuoteSupplierOrganisation")
+  quoteCounterOffers QuoteCounterOffer[] @relation("QuoteCounterOfferBuyerOrganisation")
+  buyerTrades        Trade[]             @relation("TradeBuyerOrganisation")
+  supplierTrades     Trade[]             @relation("TradeSupplierOrganisation")
+  buyerInspections   Inspection[]        @relation("InspectionBuyerOrganisation")
+  supplierInspections Inspection[]       @relation("InspectionSupplierOrganisation")
 }
 
 model ComplianceDocument {
@@ -122,6 +148,10 @@ model Listing {
   updatedAt        DateTime     @updatedAt @db.Timestamptz(6)
   organisation     Organisation @relation(fields: [organisationId], references: [id], onDelete: Restrict)
   site             Site?        @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  matches          Match[]
+  quotes           Quote[]
+  trades           Trade[]
+  inspections      Inspection[]
 
   @@index([organisationId])
   @@index([materialType])
@@ -180,9 +210,342 @@ model BuyOrder {
   updatedAt                 DateTime     @updatedAt @db.Timestamptz(6)
   buyerOrganisation         Organisation @relation(fields: [buyerOrganisationId], references: [id], onDelete: Restrict)
   createdByUser             User?        @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  matches                   Match[]
+  quotes                    Quote[]
+  trades                    Trade[]
 
   @@index([buyerOrganisationId])
   @@index([status])
   @@index([materialType])
   @@index([createdAt])
+}
+
+model Match {
+  id                     String        @id @default(uuid()) @db.Uuid
+  buyOrderId             String        @db.Uuid
+  listingId              String        @db.Uuid
+  buyerOrganisationId    String?       @db.Uuid
+  supplierOrganisationId String?       @db.Uuid
+  createdByUserId        String?       @db.Uuid
+  status                 String        @default("DRAFT") @db.VarChar(50)
+  traderNotes            String?       @db.Text
+  approvedAt             DateTime?     @db.Timestamptz(6)
+  createdAt              DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt              DateTime      @updatedAt @db.Timestamptz(6)
+  buyOrder               BuyOrder      @relation(fields: [buyOrderId], references: [id], onDelete: Cascade)
+  listing                Listing       @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  buyerOrganisation      Organisation? @relation("MatchBuyerOrganisation", fields: [buyerOrganisationId], references: [id], onDelete: SetNull)
+  supplierOrganisation   Organisation? @relation("MatchSupplierOrganisation", fields: [supplierOrganisationId], references: [id], onDelete: SetNull)
+  createdByUser          User?         @relation("MatchCreatedByUser", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  quote                  Quote?
+  trades                 Trade[]
+
+  @@index([buyOrderId])
+  @@index([listingId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Quote {
+  id                     String        @id @default(uuid()) @db.Uuid
+  quoteNumber            String        @unique @db.VarChar(50)
+  matchId                String        @unique @db.Uuid
+  buyOrderId             String        @db.Uuid
+  listingId              String        @db.Uuid
+  buyerOrganisationId    String        @db.Uuid
+  supplierOrganisationId String        @db.Uuid
+  createdByUserId        String        @db.Uuid
+  status                 String        @default("DRAFT") @db.VarChar(50)
+  currency               String        @db.VarChar(10)
+  currentVersionNumber   Int           @default(1)
+  sentAt                 DateTime?     @db.Timestamptz(6)
+  sentByUserId           String?       @db.Uuid
+  sentVersionNumber      Int?
+  acceptedAt             DateTime?     @db.Timestamptz(6)
+  acceptedByUserId       String?       @db.Uuid
+  acceptedVersionNumber  Int?
+  rejectedAt             DateTime?     @db.Timestamptz(6)
+  rejectedByUserId       String?       @db.Uuid
+  rejectionReason        String?       @db.Text
+  createdAt              DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt              DateTime      @updatedAt @db.Timestamptz(6)
+
+  match                  Match         @relation(fields: [matchId], references: [id], onDelete: Restrict)
+  buyOrder               BuyOrder      @relation(fields: [buyOrderId], references: [id], onDelete: Restrict)
+  listing                Listing       @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  buyerOrganisation      Organisation  @relation("QuoteBuyerOrganisation", fields: [buyerOrganisationId], references: [id], onDelete: Restrict)
+  supplierOrganisation   Organisation  @relation("QuoteSupplierOrganisation", fields: [supplierOrganisationId], references: [id], onDelete: Restrict)
+  createdByUser          User          @relation("QuoteCreatedByUser", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  sentByUser             User?         @relation("QuoteSentByUser", fields: [sentByUserId], references: [id], onDelete: Restrict)
+  acceptedByUser         User?         @relation("QuoteAcceptedByUser", fields: [acceptedByUserId], references: [id], onDelete: Restrict)
+  rejectedByUser         User?         @relation("QuoteRejectedByUser", fields: [rejectedByUserId], references: [id], onDelete: Restrict)
+  versions               QuoteVersion[]
+  counterOffers          QuoteCounterOffer[]
+  trade                  Trade?
+
+  @@index([matchId])
+  @@index([buyOrderId])
+  @@index([listingId])
+  @@index([buyerOrganisationId])
+  @@index([supplierOrganisationId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model QuoteCounterOffer {
+  id                   String       @id @default(uuid()) @db.Uuid
+  quoteId              String       @db.Uuid
+  sourceVersionNumber  Int
+  buyerOrganisationId String       @db.Uuid
+  createdByUserId      String       @db.Uuid
+  proposedProductValue Float?
+  proposedTotalAmount  Float?
+  proposedIncoterm     String?      @db.VarChar(10)
+  proposedPaymentTerms String?      @db.VarChar(100)
+  buyerNote            String       @db.Text
+  createdAt            DateTime     @default(now()) @db.Timestamptz(6)
+
+  quote                Quote        @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  buyerOrganisation    Organisation @relation("QuoteCounterOfferBuyerOrganisation", fields: [buyerOrganisationId], references: [id], onDelete: Restrict)
+  createdByUser        User         @relation("QuoteCounterOfferCreatedByUser", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([quoteId])
+  @@index([buyerOrganisationId])
+  @@index([createdAt])
+}
+
+model QuoteVersion {
+  id                       String    @id @default(uuid()) @db.Uuid
+  quoteId                  String    @db.Uuid
+  versionNumber            Int
+  productValue             Float
+  idoGrowMarginCommission  Float     @default(0)
+  inspectionCost           Float     @default(0)
+  packagingCost            Float     @default(0)
+  inlandTransportCost      Float     @default(0)
+  internationalFreightCost Float     @default(0)
+  customsCost              Float     @default(0)
+  insuranceCost            Float     @default(0)
+  storageCost              Float     @default(0)
+  taxAmount                Float     @default(0)
+  otherServiceFees         Float     @default(0)
+  totalAmount              Float
+  currency                 String    @db.VarChar(10)
+  incoterm                 String?   @db.VarChar(10)
+  paymentTerms             String?   @db.VarChar(100)
+  validUntil               DateTime? @db.Timestamptz(6)
+  commercialNotes          String?   @db.Text
+  createdByUserId          String    @db.Uuid
+  createdAt                DateTime  @default(now()) @db.Timestamptz(6)
+
+  quote                    Quote     @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  createdByUser            User      @relation("QuoteVersionCreatedByUser", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([quoteId, versionNumber])
+  @@index([quoteId])
+  @@index([createdAt])
+}
+
+model Trade {
+  id                         String        @id @default(uuid()) @db.Uuid
+  tradeNumber                String        @unique @db.VarChar(50)
+  quoteId                    String        @unique @db.Uuid
+  acceptedQuoteVersionNumber Int
+  matchId                    String        @db.Uuid
+  buyOrderId                 String        @db.Uuid
+  listingId                  String        @db.Uuid
+  buyerOrganisationId        String        @db.Uuid
+  supplierOrganisationId     String        @db.Uuid
+  createdByUserId            String        @db.Uuid
+  materialType               String        @db.VarChar(100)
+  productForm                String?       @db.VarChar(100)
+  quantity                   Float
+  quantityUnit               String        @db.VarChar(50)
+  currency                   String        @db.VarChar(10)
+  acceptedTotalAmount        Float
+  incoterm                   String?       @db.VarChar(10)
+  paymentTerms               String?       @db.VarChar(100)
+  acceptedAt                 DateTime      @db.Timestamptz(6)
+  createdAt                  DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt                  DateTime      @updatedAt @db.Timestamptz(6)
+
+  quote                      Quote         @relation(fields: [quoteId], references: [id], onDelete: Restrict)
+  match                      Match         @relation(fields: [matchId], references: [id], onDelete: Restrict)
+  buyOrder                   BuyOrder      @relation(fields: [buyOrderId], references: [id], onDelete: Restrict)
+  listing                    Listing       @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  buyerOrganisation          Organisation  @relation("TradeBuyerOrganisation", fields: [buyerOrganisationId], references: [id], onDelete: Restrict)
+  supplierOrganisation       Organisation  @relation("TradeSupplierOrganisation", fields: [supplierOrganisationId], references: [id], onDelete: Restrict)
+  createdByUser              User          @relation("TradeCreatedByUser", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  inspections                Inspection[]
+
+  @@index([quoteId])
+  @@index([matchId])
+  @@index([buyOrderId])
+  @@index([listingId])
+  @@index([buyerOrganisationId])
+  @@index([supplierOrganisationId])
+  @@index([createdAt])
+}
+
+model InspectionTemplate {
+  id               String       @id @default(uuid()) @db.Uuid
+  templateKey      String       @db.VarChar(50)
+  name             String       @db.VarChar(200)
+  materialType     String       @db.VarChar(50)
+  productForm      String?      @db.VarChar(50)
+  supportedMethods String       @db.VarChar(255)
+  version          Int          @default(1)
+  status           String       @default("ACTIVE") @db.VarChar(50)
+  fields           Json         @default("[]") @db.JsonB
+  photoInstructions String?     @db.Text
+  createdAt        DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime     @updatedAt @db.Timestamptz(6)
+  inspections      Inspection[]
+
+  @@unique([templateKey, version])
+  @@index([materialType])
+  @@index([status])
+}
+
+model Inspection {
+  id                      String              @id @default(uuid()) @db.Uuid
+  inspectionReference     String              @unique @db.VarChar(50)
+  templateId              String              @db.Uuid
+  templateVersion         Int
+  tradeId                 String?             @db.Uuid
+  listingId               String?             @db.Uuid
+  externalLotReference    String?             @db.VarChar(100)
+  buyerOrganisationId     String?             @db.Uuid
+  supplierOrganisationId  String              @db.Uuid
+  assignedInspectorUserId String?             @db.Uuid
+  inspectionMethod        String              @db.VarChar(50)
+  status                  String              @default("DRAFT") @db.VarChar(50)
+  scheduledAt             DateTime?           @db.Timestamptz(6)
+  startedAt               DateTime?           @db.Timestamptz(6)
+  completedAt             DateTime?           @db.Timestamptz(6)
+  latitude                Float?
+  longitude               Float?
+  measurementMethod       String?             @db.VarChar(100)
+  equipmentUsed           String?             @db.VarChar(200)
+  inspectorNotes          String?             @db.Text
+  measurements            Json                @default("{}") @db.JsonB
+  createdByUserId         String              @db.Uuid
+  createdAt               DateTime            @default(now()) @db.Timestamptz(6)
+  updatedAt               DateTime            @updatedAt @db.Timestamptz(6)
+
+  template                InspectionTemplate  @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  trade                   Trade?              @relation(fields: [tradeId], references: [id], onDelete: Restrict)
+  listing                 Listing?            @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  buyerOrganisation       Organisation?       @relation("InspectionBuyerOrganisation", fields: [buyerOrganisationId], references: [id], onDelete: Restrict)
+  supplierOrganisation    Organisation        @relation("InspectionSupplierOrganisation", fields: [supplierOrganisationId], references: [id], onDelete: Restrict)
+  assignedInspectorUser   User?               @relation("InspectionAssignedToUser", fields: [assignedInspectorUserId], references: [id], onDelete: SetNull)
+  createdByUser           User                @relation("InspectionCreatedByUser", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  assessmentStatus           String              @default("NOT_ASSESSED") @db.VarChar(50)
+  assessmentSummary          String?             @db.Text
+  observedIssues             String?             @db.Text
+  recommendedFollowUp        String?             @db.Text
+  assessedAt                 DateTime?           @db.Timestamptz(6)
+  assessedByUserId           String?             @db.Uuid
+  physicalInspectionRequired Boolean             @default(false)
+  physicalInspectionReason   String?             @db.Text
+
+  assessedByUser          User?               @relation("InspectionAssessedByUser", fields: [assessedByUserId], references: [id], onDelete: SetNull)
+  evidence                InspectionEvidence[]
+  nonConformities         NonConformity[]
+  qualityResult           QualityResult?
+  certificate             InspectionCertificate?
+
+  @@index([templateId])
+  @@index([tradeId])
+  @@index([listingId])
+  @@index([assignedInspectorUserId])
+  @@index([supplierOrganisationId])
+  @@index([buyerOrganisationId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model InspectionEvidence {
+  id               String       @id @default(uuid()) @db.Uuid
+  inspectionId     String       @db.Uuid
+  evidenceType     String       @db.VarChar(50)
+  originalFilename String       @db.VarChar(255)
+  storageKey       String       @unique @db.VarChar(255)
+  mimeType         String       @db.VarChar(100)
+  fileSize         Int
+  caption          String?      @db.VarChar(255)
+  capturedAt       DateTime?    @db.Timestamptz(6)
+  uploadedByUserId String       @db.Uuid
+  createdAt        DateTime     @default(now()) @db.Timestamptz(6)
+
+  inspection       Inspection   @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  uploadedByUser   User         @relation("InspectionEvidenceUploadedByUser", fields: [uploadedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([inspectionId])
+  @@index([evidenceType])
+  @@index([createdAt])
+}
+
+
+model NonConformity {
+  id               String      @id @default(uuid()) @db.Uuid
+  inspectionId     String      @db.Uuid
+  reportedByUserId String      @db.Uuid
+  category         String      @db.VarChar(100)
+  description      String      @db.Text
+  status           String      @default("OPEN") @db.VarChar(50)
+  resolutionNotes  String?     @db.Text
+  resolvedAt       DateTime?   @db.Timestamptz(6)
+  resolvedByUserId String?     @db.Uuid
+  createdAt        DateTime    @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime    @updatedAt @db.Timestamptz(6)
+
+  inspection       Inspection  @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  reportedByUser   User        @relation("NonConformityReportedByUser", fields: [reportedByUserId], references: [id], onDelete: Restrict)
+  resolvedByUser   User?       @relation("NonConformityResolvedByUser", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([inspectionId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model QualityResult {
+  id                  String                 @id @default(uuid()) @db.Uuid
+  inspectionId        String                 @unique @db.Uuid
+  tradeId             String?                @db.Uuid
+  decision            String                 @db.VarChar(50)
+  classificationLabel String                 @db.VarChar(255)
+  decisionNotes       String?                @db.Text
+  decidedByUserId     String                 @db.Uuid
+  decidedAt           DateTime               @db.Timestamptz(6)
+  createdAt           DateTime               @default(now()) @db.Timestamptz(6)
+  updatedAt           DateTime               @updatedAt @db.Timestamptz(6)
+
+  inspection          Inspection             @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  decidedByUser       User                   @relation("QualityResultDecidedByUser", fields: [decidedByUserId], references: [id], onDelete: Restrict)
+  certificate         InspectionCertificate?
+
+  @@index([tradeId])
+  @@index([decision])
+  @@index([decidedByUserId])
+}
+
+model InspectionCertificate {
+  id                String        @id @default(uuid()) @db.Uuid
+  certificateNumber String        @unique @db.VarChar(100)
+  inspectionId      String        @unique @db.Uuid
+  qualityResultId   String        @unique @db.Uuid
+  tradeId           String?       @db.Uuid
+  storageKey        String?       @db.VarChar(255)
+  snapshotData      Json          @db.JsonB
+  issuedByUserId    String        @db.Uuid
+  issuedAt          DateTime      @db.Timestamptz(6)
+  createdAt         DateTime      @default(now()) @db.Timestamptz(6)
+
+  inspection        Inspection    @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  qualityResult     QualityResult @relation(fields: [qualityResultId], references: [id], onDelete: Cascade)
+  issuedByUser      User          @relation("InspectionCertificateIssuedByUser", fields: [issuedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([tradeId])
+  @@index([issuedByUserId])
 }

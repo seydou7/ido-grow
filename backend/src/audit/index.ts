@@ -2,6 +2,7 @@ export { AuditEventWriter } from "./audit-event.writer";
 export type {
   AuditEventCreateData,
   AuditEventDatabaseClient,
+  PersistedAuditEvent,
 } from "./audit-event.writer";
 export { AuditModule } from "./audit.module";
 export type {

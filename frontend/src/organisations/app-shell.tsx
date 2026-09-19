@@ -4,6 +4,11 @@ import { useState } from "react";
 import { LanguageSelector } from "@/i18n/language-selector";
 
 export type NavSection =
+  | "trader-cockpit"
+  | "trader-demand"
+  | "trader-trades"
+  | "trader-suppliers"
+  | "trader-buyers"
   | "overview"
   | "organisation"
   | "sites"
@@ -12,7 +17,7 @@ export type NavSection =
   | "listings"
   | "marketplace"
   | "buy-orders"
-  | "trader-demand";
+  | "buyer-quotes";
 
 type AppShellProps = Readonly<{
   activeSection: NavSection;
@@ -25,6 +30,25 @@ type AppShellProps = Readonly<{
   isLoggingOut: boolean;
   children: React.ReactNode;
 }>;
+
+function DocumentTextIcon({ className = "h-4 w-4" }: Readonly<{ className?: string }>) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+  );
+}
+
+function LayoutDashboardIcon({ className = "h-4 w-4" }: Readonly<{ className?: string }>) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="3" width="7" height="9" rx="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="14" y="3" width="7" height="5" rx="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="14" y="12" width="7" height="9" rx="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="3" y="16" width="7" height="5" rx="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 function BrandMark() {
   return (
@@ -176,6 +200,12 @@ export function AuthenticatedAppShell({
           icon: ClipboardCheckIcon,
         },
         {
+          id: "buyer-quotes" as const,
+          label: "Quotations",
+          sublabel: "Received commercial proposals",
+          icon: DocumentTextIcon,
+        },
+        {
           id: "organisation" as const,
           label: "Buyer Profile",
           sublabel: "Company details & verification",
@@ -191,22 +221,40 @@ export function AuthenticatedAppShell({
     : isTrader
       ? [
           {
+            id: "trader-cockpit" as const,
+            label: "Trader Cockpit",
+            sublabel: "Operations & Matching Queue",
+            icon: LayoutDashboardIcon,
+          },
+          {
+            id: "trader-demand" as const,
+            label: "Buyer Demand & Matching",
+            sublabel: "Demands & Matching Cockpit",
+            icon: ClipboardCheckIcon,
+          },
+          {
+            id: "trader-trades" as const,
+            label: "Transactions",
+            sublabel: "Trade records & commercial baselines",
+            icon: DocumentCheckIcon,
+          },
+          {
+            id: "trader-suppliers" as const,
+            label: "Suppliers",
+            sublabel: "Supplier accounts & listings",
+            icon: SproutIcon,
+          },
+          {
+            id: "trader-buyers" as const,
+            label: "Buyers",
+            sublabel: "Buyer accounts & demands",
+            icon: UsersIcon,
+          },
+          {
             id: "marketplace" as const,
             label: "Marketplace",
             sublabel: "Browse & inspect supply",
             icon: StoreIcon,
-          },
-          {
-            id: "trader-demand" as const,
-            label: "Buyer Demand",
-            sublabel: "Cross-organisation buy orders",
-            icon: ClipboardCheckIcon,
-          },
-          {
-            id: "overview" as const,
-            label: "Onboarding Overview",
-            sublabel: "Getting started & readiness",
-            icon: ClipboardCheckIcon,
           },
           {
             id: "organisation" as const,
@@ -215,28 +263,10 @@ export function AuthenticatedAppShell({
             icon: BuildingIcon,
           },
           {
-            id: "sites" as const,
-            label: "Production Sites",
-            sublabel: "Farms, parcels & facilities",
-            icon: SproutIcon,
-          },
-          {
-            id: "compliance" as const,
-            label: "Compliance & Documents",
-            sublabel: "Certificates & registry evidence",
-            icon: DocumentCheckIcon,
-          },
-          {
             id: "members" as const,
             label: "Team & Members",
             sublabel: "Organisation users & access",
             icon: UsersIcon,
-          },
-          {
-            id: "listings" as const,
-            label: "Product Listings",
-            sublabel: "Material inventory & offers",
-            icon: TagIcon,
           },
         ]
       : [

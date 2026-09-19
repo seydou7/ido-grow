@@ -21,10 +21,35 @@ export const BUY_ORDER_AUDIT_EVENT_TYPES = [
   "buyer.buy_order.deleted",
 ] as const;
 
+export const MATCH_AUDIT_EVENT_TYPES = [
+  "buyer.buy_order.match.created",
+  "buyer.buy_order.match.approved",
+  "buyer.buy_order.match.cancelled",
+] as const;
+
+export const QUOTE_AUDIT_EVENT_TYPES = [
+  "quote.created",
+  "quote.version.created",
+  "quote.submitted_for_internal_review",
+  "quote.returned_to_draft",
+  "quote.sent",
+  "quote.countered",
+  "quote.accepted",
+  "quote.rejected",
+  "quote.counter.revised",
+] as const;
+
+export const TRADE_AUDIT_EVENT_TYPES = [
+  "trade.created",
+] as const;
+
 export const AUDIT_EVENT_TYPES = [
   ...AUTHENTICATION_AUDIT_EVENT_TYPES,
   ...ORGANISATION_AUDIT_EVENT_TYPES,
   ...BUY_ORDER_AUDIT_EVENT_TYPES,
+  ...MATCH_AUDIT_EVENT_TYPES,
+  ...QUOTE_AUDIT_EVENT_TYPES,
+  ...TRADE_AUDIT_EVENT_TYPES,
 ] as const;
 
 export type AuthenticationAuditEventType =
@@ -35,6 +60,12 @@ export type OrganisationAuditEventType =
 
 export type BuyOrderAuditEventType =
   (typeof BUY_ORDER_AUDIT_EVENT_TYPES)[number];
+
+export type QuoteAuditEventType =
+  (typeof QUOTE_AUDIT_EVENT_TYPES)[number];
+
+export type TradeAuditEventType =
+  (typeof TRADE_AUDIT_EVENT_TYPES)[number];
 
 export type AuditEventType = (typeof AUDIT_EVENT_TYPES)[number];
 
@@ -169,6 +200,50 @@ export type BuyOrderDeletedAuditEvent = AuditEventBase &
     metadata: Readonly<{ buyerOrganisationId: string; deletedStatus: "DRAFT" }>;
   }>;
 
+export type MatchCreatedAuditEvent = AuditEventBase &
+  Readonly<{
+    eventType: "buyer.buy_order.match.created";
+    outcome: "succeeded";
+    actor: Readonly<{ type: "user"; userId: string }>;
+    target: Readonly<{ type: "match"; id: string }>;
+    metadata: Readonly<{
+      buyOrderId: string;
+      listingId: string;
+      status: "DRAFT";
+    }>;
+  }>;
+
+export type MatchApprovedAuditEvent = AuditEventBase &
+  Readonly<{
+    eventType: "buyer.buy_order.match.approved";
+    outcome: "succeeded";
+    actor: Readonly<{ type: "user"; userId: string }>;
+    target: Readonly<{ type: "match"; id: string }>;
+    metadata: Readonly<{
+      buyOrderId: string;
+      listingId: string;
+      status: "APPROVED";
+    }>;
+  }>;
+
+export type MatchCancelledAuditEvent = AuditEventBase &
+  Readonly<{
+    eventType: "buyer.buy_order.match.cancelled";
+    outcome: "succeeded";
+    actor: Readonly<{ type: "user"; userId: string }>;
+    target: Readonly<{ type: "match"; id: string }>;
+    metadata: Readonly<{
+      buyOrderId: string;
+      listingId: string;
+      status: "CANCELLED";
+    }>;
+  }>;
+
+export type MatchAuditEvent =
+  | MatchCreatedAuditEvent
+  | MatchApprovedAuditEvent
+  | MatchCancelledAuditEvent;
+
 export type AuthenticationAuditEvent =
   | LoginSucceededAuditEvent
   | LoginFailedAuditEvent
@@ -189,7 +264,168 @@ export type BuyOrderAuditEvent =
   | BuyOrderCancelledAuditEvent
   | BuyOrderDeletedAuditEvent;
 
+
+export type QuoteCreatedAuditEvent = AuditEventBase &
+  Readonly<{
+    eventType: "quote.created";
+    outcome: "succeeded";
+    actor: Readonly<{ type: "user"; userId: string }>;
+    target: Readonly<{ type: "quote"; id: string }>;
+    metadata: Readonly<{
+      quoteNumber: string;
+      matchId: string;
+      versionNumber: string;
+      totalAmount: string;
+      currency?: string;
+      status: string;
+    }>;
+  }>;
+
+export type QuoteVersionCreatedAuditEvent = AuditEventBase &
+  Readonly<{
+    eventType: "quote.version.created";
+    outcome: "succeeded";
+    actor: Readonly<{ type: "user"; userId: string }>;
+    target: Readonly<{ type: "quote"; id: string }>;
+    metadata: Readonly<{
+      quoteNumber: string;
+      versionNumber: string;
+      totalAmount: string;
+      currency?: string;
+    }>;
+  }>;
+
+export type QuoteSubmittedForInternalReviewAuditEvent = AuditEventBase &
+  Readonly<{
+    eventType: "quote.submitted_for_internal_review";
+    outcome: "succeeded";
+    actor: Readonly<{ type: "user"; userId: string }>;
+    target: Readonly<{ type: "quote"; id: string }>;
+    metadata: Readonly<{
+      quoteNumber: string;
+      versionNumber: string;
+      status: "INTERNAL_REVIEW";
+    }>;
+  }>;
+
+export type QuoteReturnedToDraftAuditEvent = AuditEventBase &
+  Readonly<{
+    eventType: "quote.returned_to_draft";
+    outcome: "succeeded";
+    actor: Readonly<{ type: "user"; userId: string }>;
+    target: Readonly<{ type: "quote"; id: string }>;
+    metadata: Readonly<{
+      quoteNumber: string;
+      versionNumber: string;
+      status: "DRAFT";
+    }>;
+  }>;
+
+
+export type QuoteSentAuditEvent = AuditEventBase &
+  Readonly<{
+    eventType: "quote.sent";
+    outcome: "succeeded";
+    actor: Readonly<{ type: "user"; userId: string }>;
+    target: Readonly<{ type: "quote"; id: string }>;
+    metadata: Readonly<{
+      quoteNumber: string;
+      versionNumber: string;
+      status: "SENT";
+      currency?: string;
+    }>;
+  }>;
+
+export type QuoteCounteredAuditEvent = AuditEventBase &
+  Readonly<{
+    eventType: "quote.countered";
+    outcome: "succeeded";
+    actor: Readonly<{ type: "user"; userId: string }>;
+    target: Readonly<{ type: "quote"; id: string }>;
+    metadata: Readonly<{
+      quoteNumber: string;
+      versionNumber: string;
+      status: "COUNTERED";
+      currency?: string;
+    }>;
+  }>;
+
+export type QuoteAcceptedAuditEvent = AuditEventBase &
+  Readonly<{
+    eventType: "quote.accepted";
+    outcome: "succeeded";
+    actor: Readonly<{ type: "user"; userId: string }>;
+    target: Readonly<{ type: "quote"; id: string }>;
+    metadata: Readonly<{
+      quoteNumber: string;
+      versionNumber: string;
+      status: "ACCEPTED";
+      currency?: string;
+    }>;
+  }>;
+
+export type QuoteRejectedAuditEvent = AuditEventBase &
+  Readonly<{
+    eventType: "quote.rejected";
+    outcome: "succeeded";
+    actor: Readonly<{ type: "user"; userId: string }>;
+    target: Readonly<{ type: "quote"; id: string }>;
+    metadata: Readonly<{
+      quoteNumber: string;
+      versionNumber: string;
+      status: "REJECTED";
+      currency?: string;
+      reason?: string;
+    }>;
+  }>;
+
+export type QuoteCounterRevisedAuditEvent = AuditEventBase &
+  Readonly<{
+    eventType: "quote.counter.revised";
+    outcome: "succeeded";
+    actor: Readonly<{ type: "user"; userId: string }>;
+    target: Readonly<{ type: "quote"; id: string }>;
+    metadata: Readonly<{
+      quoteNumber: string;
+      versionNumber: string;
+      status: "DRAFT";
+      currency?: string;
+    }>;
+  }>;
+
+export type QuoteAuditEvent =
+  | QuoteCreatedAuditEvent
+  | QuoteVersionCreatedAuditEvent
+  | QuoteSubmittedForInternalReviewAuditEvent
+  | QuoteReturnedToDraftAuditEvent
+  | QuoteSentAuditEvent
+  | QuoteCounteredAuditEvent
+  | QuoteAcceptedAuditEvent
+  | QuoteRejectedAuditEvent
+  | QuoteCounterRevisedAuditEvent;
+
+export type TradeCreatedAuditEvent = AuditEventBase &
+  Readonly<{
+    eventType: "trade.created";
+    outcome: "succeeded";
+    actor: Readonly<{ type: "user"; userId: string }>;
+    target: Readonly<{ type: "trade"; id: string }>;
+    metadata: Readonly<{
+      tradeNumber: string;
+      quoteNumber: string;
+      acceptedVersionNumber: string;
+      currency?: string;
+      acceptedTotalAmount: string;
+    }>;
+  }>;
+
+export type TradeAuditEvent = TradeCreatedAuditEvent;
+
+
 export type PlatformAuditEvent =
   | AuthenticationAuditEvent
   | OrganisationAuditEvent
-  | BuyOrderAuditEvent;
+  | BuyOrderAuditEvent
+  | MatchAuditEvent
+  | QuoteAuditEvent
+  | TradeAuditEvent;

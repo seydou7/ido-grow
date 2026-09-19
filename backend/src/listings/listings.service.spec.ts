@@ -511,4 +511,157 @@ describe("ListingsService", () => {
       service.getListing("user-1", "org-1", "non-existent-id"),
     ).rejects.toThrow(NotFoundException);
   });
+
+  it("allows Trader to create a listing on behalf of a Supplier organisation", async () => {
+    const traderOrg: OrganisationRecord = {
+      id: "org-trader",
+      name: "I Do Grow Trading BV",
+      legalName: "I Do Grow Trading BV",
+      organisationType: "TRADER",
+      businessType: null,
+      registrationNumber: null,
+      vatNumber: null,
+      address: null,
+      city: null,
+      postalCode: null,
+      country: "Netherlands",
+      contactName: "Trader Joe",
+      contactEmail: "trader@idogrow.com",
+      contactPhone: null,
+      verificationStatus: "VERIFIED",
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      sites: [],
+      complianceDocuments: [],
+    };
+    organisationsRepository.organisations.set("org-trader", traderOrg);
+    organisationsRepository.membershipsByUser.set("trader-user", [
+      {
+        id: "mem-trader",
+        userId: "trader-user",
+        organisationId: "org-trader",
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        organisation: traderOrg,
+      },
+    ]);
+
+    const created = await service.createListing("trader-user", "org-1", {
+      title: "Trader Created Straw",
+      materialType: "HEMP",
+      quantity: 40,
+    });
+
+    expect(created.title).toBe("Trader Created Straw");
+    expect(auditEvents.events).toHaveLength(1);
+    expect(auditEvents.events[0]).toMatchObject({
+      eventType: "organisation.listing.created",
+      actor: { type: "user", userId: "trader-user" },
+      metadata: { organisationId: "org-1" },
+    });
+  });
+
+  it("rejects Trader creating a listing for a Buyer organisation (400)", async () => {
+    const buyerOrg: OrganisationRecord = {
+      id: "org-buyer",
+      name: "Textile Buyer BV",
+      legalName: "Textile Buyer BV",
+      organisationType: "BUYER",
+      businessType: null,
+      registrationNumber: null,
+      vatNumber: null,
+      address: null,
+      city: null,
+      postalCode: null,
+      country: "France",
+      contactName: "Buyer Bob",
+      contactEmail: "bob@buyer.com",
+      contactPhone: null,
+      verificationStatus: "VERIFIED",
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      sites: [],
+      complianceDocuments: [],
+    };
+    const traderOrg: OrganisationRecord = {
+      id: "org-trader",
+      name: "I Do Grow Trading BV",
+      legalName: "I Do Grow Trading BV",
+      organisationType: "TRADER",
+      businessType: null,
+      registrationNumber: null,
+      vatNumber: null,
+      address: null,
+      city: null,
+      postalCode: null,
+      country: "Netherlands",
+      contactName: "Trader Joe",
+      contactEmail: "trader@idogrow.com",
+      contactPhone: null,
+      verificationStatus: "VERIFIED",
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      sites: [],
+      complianceDocuments: [],
+    };
+    organisationsRepository.organisations.set("org-buyer", buyerOrg);
+    organisationsRepository.organisations.set("org-trader", traderOrg);
+    organisationsRepository.membershipsByUser.set("trader-user", [
+      {
+        id: "mem-trader",
+        userId: "trader-user",
+        organisationId: "org-trader",
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        organisation: traderOrg,
+      },
+    ]);
+
+    await expect(
+      service.createListing("trader-user", "org-buyer", {
+        title: "Invalid Buyer Listing",
+        materialType: "HEMP",
+        quantity: 10,
+      }),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it("rejects Trader listing listings for their own Trader organisation (400)", async () => {
+    const traderOrg: OrganisationRecord = {
+      id: "org-trader",
+      name: "I Do Grow Trading BV",
+      legalName: "I Do Grow Trading BV",
+      organisationType: "TRADER",
+      businessType: null,
+      registrationNumber: null,
+      vatNumber: null,
+      address: null,
+      city: null,
+      postalCode: null,
+      country: "Netherlands",
+      contactName: "Trader Joe",
+      contactEmail: "trader@idogrow.com",
+      contactPhone: null,
+      verificationStatus: "VERIFIED",
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      sites: [],
+      complianceDocuments: [],
+    };
+    organisationsRepository.organisations.set("org-trader", traderOrg);
+    organisationsRepository.membershipsByUser.set("trader-user", [
+      {
+        id: "mem-trader",
+        userId: "trader-user",
+        organisationId: "org-trader",
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        organisation: traderOrg,
+      },
+    ]);
+
+    await expect(
+      service.listListings("trader-user", "org-trader"),
+    ).rejects.toThrow(BadRequestException);
+  });
 });

@@ -1,7 +1,119 @@
 # Changelog
 
+## 2026-09-18 — Sprint 07 Final Technical Consolidation & Migration Deployment
+
+### Local Database & Schema Deployment
+- **Docker & PostgreSQL 16:** PostgreSQL container `ido-grow-postgres-16` running on port `55432`. All 16 migrations applied (`npx prisma migrate deploy`); zero historical drift, zero DB reset.
+- **Real-Schema Smoke & Atomicity Regression:** Verified Prisma access across all 6 quality models. Successfully executed transactional atomicity regression covering Evidence, APPROVED decision with Certificate and 2 audits, REJECTED decision, and concurrent duplicate decision prevention.
+
+### Quality Certificate Hardening
+- **Removal of Silent Truncation:** Removed `line.substring(0, 80)` and measurement slice (`.slice(0, 15)`). Implemented deterministic line wrapping (`formatField`, `wrapLine`) rendering all 14 Hemp measurements and full text fields without character loss.
+- **Dynamic Multi-Page Support:** Implemented multi-page PDF generation scaling across page boundaries with calculated byte offsets and xref tables. Validated with Python `pypdf.PdfReader(..., strict=True)` asserting complete extraction of tail-end text tokens.
+- **Certificate Reference Entropy:** Upgraded certificate suffix from 4 to 8 random hex characters (`QIC-YYYYMMDD-XXXXXXXX`). Added safe collision retry loop up to 3 attempts with orphan PDF storage cleanup.
+- **Prisma P2002 Error Differentiation:** Differentiated between `QualityResult.inspectionId` duplicates (`BadRequestException`, 400 `quality/result-already-exists`) and `InspectionCertificate.certificateNumber` collisions (`ConflictException`, 409 `quality/certificate-reference-collision`).
+
+## 2026-09-18 — Sprint 07 Block 03: Human Quality Result, Review & Inspection Certificate
+
+### Phase 0: Integrity Hardening
+- **Evidence Size Contract:** Unified file upload limit to exactly 10MB (`MAX_INSPECTION_EVIDENCE_BYTES = 10 * 1024 * 1024`) across controller, service, frontend, tests, and memory.
+- **Evidence-Type & MIME Agreement:** Enforced server-side validation ensuring declared evidence type matches file type (PHOTO: JPEG/PNG/WEBP; DOCUMENT: PDF; LAB_REPORT: PDF).
+- **Date Validation:** Pre-persistence validation on `capturedAt` returning HTTP 400 Bad Request on invalid ISO date format.
+- **Template Photo Instructions:** Removed fabricated hemp instructions; canonical v1 template seeds `photoInstructions` as `null`.
+- **Removed Fabricated Thresholds:** Removed moisture threshold examples (e.g. 15%, 18% exceeds 15%); replaced with neutral operational observation phrasing.
+- **Inspector-Only Assessment:** Restricted `recordAssessment` exclusively to assigned active Quality Inspector.
+- **Non-Conformity Idempotency:** Blocked duplicate resolution of already RESOLVED non-conformities with HTTP 400 Bad Request.
+- **Storage Compensation:** Added file deletion cleanup if database persistence or audit logging fails during evidence upload.
+
+### Block 03: Quality Result & Inspection Certificate
+- **Quality Result Model:** Added `QualityResult` model linking `APPROVED` or `REJECTED` decision and human-entered classification label to completed Inspections. Enforced 1:1 relation with unique constraint.
+- **Human-Controlled Decision Gate:** Requires `status = COMPLETED` and `assessmentStatus = ASSESSMENT_RECORDED`, executable only by assigned active Quality Inspector.
+- **Inspection Certificate:** Issued exclusively for `APPROVED` decisions. Generates formal PDF certificate (`QIC-YYYYMMDD-XXXX`) stored via `StorageService`. Captures immutable snapshot of inspection reference, trade, supplier, buyer, measurements, evidence count, preliminary assessment, and final quality result.
+- **Trade & Cockpit Integration:** Trader Trade Detail and Trader Cockpit reflect final quality decision and certificate link without mutating commercial Trade terms.
+- **Audit Logging:** Emitted events for `quality.result.approved`, `quality.result.rejected`, and `quality.certificate.issued`.
+- **Testing & Verification:** 27 backend test suites (257 tests) pass; 78 frontend tests pass; full TypeScript typecheck, ESLint, and production build pass in both backend and frontend.
+
+
+## 2026-09-18 — Sprint 07 Phase 0 & Block 02: Inspection Evidence & Non-Conformity Foundation
+
+### Phase 0: Integrity Corrections
+- **Removed Unapproved Counterparty Inspection Access:** Restricted `getInspectionById` strictly to Trader and the assigned Quality Inspector. Buyer, Supplier, and other unassigned inspectors are denied (HTTP 403 Forbidden).
+- **Strict Status Lifecycle & Reassignment:** Enforced strict assignment transitions. Reassignment is permitted only when status is `ASSIGNED`. Transitioning from `IN_PROGRESS` or `COMPLETED` back to `ASSIGNED` is strictly rejected (HTTP 400 Bad Request).
+- **Action-Time Inspector Active & Role Revalidation:** Field actions (`start`, `saveMeasurements`, `completeData`, `uploadEvidence`, `recordAssessment`, `createNonConformity`) revalidate that the authenticated user is currently assigned, has `isActive = true`, and has `role = "QUALITY_INSPECTOR"`.
+- **Quality Inspector Frontend Navigation:** Exposed `User.role` in session/profile. Quality Inspector lands on dedicated "My Inspections" portal without Trader modules or organisation requirement.
+- **Template Versioning Wording:** Updated memory to state: "Template v1 is persisted as a stable versioned definition. Future template revision workflow must create a new version rather than mutate an in-use definition."
+- **Removed Invented Grade Vocabulary:** Removed unapproved grades (Grade A, B, C, Industrial, Reject) and weighbridge slips from backlog/memory, replacing with neutral source-safe phrasing.
+
+### Block 02: Evidence Capture & Non-Conformity Foundation
+- **Evidence Storage & Metadata:** Reused existing filesystem storage primitives. Added `InspectionEvidence` model capturing evidenceType (PHOTO, DOCUMENT, LAB_REPORT), MIME type, file size, original filename, storage path, caption, and capturedAt timestamp.
+- **Photo Instructions:** Added source-safe `photoInstructions` field to `InspectionTemplate`.
+- **Preliminary Human Assessment:** Implemented human assessment (`NOT_ASSESSED`, `ASSESSMENT_RECORDED`) with summary, observed issues, and recommended follow-up without automated grading or AI.
+- **Non-Conformity Foundation:** Added `NonConformity` model (`OPEN`, `RESOLVED`) tracking category, description, reporter, and resolution notes.
+- **Physical Inspection Escalation:** Added operational flag (`physicalInspectionRequired`) and reason tracking for Trader review.
+- **Trade & Cockpit Integration:** Integrated evidence count, preliminary assessment status, and open non-conformities into Trader Trade Detail and Trader Cockpit operational queue.
+- **Audit Logging:** Emitted events for `quality.evidence.uploaded`, `quality.assessment.recorded`, `quality.non_conformity.created`, `quality.non_conformity.resolved`, and `quality.physical_inspection.requested`.
+- **Testing & Verification:** 27 backend test suites (244 tests) pass; 73 frontend tests pass; TypeScript, ESLint, and production build pass in both backend and frontend.
+
+
+- Implemented Sprint 05 Vertical Block 03 (Trader Supplier & Buyer Management):
+  - Cleaned up Block 02 duplicate cockpit route; canonical endpoint is strictly `GET /api/v1/trader/cockpit`.
+  - Built backend read endpoints `GET /api/v1/trader/suppliers`, `GET /api/v1/trader/suppliers/:organisationId`, `GET /api/v1/trader/buyers`, and `GET /api/v1/trader/buyers/:organisationId` using real PostgreSQL entities with zero N+1 queries.
+  - Added server-side authorization delta in `ListingsService` permitting Traders to create and manage listings on behalf of Supplier organisations while preserving Supplier ownership and recording Trader audit actor.
+  - Built Trader Supplier Management UI with search, verification filter, metrics (published/draft listings, sites), detail view (listings, sites, documents, profile), and on-behalf listing creation form.
+  - Built Trader Buyer Management UI with search, verification filter, demand/approved match counts, detail view (Buy Orders table with match statuses, Approved Matches table), and reused Sprint 04 on-behalf Buy Order creation modal.
+  - Updated Trader Cockpit Operational Queue actions to deep-link directly into Supplier detail and Matching Workspace.
+  - Updated AuthenticatedAppShell navigation to present Trader Cockpit, Buyer Demand & Matching, Suppliers, Buyers, Marketplace, Organisation Profile, and Members.
+  - Enforced server-side security contract (Trader 200, Buyer 403, Supplier 403, Unauthenticated 401). Zero new database tables created. Removed ungrounded completeness percentage claims; operational views reflect real entity fields only.
+  - Technical verification: 151 backend tests and 44 frontend tests pass; typecheck, lint, and build pass in both backend and frontend. Block 01, Block 02, and Block 03 recorded as IMPLEMENTED — MANUAL VALIDATION PENDING.
+
 ## Unreleased
 
+- Implemented Sprint 07 Vertical Block 01 (Inspection Core, Hemp Template & Inspection Tasks):
+  - Added `User.role = "QUALITY_INSPECTOR"` to the existing user and RBAC architecture without creating an artificial organisation type. Enforced server-side `assertInspectorAccess` granting Quality Inspectors access to their work queue, field measurement recording, and data entry completion.
+  - Implemented `InspectionTemplate`, `Inspection`, and `InspectionEvidence` models via additive migration `20260918120000_sprint07_inspection_core` (preserving all historical migrations 00–06 immutably).
+  - Seeded canonical European Hemp Straw Quality Inspection Template v1 with 14 source-supported fields: moisturePercentage, baleDimensions, estimatedBaleWeight, rettingQuality, colour, consistency, contamination, mouldIndicators, soilOrStoneContamination, storageConditions, harvestDate, baleIntegrity, fibreToHurdIndication, visualHomogeneity.
+  - Enforced strict template version immutability: template updates create new persisted versions (v2, v3) without mutating historical definitions; inspections reference immutable versions.
+  - Reused existing storage primitives for future evidence attachments without duplicating upload mechanisms.
+  - Contextualized inspection tasks to operational Trade and Listing records with explicit non-canonical `externalLotReference`.
+  - Enforced deterministic status lifecycle: `DRAFT -> ASSIGNED -> IN_PROGRESS -> COMPLETED`, documenting explicitly that `COMPLETED` signifies inspection data entry completion (NOT quality approved or grade approved).
+  - Built responsive Inspector Work Queue and detail entry view with geolocation, equipment tracking, field-by-field validation, partial saving, and complete submission.
+  - Integrated inspection actions into Trader Transactions ledger (`TraderTradesView`) and added `quality_inspection` operational queue item to Trader Cockpit.
+  - Appended immutable audit events (`quality.inspection.created`, `quality.inspection.assigned`, `quality.inspection.started`, `quality.measurements.updated`, `quality.inspection.completed`) with actor attribution and sanitized metadata.
+  - Technical verification: 27 backend test suites (238 tests) pass; 68 frontend tests pass; full TypeScript typecheck, ESLint, and production build pass in both backend and frontend.
+
+
+- Implemented Sprint 06 Phase 0 (Negotiation History Fix) & Vertical Block 03 (Accepted Quote → Trade / Transaction Record):
+  - Phase 0: Reconstructed Quote Detail timeline strictly from persisted append-only AuditEvent records via minimal reader abstraction `findEventsByTarget("quote", quoteId)`. Multiple `quote.sent` events survive across dispatches (v1 sent, v2 sent). Internal review and return-to-draft milestones surfaced directly from audit trail. Removed false inference of `counter_revised` for normal DRAFT revisions. Invariant strengthened so Buyer ACCEPT, REJECT, and COUNTER bind strictly to `sentVersionNumber`. Expiration checks the validity date of the sent QuoteVersion.
+  - Block 03: Added `Trade` persistence model and additive migration `20260917150000_sprint06_trade_record` with unique `tradeNumber` (`TRD-YYYYMMDD-XXXX`) and unique `quoteId`.
+  - Implemented atomic transactional trade creation upon Buyer quote acceptance via Prisma `$transaction`, preserving an immutable commercial baseline through the exact accepted QuoteVersion reference, plus key persisted Trade summary fields (tradeNumber, acceptedQuoteVersionNumber, currency, acceptedTotalAmount, counterparties, incoterm, payment terms).
+  - Enforced strict Accepted Quote gate: only quotes in `ACCEPTED` status with valid accepted version can generate a Trade record. Idempotent creation prevents duplicates.
+  - Preserved Quote status as `ACCEPTED` without contract transition (`CONVERTED_TO_CONTRACT` remains reserved for Sprint 08).
+  - Built Trader Transactions Ledger (`TraderTradesView`) with KPI cards, trade list table, and read-only commercial snapshot modal.
+  - Exposed read-only Trade baseline reference in Buyer Quote Detail view.
+  - Integrated Trader Cockpit Operational Queue: accepted quotes with created trade show "View Transaction" leading directly to the Trade Ledger.
+  - Added append-only `trade.created` audit event with actor attribution and sanitized operational metadata.
+  - Server-side role authorization: Trader accesses platform trades; Buyer accesses only own trades; Supplier access restricted; Unauthenticated 401; cross-tenant isolated.
+  - Technical verification: 26 backend test suites (213 tests) pass; 62 frontend tests pass; full TypeScript typecheck, ESLint, and production build pass in both backend and frontend.
+
+- Implemented Sprint 06 Vertical Block 02 (Quote Dispatch, Counter-Offer & Buyer Decision):
+  - Phase 0 & 0B Currency Cleanup: Removed all remaining `|| "EUR"` fallbacks in `quote-builder-modal.tsx` and `matching-workspace-view.tsx`. Neutral state rendered when currency is unavailable, without fake currency symbols.
+  - Additive database schema update (`20260917120000_sprint06_quote_lifecycle`): Added quote dispatch metadata (`sentAt`, `sentByUserId`, `sentVersionNumber`), decision metadata (`acceptedAt`, `acceptedByUserId`, `acceptedVersionNumber`, `rejectedAt`, `rejectedByUserId`, `rejectionReason`), and `QuoteCounterOffer` model. Historical migrations preserved immutably.
+  - Immutability of SENT QuoteVersion: Once sent, QuoteVersion is immutable forever. Counter-offers preserve the sent version untouched and record proposed commercial changes.
+  - Gated Status Transition Matrix: `INTERNAL_REVIEW -> SENT`, `SENT -> ACCEPTED | REJECTED | COUNTERED`, `COUNTERED -> revised DRAFT (vN+1) -> INTERNAL_REVIEW -> SENT`. Invalid transitions rejected.
+  - Buyer Quotations Portal: `BuyerQuotesView` displaying quotes addressed to the authenticated Buyer organisation with full 11-line cost breakdown, Accept confirmation modal, Reject confirmation modal (with optional reason), and Counter-Offer modal (with proposed product value, incoterm, payment terms, and mandatory rationale).
+  - Trader Counter Review & Revision Flow: Trader Cockpit and Quote Detail display Buyer counter-proposals and notes. Trader can initiate "Revise Quote", creating sequential `vN+1` in `DRAFT` for re-review.
+  - Trader Buyer Management Detail Integration: Commercial Quotations section embedded in Buyer detail view with direct modal opener.
+  - Trader Cockpit Operational Queue: Real quote categories (`quote_internal_review`, `quote_countered`, `quote_awaiting_buyer`, `quote_accepted`, `quote_rejected`).
+  - Immutable Audit Events: `quote.sent`, `quote.countered`, `quote.accepted`, `quote.rejected`, `quote.counter.revised`.
+  - Security & Authorization: Trader controls create, revise, review, send; Buyer can only view and act on own organisation quotes; cross-tenant access returns 404; Suppliers denied (403); Unauthenticated 401.
+
+- Implemented Sprint 06 Vertical Block 01 (Quote Core, Commercial Breakdown & Version History):
+  - Added `Quote` and `QuoteVersion` models with additive migration `20260916160000_sprint06_quotes_core`.
+  - Server-authoritative 11-line commercial cost calculation and validation in `quotes.calculator.ts`.
+  - Inherited quote currency from matched context with zero FX and explicit conflict gate.
+  - Sequential monotonic versioning and status lifecycle (`DRAFT` <-> `INTERNAL_REVIEW`).
+  - Frontend `QuoteBuilderModal` and active "Prepare Quote ->" action across cockpit and workspace views.
+
+- Implemented and technically verified Sprint 05 Vertical Block 02 (Trader Cockpit & Operational Queue): purpose-built backend read model endpoint (`GET /api/v1/trader/cockpit`), live PostgreSQL aggregation over real platform entities (supplier onboarding attention, draft listings, published listings, open buy orders, approved matches), consolidated read-only operational queue with deterministic urgency and FIFO sorting, compact Open Buyer Demands table with dynamic match status and direct "Find Match" navigation to Block 01 Matching Workspace, compact Approved Matches table with passive "Ready for Quotation" badge, server-enforced role access (Trader 200, Buyer 403, Supplier 403, Unauthenticated 401), zero new persistence tables, zero client mock datasets, and AuthenticatedAppShell Trader navigation integration. Project Owner manual validation pending.
 - Initialized project governance and documentation structure.
 - Established the source-of-truth register and extracted project memory from the two primary client documents.
 - Approved DEC-001 as the current initial technical architecture, with its listed vendor and tooling choices remaining TBD.
@@ -40,8 +152,40 @@
 - Implemented and Project Owner-validated Sprint 04 Vertical Block 01 (Buyer Marketplace & Listing Discovery): dedicated marketplace backend domain boundary (`GET /api/v1/marketplace/listings` and `GET /api/v1/marketplace/listings/:listingId`), strict server-enforced `status = 'PUBLISHED'` gating (excluding all DRAFT records), role-based marketplace access enforcement (Buyer & Trader allowed; Supplier denied cross-supplier marketplace access with 403 Forbidden), PostgreSQL full-text search across title, description, material type, and origin country, faceted filters (materialType, productForm, originCountry, harvestYear, quantity range, price presence/range, units), safe intermediated Supplier transparency without personal contact leakage, synthetic local Buyer/Trader test fixtures, and responsive Marketplace catalogue & Listing detail UI in the authenticated application shell. Project Owner manual browser validation passed (PASS).
 - Implemented and Project Owner-validated Sprint 04 Vertical Block 02 (Buy Orders & Demand Management): additive `BuyOrder` Prisma model, additive audit migration `20260830010000_add_buy_order_deleted_audit_event`, dedicated Buy Orders backend module (`/api/v1/buy-orders` CRUD, `/submit`, `/cancel`, `/trader/demand`, `/trader/drafts`, DELETE endpoint returning HTTP 204 No Content), strict server-enforced role access (Buyer creates, manages, and deletes own organisation demands; Trader creates on behalf of Buyer, manages/submits/deletes own drafts, and accesses cross-organisation OPEN demand; private Buyer drafts isolated from Trader; Supplier denied 403 Forbidden), status lifecycle (`DRAFT`, `OPEN`, `CANCELLED`), edit and permanent deletion restrictions (DRAFT only), structured demand requirements (Natural Fibre Material, Product Form, Target Volume, Delivery Destination/Country/Date, Target Price in EUR, Quality/Packaging/Certification requirements, Transport & Payment terms), immutable audit event logging (`buyer.buy_order.created`, `buyer.buy_order.updated`, `buyer.buy_order.submitted`, `buyer.buy_order.cancelled`, `buyer.buy_order.deleted`), Buyer "My Buy Orders" dashboard, 6-section Create/Edit Modal, Buy Order Detail view with non-binding demand notice, and Trader cross-organisation demand overview. Project Owner manual browser validation passed (PASS).
 - Executed formal Sprint 04 closure assessment: verified full delivery of Block 01 (Marketplace Discovery) and Block 02 (Buy Orders & Demand Management), migration checksum integrity verified across all 8 migrations, and zero-defect QA gate. Formally closed Sprint 04 — Buyer Marketplace & Buy Orders.
+- Activated Sprint 05 — Trader Cockpit & Manual Matching (Vertical Block 01) following formal Project Owner authorization, with the Client Demo environment remaining live and operational at `https://217-182-252-225.sslip.io` in parallel for client review.
+- Implemented Sprint 05 Vertical Block 01 (Trader Manual Matching Workspace):
+  - **Recorded Approved Decision (DEC-007):** Approved single active commercial match invariant for Sprint 05 manual matching (multiple candidates may be compared, but only ONE Match may be APPROVED per Buy Order at a time); multi-supplier matching explicitly deferred.
+  - **Database Persistence & Additive Migrations:** Added `Match` model to `schema.prisma` and executed additive PostgreSQL migrations `20260831081928_trader_cockpit_matches` and `20260901160000_sprint05_match_single_approved` on local PostgreSQL 16 container (`ido-grow-postgres-16`). Historical migrations (0 to 8) remain strictly immutable.
+  - **Pure Deterministic Compatibility Indicators:** Built `backend/src/matching/matching-calculator.ts` with objective indicators (Material: MATCH/MISMATCH, Product Form: MATCH/MISMATCH/NOT_SPECIFIED, Quantity: SUFFICIENT/INSUFFICIENT/UNKNOWN, Origin: ACCEPTABLE/NOT_ACCEPTABLE/NOT_SPECIFIED, Certifications: MATCH/MISSING/NOT_REQUIRED). No AI, no weighted score algorithms, and no landed-cost scores.
+  - **Server-Side Authorization & Single Approved Invariant:** Enforced `assertTraderAccess` across matching repository and endpoints (`GET /api/v1/matching/buy-orders/:buyOrderId/workspace`, `POST /api/v1/matching/buy-orders/:buyOrderId/matches`, `POST /api/v1/matching/matches/:matchId/approve`, `POST /api/v1/matching/matches/:matchId/cancel`). Rejects second approval attempts with HTTP 409 Conflict if another match is already APPROVED. Supplier and Buyer requests are strictly rejected with HTTP 403 Forbidden.
+  - **Non-Binding Match State & Audit Logging:** Implemented status lifecycle (`DRAFT`, `APPROVED`, `CANCELLED`) and immutable audit event logging (`buyer.buy_order.match.created`, `buyer.buy_order.match.approved`, `buyer.buy_order.match.cancelled`).
+  - **Trader Matching Workspace UI:** Built interactive `MatchingWorkspaceView` in `frontend/src/matching/` with Buyer Demand summary header, Candidate Supply discovery cards, Side-by-Side comparison matrix (2–4 listings), Selected Candidate panel with Trader notes, and Approval/Revocation modals. Integrated into `TraderDemandOverview` ("Match Supply →") and `BuyOrderDetailView`.
+  - **Automated Verification:** 18 backend test suites (127 tests) pass; 25 frontend test suites pass; full TypeScript typecheck passes with 0 errors; Next.js production build passes with 0 errors. Ready for Project Owner manual validation.
 - Executed Phase 03B Client Demo Deployment on OVHcloud VPS (`217.182.252.225`): created deployment commit (`e901128`), transferred codebase to isolated directory `/home/ubuntu/ido-grow-demo`, initialized dedicated Docker Compose stack `ido-grow-demo`, started isolated PostgreSQL 16 container, applied all 8 Prisma migrations cleanly from scratch with zero checksum drift, provisioned fresh demo user fixtures for Supplier, Buyer, and Trader personas, built and started production NestJS backend and Next.js frontend containers on private bridge network `ido-grow-demo-net`, and started Caddy reverse proxy container on port 443 with zero port 80 collision. Activated public client HTTPS URL at `https://217-182-252-225.sslip.io` with automated Let's Encrypt TLS certificate issuance via ACME TLS-ALPN-01. Verified public HTTPS, Next.js frontend UI, API routing, and authenticated sessions across Supplier, Buyer, and Trader personas. Existing multi-project workloads (CETUD port 80/8081/5434, KellelGym port 8085, Opportunity OS port 8082) remain 100% active and untouched.
+
 
 - Recorded DEC-006: Project Owner approved a operational deployment exception authorizing provisioning and deployment of a client-accessible Demo / Pre-Production environment on OVHcloud following Sprint 04 closure. Sprint 05 — Trader Cockpit & Manual Matching is transitioned to READY (NOT ACTIVE) and held pending completion of the Client Demo deployment and smoke validation.
 
 
+
+- Implemented Sprint 06 Vertical Block 01 (Quote Core, Commercial Breakdown & Version History):
+  - **Prisma & Database Persistence:** Added `Quote` and `QuoteVersion` models with additive migration `20260916160000_sprint06_quotes_core`. Historical migrations remain strictly immutable.
+  - **Server-Authoritative 11-Line Commercial Breakdown:** Implemented `quotes.calculator.ts` summing all 11 line items (`productValue`, `idoGrowMarginCommission`, `inspectionCost`, `packagingCost`, `inlandTransportCost`, `internationalFreightCost`, `customsCost`, `insuranceCost`, `storageCost`, `taxAmount`, `otherServiceFees`). Rejects negatives, requires positive product value, and rounds to 2 decimal places in the inherited quote currency.
+  - **Sequential Monotonic Versioning:** Enforced sequential immutable version creation (`v1`, `v2`, ...) on every draft update without mutating historical revisions.
+  - **Operational Lifecycle:** Enforced `DRAFT` ↔ `INTERNAL_REVIEW` status transitions. Modifications permitted strictly while in `DRAFT`.
+  - **Server-Enforced Security:** Enforced Trader-only authorization (`assertTraderAccess`). Unauthenticated requests return HTTP 401; non-trader organisations return HTTP 403.
+  - **Approved Match Gate:** Only `APPROVED` matches can generate a Quote. Duplicate quote attempts reject with HTTP 409 Conflict.
+  - **Audit Logging:** Emitted four new audit event types with strict string sanitization (`quote.created`, `quote.version.created`, `quote.submitted_for_internal_review`, `quote.returned_to_draft`).
+  - **Frontend Quote Builder Modal:** Interactive component (`frontend/src/quotes/quote-builder-modal.tsx`) built with Impeccable design guidelines: matched context header, live dynamic 11-field summation, trade terms (Incoterm, payment terms, validity date, commercial notes), version history audit trail, and status transition actions.
+  - **Active Quote Handover:** Replaced passive "Ready for Quotation" badge across `MatchingWorkspaceView`, `TraderCockpitView`, and `TraderBuyersView` with direct "Prepare Quote →" action.
+  - **Automated Verification:** 24 backend test suites (176 tests) pass; 49 frontend test suites pass; full TypeScript typecheck, ESLint, and production build pass in both backend and frontend.
+
+- Executed Sprint 06 Block 01 Source-Safety & Governance Correction Pass:
+  - **Governance Correction:** Removed unauthorized DEC-008 from `DECISION_LOG.md`. DEC-001 through DEC-007 preserved intact. Documented "One Quote per Match" and Trader-focused Block 01 builder as implementation baselines rather than approved PO decisions.
+  - **Deterministic Currency Inheritance:** Removed hardcoded EUR defaults from backend, frontend, schema (`backend/prisma/schema.prisma`), uncommitted Sprint 06 migration (`20260916160000_sprint06_quotes_core`), and tests. Quote currency inherits deterministically: if BuyOrder & Listing currencies match -> use currency; if only one exists -> inherit; if conflicting -> raise `PROJECT OWNER DECISION REQUIRED — QUOTE CURRENCY CONFLICT`. Zero FX conversion.
+  - **Frontend Dynamic Currency Display:** Replaced hardcoded "EUR (€)" and "Total Quote (EUR)" with dynamic currency symbol and code derivation (`formatCurrencySymbol`, `formatMonetaryDisplay`).
+  - **Removal of Invented Commercial Defaults:** Incoterm, Payment Terms, and Validity Date default to blank unless explicitly inherited from matched commercial data.
+  - **Full Status Domain:** Created canonical `QuoteStatus` contract with all 8 documented statuses (`DRAFT`, `INTERNAL_REVIEW`, `SENT`, `COUNTERED`, `ACCEPTED`, `REJECTED`, `EXPIRED`, `CONVERTED_TO_CONTRACT`), keeping active Block 01 transitions strictly to `DRAFT` ↔ `INTERNAL_REVIEW`.
+  - **Audit Traceability (v1):** Ensured quote creation emits both `quote.created` and `quote.version.created` (v1). Subsequent draft edits emit `quote.version.created` (v2+).
+  - **Test Credential Hygiene:** Scrubbed literal passwords from `TEST_LOG.md`.
+  - **Automated Verification:** 24 backend test suites (179 tests) pass; 51 frontend tests pass; full TypeScript typecheck, ESLint, and production build pass in both backend and frontend.

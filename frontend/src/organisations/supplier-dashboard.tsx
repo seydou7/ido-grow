@@ -1,5 +1,9 @@
 "use client";
 
+import { MatchingWorkspaceView, TraderCockpitView, TraderSuppliersView, TraderBuyersView } from "../matching";
+import { BuyerQuotesView } from "../quotes";
+import { TraderTradesView } from "../trades";
+
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
@@ -152,6 +156,9 @@ export function SupplierDashboard({
   const [editingListingId, setEditingListingId] = useState<string | null>(null);
   const [selectedMaterialFilter, setSelectedMaterialFilter] =
     useState<string>("ALL");
+  const [cockpitMatchingOrderId, setCockpitMatchingOrderId] = useState<string | null>(null);
+  const [selectedTraderSupplierId, setSelectedTraderSupplierId] = useState<string | null>(null);
+  const [selectedTraderBuyerId, setSelectedTraderBuyerId] = useState<string | null>(null);
   const [selectedMarketplaceListingId, setSelectedMarketplaceListingId] =
     useState<string | null>(null);
 
@@ -207,11 +214,15 @@ export function SupplierDashboard({
           const memberCollection = await listOrganisationMembers(first.organisation.id);
           if (!isMounted) return;
           setMembers([...memberCollection.items]);
-          const listingCollection = await listListings(first.organisation.id);
-          if (!isMounted) return;
-          setListings([...listingCollection.items]);
+          if (first.organisation.organisationType === "SUPPLIER") {
+            const listingCollection = await listListings(first.organisation.id);
+            if (!isMounted) return;
+            setListings([...listingCollection.items]);
+          }
           if (first.organisation.organisationType === "BUYER") {
             setActiveSection("marketplace");
+          } else if (first.organisation.organisationType === "TRADER") {
+            setActiveSection("trader-cockpit");
           }
           resetProfileForm({
             name: fullProfile.name,
@@ -575,10 +586,15 @@ export function SupplierDashboard({
       )}
 
       {/* Top Organisation Header & Progress Overview (Supplier Only) */}
-      {profile.organisationType !== "BUYER" &&
+      {profile && profile.organisationType !== "BUYER" &&
         activeSection !== "marketplace" &&
         activeSection !== "buy-orders" &&
-        activeSection !== "trader-demand" && (
+        activeSection !== "trader-demand" &&
+        activeSection !== "trader-cockpit" &&
+        activeSection !== "trader-suppliers" &&
+        activeSection !== "trader-buyers" &&
+        activeSection !== "trader-trades" &&
+        activeSection !== "buyer-quotes" && (
         <div className="mb-8 rounded-2xl border border-[#e2dccd] bg-white p-6 shadow-2xs">
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div>
@@ -2009,6 +2025,51 @@ export function SupplierDashboard({
         </div>
       )}
 
+      {/* VIEW 0: TRADER COCKPIT */}
+      {activeSection === "trader-cockpit" && (
+        <div>
+          {cockpitMatchingOrderId ? (
+            <MatchingWorkspaceView
+              buyOrderId={cockpitMatchingOrderId}
+              onBack={() => setCockpitMatchingOrderId(null)}
+            />
+          ) : (
+            <TraderCockpitView
+              onOpenMatching={(buyOrderId) => setCockpitMatchingOrderId(buyOrderId)}
+              onNavigateSection={(sec) => setActiveSection(sec as NavSection)}
+              onNavigateToSupplier={(supplierId) => {
+                setSelectedTraderSupplierId(supplierId);
+                setActiveSection("trader-suppliers");
+              }}
+              onNavigateToBuyer={(buyerId) => {
+                setSelectedTraderBuyerId(buyerId);
+                setActiveSection("trader-buyers");
+              }}
+            />
+          )}
+        </div>
+      )}
+
+      {/* VIEW: TRADER SUPPLIERS MANAGEMENT */}
+      {activeSection === "trader-suppliers" && (
+        <TraderSuppliersView
+          initialSupplierId={selectedTraderSupplierId}
+          onSelectSupplier={(supplierId) => setSelectedTraderSupplierId(supplierId)}
+        />
+      )}
+
+      {/* VIEW: TRADER BUYERS MANAGEMENT */}
+      {activeSection === "trader-buyers" && (
+        <TraderBuyersView
+          initialBuyerId={selectedTraderBuyerId}
+          onSelectBuyer={(buyerId) => setSelectedTraderBuyerId(buyerId)}
+          onOpenMatching={(buyOrderId: string) => {
+            setCockpitMatchingOrderId(buyOrderId);
+            setActiveSection("trader-cockpit");
+          }}
+        />
+      )}
+
       {/* VIEW 6: BUYER MARKETPLACE */}
       {activeSection === "marketplace" && (
         <div>
@@ -2036,6 +2097,19 @@ export function SupplierDashboard({
       {activeSection === "trader-demand" && (
         <TraderDemandOverview />
       )}
+
+      {/* VIEW 9: BUYER QUOTATIONS */}
+      {activeSection === "buyer-quotes" && (
+        <BuyerQuotesView />
+      )}
+
+      {/* VIEW 10: TRADER TRANSACTIONS / TRADE RECORDS (SPRINT 06 BLOCK 03) */}
+      {activeSection === "trader-trades" && (
+        <TraderTradesView
+          onNavigateSection={(sec) => setActiveSection(sec as NavSection)}
+        />
+      )}
+
     </AuthenticatedAppShell>
   );
 }

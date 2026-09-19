@@ -193,6 +193,35 @@ export class ListingsService {
     userId: string,
     organisationId: string,
   ): Promise<void> {
+    const memberships =
+      await this.organisationsRepository.findMembershipsForUser(userId);
+
+    const isTrader = memberships?.some(
+      (m) => m.organisation.organisationType.toUpperCase() === "TRADER",
+    );
+
+    if (isTrader) {
+      const targetOrg =
+        await this.organisationsRepository.findOrganisationById(organisationId);
+      if (!targetOrg) {
+        throw new NotFoundException({
+          type: "https://errors.idogrow.com/organisations/not-found",
+          title: "Organisation Not Found",
+          status: 404,
+          detail: `Organisation with ID ${organisationId} not found.`,
+        });
+      }
+      if (targetOrg.organisationType.toUpperCase() !== "SUPPLIER") {
+        throw new BadRequestException({
+          type: "https://errors.idogrow.com/listings/invalid-target-organisation",
+          title: "Invalid Target Organisation",
+          status: 400,
+          detail: "Trader can only manage listings on behalf of Supplier organisations.",
+        });
+      }
+      return;
+    }
+
     const membership = await this.organisationsRepository.findMembership(
       userId,
       organisationId,
