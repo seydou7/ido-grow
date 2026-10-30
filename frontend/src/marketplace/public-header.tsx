@@ -9,7 +9,7 @@ import type { SessionStatus } from "./public-contracts";
 
 export interface PublicHeaderProps {
   readonly onOpenAuthGate?: (actionName?: string) => void;
-  readonly activeRoute?: "home" | "marketplace" | "how-it-works";
+  readonly activeRoute?: "home" | "home-v2" | "marketplace" | "how-it-works";
 }
 
 export function PublicHeader({ onOpenAuthGate, activeRoute }: PublicHeaderProps) {
@@ -60,6 +60,16 @@ export function PublicHeader({ onOpenAuthGate, activeRoute }: PublicHeaderProps)
               }`}
             >
               {t("navigation.home")}
+            </Link>
+            <Link
+              href="/preview-v2"
+              className={`transition-colors pb-0.5 ${
+                activeRoute === "home-v2"
+                  ? "text-[#173f35] border-b-2 border-[#1e5442]"
+                  : "text-[#5c6e66] hover:text-[#173f35]"
+              }`}
+            >
+              {t("navigation.homeV2")}
             </Link>
             <Link
               href="/marketplace"
@@ -156,6 +166,13 @@ export function PublicHeader({ onOpenAuthGate, activeRoute }: PublicHeaderProps)
             className="block py-1.5 text-[#173f35]"
           >
             {t("navigation.home")}
+          </Link>
+          <Link
+            href="/preview-v2"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block py-1.5 text-[#173f35]"
+          >
+            {t("navigation.homeV2")}
           </Link>
           <Link
             href="/marketplace"

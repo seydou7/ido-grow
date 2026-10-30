@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { HomepageView } from "@/marketplace/homepage-view";
+import { HomepageV1View } from "@/marketplace/homepage-v1-view";
 
 export const metadata: Metadata = {
   title: "I Do Grow | European Natural Agricultural Commodities Exchange",
@@ -29,7 +29,7 @@ export default function Home() {
         </div>
       }
     >
-      <HomepageView />
+      <HomepageV1View />
     </Suspense>
   );
 }
