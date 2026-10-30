@@ -1,6 +1,7 @@
 export type AuthenticatedUser = Readonly<{
   id: string;
   email: string;
+  role?: string | null;
 }>;
 
 export type UnauthenticatedSession = Readonly<{

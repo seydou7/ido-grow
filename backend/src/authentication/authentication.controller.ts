@@ -63,6 +63,22 @@ export class AuthenticationController {
     return result.response;
   }
 
+  @Post("register-buyer")
+  @HttpCode(201)
+  async registerBuyer(
+    @Body() body: unknown,
+    @Headers("origin") origin: string | undefined,
+    @Res({ passthrough: true }) response: CookieResponse,
+  ) {
+    const correlationId = randomUUID();
+    response.setHeader("X-Request-Id", correlationId);
+    assertAllowedStateChangingOrigin(origin);
+    const result = await this.authentication.registerBuyer(body, correlationId);
+
+    response.cookie(SESSION_COOKIE_NAME, result.rawToken, sessionCookieOptions());
+    return result.response;
+  }
+
   @Get("session")
   session(@Headers("cookie") cookieHeader: string | undefined) {
     return this.authentication.session(readSessionToken(cookieHeader));

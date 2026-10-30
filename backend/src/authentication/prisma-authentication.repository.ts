@@ -28,6 +28,7 @@ export class PrismaAuthenticationRepository extends AuthenticationRepository {
       select: {
         id: true,
         email: true,
+        role: true,
         passwordHash: true,
         isActive: true,
       },
@@ -65,7 +66,7 @@ export class PrismaAuthenticationRepository extends AuthenticationRepository {
         tokenHash: true,
         expiresAt: true,
         revokedAt: true,
-        user: { select: { id: true, email: true, isActive: true } },
+        user: { select: { id: true, email: true, role: true, isActive: true } },
       },
     });
   }
@@ -87,5 +88,78 @@ export class PrismaAuthenticationRepository extends AuthenticationRepository {
     });
 
     return result.count > 0;
+  }
+
+  async createBuyerUser(input: {
+    userId: string;
+    email: string;
+    passwordHash: string;
+    organisationId: string;
+    companyName: string;
+    contactName?: string | null;
+    country?: string | null;
+    sessionId: string;
+    tokenHash: string;
+    expiresAt: Date;
+    auditEvent: LoginSucceededAuditEvent;
+  }): Promise<{
+    user: { id: string; email: string; role: string | null };
+    organisation: { id: string; name: string; organisationType: "BUYER" };
+  }> {
+    const { auditEvent, sessionId, tokenHash, expiresAt, ...userData } = input;
+
+    return this.prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          id: userData.userId,
+          email: userData.email,
+          passwordHash: userData.passwordHash,
+          isActive: true,
+          role: "STANDARD",
+        },
+        select: { id: true, email: true, role: true },
+      });
+
+      const organisation = await tx.organisation.create({
+        data: {
+          id: userData.organisationId,
+          name: userData.companyName,
+          legalName: userData.companyName,
+          organisationType: "BUYER",
+          contactName: userData.contactName || null,
+          contactEmail: userData.email,
+          country: userData.country || null,
+          verificationStatus: "PENDING",
+        },
+        select: { id: true, name: true, organisationType: true },
+      });
+
+      await tx.membership.create({
+        data: {
+          userId: user.id,
+          organisationId: organisation.id,
+        },
+      });
+
+      await tx.session.create({
+        data: {
+          id: sessionId,
+          userId: user.id,
+          tokenHash,
+          expiresAt,
+        },
+      });
+
+      await this.auditEvents.append(auditEvent, tx);
+
+      return {
+        user,
+        organisation: {
+          id: organisation.id,
+          name: organisation.name,
+          organisationType: "BUYER" as const,
+        },
+      };
+    });
   }
 }

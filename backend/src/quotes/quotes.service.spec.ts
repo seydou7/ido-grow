@@ -97,7 +97,7 @@ describe("QuotesService", () => {
         currency: "EUR",
         incoterm: "FOB",
         paymentTerms: "30_DAYS_NET",
-        validUntil: new Date("2026-10-15T00:00:00Z"),
+        validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         commercialNotes: "Standard export quote",
         createdByUserId: traderUserId,
         createdAt: new Date("2026-09-16T10:00:00Z"),

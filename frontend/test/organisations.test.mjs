@@ -100,4 +100,5 @@ test("dashboard initialization: Trader and Buyer organisations skip supplier lis
   assert.equal(shouldFetchOrganisationListings("SUPPLIER"), true);
   assert.equal(shouldFetchOrganisationListings("TRADER"), false);
   assert.equal(shouldFetchOrganisationListings("BUYER"), false);
+  assert.equal(shouldFetchOrganisationListings("QUALITY_INSPECTOR"), false);
 });

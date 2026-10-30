@@ -16,7 +16,11 @@ const LANGUAGE_LABELS: Readonly<Record<Locale, string>> = {
   fr: "Français",
 };
 
-export function LanguageSelector() {
+export interface LanguageSelectorProps {
+  readonly hideLabel?: boolean;
+}
+
+export function LanguageSelector({ hideLabel = false }: LanguageSelectorProps = {}) {
   const { locale, t } = useI18n();
   const router = useRouter();
 
@@ -31,10 +35,10 @@ export function LanguageSelector() {
 
   return (
     <label className="flex items-center gap-2 text-xs font-semibold text-[#53625d]">
-      <span>{t("language.label")}</span>
+      {!hideLabel && <span>{t("language.label")}</span>}
       <select
         aria-label={t("language.label")}
-        className="h-9 rounded-lg border border-[#d4cdbc] bg-white px-2.5 text-sm font-medium text-[#284f41] outline-none transition focus:border-[#356a57] focus-visible:ring-2 focus-visible:ring-[#356a57]/25"
+        className="h-9 rounded-lg border border-[#d4cdbc] bg-white px-2.5 text-sm font-medium text-[#284f41] outline-none transition focus:border-[#356a57] focus-visible:ring-2 focus-visible:ring-[#356a57]/25 cursor-pointer"
         defaultValue={locale}
         key={locale}
         onChange={(event) => selectLocale(event.target.value)}

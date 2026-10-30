@@ -9,6 +9,10 @@ import { Providers } from "./providers";
 export const metadata: Metadata = {
   title: "I Do Grow",
   description: "I Do Grow platform foundation",
+  icons: {
+    icon: "/images/favicon.ico",
+    shortcut: "/images/favicon.ico",
+  },
 };
 
 export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

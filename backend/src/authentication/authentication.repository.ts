@@ -3,6 +3,7 @@ import type { LoginSucceededAuditEvent } from "../audit";
 export type AuthenticationUserRecord = Readonly<{
   id: string;
   email: string;
+  role?: string | null;
   passwordHash: string;
   isActive: boolean;
 }>;
@@ -15,6 +16,7 @@ export type AuthenticationSessionRecord = Readonly<{
   user: Readonly<{
     id: string;
     email: string;
+    role?: string | null;
     isActive: boolean;
   }>;
 }>;
@@ -42,4 +44,21 @@ export abstract class AuthenticationRepository {
     tokenHash: string,
     revokedAt: Date,
   ): Promise<boolean>;
+
+  abstract createBuyerUser(input: {
+    userId: string;
+    email: string;
+    passwordHash: string;
+    organisationId: string;
+    companyName: string;
+    contactName?: string | null;
+    country?: string | null;
+    sessionId: string;
+    tokenHash: string;
+    expiresAt: Date;
+    auditEvent: LoginSucceededAuditEvent;
+  }): Promise<{
+    user: { id: string; email: string; role: string | null };
+    organisation: { id: string; name: string; organisationType: "BUYER" };
+  }>;
 }

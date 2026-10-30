@@ -7,6 +7,7 @@ import { AuthenticationProblem } from "./authentication-problem";
 import { AuthenticationRepository } from "./authentication.repository";
 import { Clock } from "./clock";
 import { PasswordHasher } from "./password-hasher";
+import { parseRegisterBuyerInput } from "./credentials";
 import { LOCAL_SESSION_DURATION_MS } from "./runtime-config";
 import { hashSessionToken, SessionTokenService } from "./session-token";
 
@@ -17,7 +18,7 @@ export type UnauthenticatedSessionResult = Readonly<{
 
 export type AuthenticatedSessionResult = Readonly<{
   status: "authenticated";
-  user: Readonly<{ id: string; email: string }>;
+  user: Readonly<{ id: string; email: string; role?: string | null }>;
 }>;
 
 export type SessionStatusResult =
@@ -82,7 +83,75 @@ export class AuthenticationService {
 
     return {
       rawToken: token.raw,
-      response: authenticatedResponse({ userId: user.id, email: user.email }),
+      response: authenticatedResponse({ userId: user.id, email: user.email, role: user.role }),
+    };
+  }
+
+  async registerBuyer(
+    body: unknown,
+    correlationId: string,
+  ): Promise<Readonly<{
+    response: Readonly<{
+      status: "authenticated";
+      user: Readonly<{ id: string; email: string; role?: string | null }>;
+      organisation: Readonly<{ id: string; name: string; organisationType: "BUYER" }>;
+    }>;
+    rawToken: string;
+  }>> {
+    const input = parseRegisterBuyerInput(body);
+
+    const existingUser = await this.repository.findActiveUserByEmail(input.email);
+    if (existingUser) {
+      throw new AuthenticationProblem(
+        409,
+        "EMAIL_ALREADY_EXISTS",
+        "Email Already Registered",
+        "An account with this email address already exists. Please log in instead.",
+      );
+    }
+
+    const passwordHash = await this.passwordHasher.hash(input.password);
+    const userId = randomUUID();
+    const organisationId = randomUUID();
+    const sessionId = randomUUID();
+
+    const token = this.sessionTokens.create();
+    const now = this.clock.now();
+    const expiresAt = new Date(now.getTime() + LOCAL_SESSION_DURATION_MS);
+
+    const created = await this.repository.createBuyerUser({
+      userId,
+      email: input.email,
+      passwordHash,
+      organisationId,
+      companyName: input.companyName,
+      contactName: input.contactName,
+      country: input.country,
+      sessionId,
+      tokenHash: token.hash,
+      expiresAt,
+      auditEvent: {
+        eventType: "authentication.login.succeeded",
+        outcome: "succeeded",
+        actor: { type: "user", userId },
+        target: { type: "session", id: sessionId },
+        correlationId,
+        occurredAt: now,
+        metadata: {},
+      },
+    });
+
+    return {
+      rawToken: token.raw,
+      response: {
+        status: "authenticated" as const,
+        user: {
+          id: created.user.id,
+          email: created.user.email,
+          role: created.user.role,
+        },
+        organisation: created.organisation,
+      },
     };
   }
 
@@ -109,6 +178,7 @@ export class AuthenticationService {
     return authenticatedResponse({
       userId: session.user.id,
       email: session.user.email,
+      role: session.user.role,
     });
   }
 
@@ -137,6 +207,7 @@ export class AuthenticationService {
     return {
       userId: session.user.id,
       email: session.user.email,
+      role: session.user.role,
     };
   }
 
@@ -183,7 +254,7 @@ function authenticatedResponse(
 ): AuthenticatedSessionResult {
   return {
     status: "authenticated",
-    user: { id: identity.userId, email: identity.email },
+    user: { id: identity.userId, email: identity.email, role: identity.role },
   };
 }
 

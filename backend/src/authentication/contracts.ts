@@ -1,6 +1,7 @@
 export type AuthenticationIdentity = Readonly<{
   userId: string;
   email: string;
+  role?: string | null;
 }>;
 
 export type UnauthenticatedEvidence = Readonly<{

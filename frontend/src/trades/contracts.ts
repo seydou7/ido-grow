@@ -16,6 +16,7 @@ export interface InspectionOverview {
 }
 
 import type { CommercialBreakdown } from "../quotes/contracts";
+import type { ContractSummary } from "../contracts/contracts";
 
 export interface TradeSummary {
   id: string;
@@ -55,6 +56,7 @@ export interface TradeDetail extends TradeSummary {
   listingTitle?: string | null;
   latestInspection?: InspectionOverview | null;
   inspections?: InspectionOverview[];
+  contract?: ContractSummary | null;
 }
 
 export interface TradeCollection {

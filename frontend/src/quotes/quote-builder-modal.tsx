@@ -377,8 +377,6 @@ export function QuoteBuilderModal({
     }
   };
 
-  if (!isOpen) return null;
-
   const isLocked = quote
     ? quote.status !== "DRAFT" && quote.status !== "COUNTERED"
     : false;
@@ -408,6 +406,8 @@ export function QuoteBuilderModal({
 
     return breakdownDirty || incotermDirty || paymentTermsDirty || validUntilDirty || commercialNotesDirty;
   }, [quote, breakdown, incoterm, paymentTerms, validUntil, commercialNotes]);
+
+  if (!isOpen) return null;
 
   return (
     <div

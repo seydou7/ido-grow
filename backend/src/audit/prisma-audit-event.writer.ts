@@ -209,6 +209,32 @@ export function sanitizePlatformEvent(
         occurredAt: event.occurredAt,
         metadata: event.metadata,
       };
+    case "quality.inspection.created":
+    case "quality.inspection.assigned":
+    case "quality.inspection.started":
+    case "quality.measurements.updated":
+    case "quality.inspection.completed":
+    case "quality.evidence.uploaded":
+    case "quality.assessment.recorded":
+    case "quality.non_conformity.created":
+    case "quality.non_conformity.resolved":
+    case "quality.result.approved":
+      case "quality.result.rejected":
+      case "quality.certificate.issued":
+      case "quality.physical_inspection.requested":
+      assertUuid(event.actor.userId, "actor.userId");
+      assertUuid(event.target.id, "target.id");
+      return {
+        eventType: event.eventType,
+        outcome: "succeeded",
+        actorType: "user",
+        actorUserId: event.actor.userId,
+        targetType: "inspection",
+        targetId: event.target.id,
+        correlationId: event.correlationId,
+        occurredAt: event.occurredAt,
+        metadata: event.metadata as Record<string, string>,
+      };
     case "trade.created":
       assertUuid(event.actor.userId, "actor.userId");
       assertUuid(event.target.id, "target.id");
@@ -223,8 +249,296 @@ export function sanitizePlatformEvent(
         occurredAt: event.occurredAt,
         metadata: event.metadata,
       };
+    case "contract.created":
+    case "contract.updated":
+    case "contract.confirmed":
+    case "contract.document.generated":
+      assertUuid(event.actor.userId, "actor.userId");
+      assertUuid(event.target.id, "target.id");
+      return {
+        eventType: event.eventType,
+        outcome: "succeeded",
+        actorType: "user",
+        actorUserId: event.actor.userId,
+        targetType: "contract",
+        targetId: event.target.id,
+        correlationId: event.correlationId,
+        occurredAt: event.occurredAt,
+        metadata: event.metadata as unknown as Record<string, string>,
+      };
+    case "logistics.shipment.created":
+    case "logistics.shipment.requirements.updated":
+    case "logistics.carrier.selected":
+    case "logistics.carrier.reselected":
+      assertUuid(event.actor.userId, "actor.userId");
+      assertUuid(event.target.id, "target.id");
+      return {
+        eventType: event.eventType,
+        outcome: "succeeded",
+        actorType: "user",
+        actorUserId: event.actor.userId,
+        targetType: "shipment",
+        targetId: event.target.id,
+        correlationId: event.correlationId,
+        occurredAt: event.occurredAt,
+        metadata: event.metadata as unknown as Record<string, string>,
+      };
+    case "logistics.freight_request.created":
+      assertUuid(event.actor.userId, "actor.userId");
+      assertUuid(event.target.id, "target.id");
+      return {
+        eventType: event.eventType,
+        outcome: "succeeded",
+        actorType: "user",
+        actorUserId: event.actor.userId,
+        targetType: "logistics_request",
+        targetId: event.target.id,
+        correlationId: event.correlationId,
+        occurredAt: event.occurredAt,
+        metadata: event.metadata as unknown as Record<string, string>,
+      };
+    case "logistics.freight_quote.submitted":
+      assertUuid(event.actor.userId, "actor.userId");
+      assertUuid(event.target.id, "target.id");
+      return {
+        eventType: event.eventType,
+        outcome: "succeeded",
+        actorType: "user",
+        actorUserId: event.actor.userId,
+        targetType: "freight_quotation",
+        targetId: event.target.id,
+        correlationId: event.correlationId,
+        occurredAt: event.occurredAt,
+        metadata: event.metadata as unknown as Record<string, string>,
+      };
+    case "logistics.pickup.scheduled":
+    case "logistics.shipment.picked_up":
+    case "logistics.shipment.in_transit":
+    case "logistics.shipment.customs":
+    case "logistics.shipment.delayed":
+    case "logistics.delivery.confirmed":
+    case "logistics.shipment.disputed":
+    case "logistics.shipment.closed":
+      assertUuid(event.actor.userId, "actor.userId");
+      assertUuid(event.target.id, "target.id");
+      return {
+        eventType: event.eventType,
+        outcome: "succeeded",
+        actorType: "user",
+        actorUserId: event.actor.userId,
+        targetType: "shipment",
+        targetId: event.target.id,
+        correlationId: event.correlationId,
+        occurredAt: event.occurredAt,
+        metadata: event.metadata as unknown as Record<string, string>,
+      };
+    case "logistics.shipping_document.uploaded":
+      assertUuid(event.actor.userId, "actor.userId");
+      assertUuid(event.target.id, "target.id");
+      return {
+        eventType: event.eventType,
+        outcome: "succeeded",
+        actorType: "user",
+        actorUserId: event.actor.userId,
+        targetType: "shipment_document",
+        targetId: event.target.id,
+        correlationId: event.correlationId,
+        occurredAt: event.occurredAt,
+        metadata: event.metadata as unknown as Record<string, string>,
+      };
+    case "logistics.discrepancy.recorded":
+      assertUuid(event.actor.userId, "actor.userId");
+      assertUuid(event.target.id, "target.id");
+      return {
+        eventType: event.eventType,
+        outcome: "succeeded",
+        actorType: "user",
+        actorUserId: event.actor.userId,
+        targetType: "discrepancy",
+        targetId: event.target.id,
+        correlationId: event.correlationId,
+        occurredAt: event.occurredAt,
+        metadata: event.metadata as unknown as Record<string, string>,
+      };
+    case "logistics.costs.reconciled":
+      assertUuid(event.actor.userId, "actor.userId");
+      assertUuid(event.target.id, "target.id");
+      return {
+        eventType: event.eventType,
+        outcome: "succeeded",
+        actorType: "user",
+        actorUserId: event.actor.userId,
+        targetType: "cost_reconciliation",
+        targetId: event.target.id,
+        correlationId: event.correlationId,
+        occurredAt: event.occurredAt,
+        metadata: event.metadata as unknown as Record<string, string>,
+      };
+    case "settlement.created":
+    case "settlement.updated":
+      assertUuid(event.actor.userId, "actor.userId");
+      assertUuid(event.target.id, "target.id");
+      return {
+        eventType: event.eventType,
+        outcome: "succeeded",
+        actorType: "user",
+        actorUserId: event.actor.userId,
+        targetType: "settlement",
+        targetId: event.target.id,
+        correlationId: event.correlationId,
+        occurredAt: event.occurredAt,
+        metadata: event.metadata as unknown as Record<string, string>,
+      };
+    case "settlement.document.uploaded":
+      assertUuid(event.actor.userId, "actor.userId");
+      assertUuid(event.target.id, "target.id");
+      return {
+        eventType: event.eventType,
+        outcome: "succeeded",
+        actorType: "user",
+        actorUserId: event.actor.userId,
+        targetType: "settlement_document",
+        targetId: event.target.id,
+        correlationId: event.correlationId,
+        occurredAt: event.occurredAt,
+        metadata: event.metadata as unknown as Record<string, string>,
+      };
+    case "settlement.claim.created":
+    case "settlement.claim.resolved":
+      assertUuid(event.actor.userId, "actor.userId");
+      assertUuid(event.target.id, "target.id");
+      return {
+        eventType: event.eventType,
+        outcome: "succeeded",
+        actorType: "user",
+        actorUserId: event.actor.userId,
+        targetType: "settlement_claim",
+        targetId: event.target.id,
+        correlationId: event.correlationId,
+        occurredAt: event.occurredAt,
+        metadata: event.metadata as unknown as Record<string, string>,
+      };
+    case "dpp.lot.created":
+      assertUuid(event.actor.userId, "actor.userId");
+      assertUuid(event.target.id, "target.id");
+      return {
+        eventType: event.eventType,
+        outcome: "succeeded",
+        actorType: "user",
+        actorUserId: event.actor.userId,
+        targetType: "traceable_lot",
+        targetId: event.target.id,
+        correlationId: event.correlationId,
+        occurredAt: event.occurredAt,
+        metadata: event.metadata as unknown as Record<string, string>,
+      };
+    case "dpp.passport.created":
+    case "dpp.passport.synchronized":
+      assertUuid(event.actor.userId, "actor.userId");
+      assertUuid(event.target.id, "target.id");
+      return {
+        eventType: event.eventType,
+        outcome: "succeeded",
+        actorType: "user",
+        actorUserId: event.actor.userId,
+        targetType: "dpp",
+        targetId: event.target.id,
+        correlationId: event.correlationId,
+        occurredAt: event.occurredAt,
+        metadata: event.metadata as unknown as Record<string, string>,
+      };
+    case "dpp.version.created":
+      assertUuid(event.actor.userId, "actor.userId");
+      assertUuid(event.target.id, "target.id");
+      return {
+        eventType: event.eventType,
+        outcome: "succeeded",
+        actorType: "user",
+        actorUserId: event.actor.userId,
+        targetType: "dpp_version",
+        targetId: event.target.id,
+        correlationId: event.correlationId,
+        occurredAt: event.occurredAt,
+        metadata: event.metadata as unknown as Record<string, string>,
+      };
+    case "dpp.custody.recorded":
+      assertUuid(event.actor.userId, "actor.userId");
+      assertUuid(event.target.id, "target.id");
+      return {
+        eventType: event.eventType,
+        outcome: "succeeded",
+        actorType: "user",
+        actorUserId: event.actor.userId,
+        targetType: "dpp_custody_record",
+        targetId: event.target.id,
+        correlationId: event.correlationId,
+        occurredAt: event.occurredAt,
+        metadata: event.metadata as unknown as Record<string, string>,
+      };
+    case "ai.run.started":
+    case "ai.run.completed":
+    case "ai.run.failed":
+      assertUuid(event.actor.userId, "actor.userId");
+      assertUuid(event.target.id, "target.id");
+      return {
+        eventType: event.eventType,
+        outcome: event.outcome,
+        actorType: "user",
+        actorUserId: event.actor.userId,
+        targetType: "ai_run",
+        targetId: event.target.id,
+        correlationId: event.correlationId,
+        occurredAt: event.occurredAt,
+        metadata: event.metadata as unknown as Record<string, string>,
+      };
+    case "ai.proposal.created":
+      assertUuid(event.actor.userId, "actor.userId");
+      assertUuid(event.target.id, "target.id");
+      return {
+        eventType: event.eventType,
+        outcome: "succeeded",
+        actorType: "user",
+        actorUserId: event.actor.userId,
+        targetType: "ai_proposal",
+        targetId: event.target.id,
+        correlationId: event.correlationId,
+        occurredAt: event.occurredAt,
+        metadata: event.metadata as unknown as Record<string, string>,
+      };
+    case "ai.approval.requested":
+    case "ai.approval.approved":
+    case "ai.approval.rejected":
+      assertUuid(event.actor.userId, "actor.userId");
+      assertUuid(event.target.id, "target.id");
+      return {
+        eventType: event.eventType,
+        outcome: "succeeded",
+        actorType: "user",
+        actorUserId: event.actor.userId,
+        targetType: "ai_approval",
+        targetId: event.target.id,
+        correlationId: event.correlationId,
+        occurredAt: event.occurredAt,
+        metadata: event.metadata as unknown as Record<string, string>,
+      };
+    case "ai.tool.executed":
+    case "ai.tool.failed":
+      assertUuid(event.actor.userId, "actor.userId");
+      assertUuid(event.target.id, "target.id");
+      return {
+        eventType: event.eventType,
+        outcome: event.outcome,
+        actorType: "user",
+        actorUserId: event.actor.userId,
+        targetType: "ai_tool_execution",
+        targetId: event.target.id,
+        correlationId: event.correlationId,
+        occurredAt: event.occurredAt,
+        metadata: event.metadata as unknown as Record<string, string>,
+      };
   }
 }
+
 
 function assertUuid(value: string, field: string): void {
   if (

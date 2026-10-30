@@ -85,6 +85,53 @@ class InMemoryAuthenticationRepository extends AuthenticationRepository {
     this.sessions.set(tokenHash, { ...session, revokedAt });
     return true;
   }
+
+  async createBuyerUser(input: {
+    userId: string;
+    email: string;
+    passwordHash: string;
+    organisationId: string;
+    companyName: string;
+    contactName?: string | null;
+    country?: string | null;
+    sessionId: string;
+    tokenHash: string;
+    expiresAt: Date;
+    auditEvent: Extract<
+      AuthenticationAuditEvent,
+      { eventType: "authentication.login.succeeded" }
+    >;
+  }): Promise<{
+    user: { id: string; email: string; role: string | null };
+    organisation: { id: string; name: string; organisationType: "BUYER" };
+  }> {
+    const user: AuthenticationUserRecord = {
+      id: input.userId,
+      email: input.email,
+      passwordHash: input.passwordHash,
+      isActive: true,
+      role: "STANDARD",
+    };
+    this.users.set(input.email, user);
+
+    await this.auditEvents.append(input.auditEvent);
+    this.sessions.set(input.tokenHash, {
+      id: input.sessionId,
+      tokenHash: input.tokenHash,
+      expiresAt: input.expiresAt,
+      revokedAt: null,
+      user,
+    });
+
+    return {
+      user: { id: user.id, email: user.email, role: user.role ?? null },
+      organisation: {
+        id: input.organisationId,
+        name: input.companyName,
+        organisationType: "BUYER",
+      },
+    };
+  }
 }
 
 class InMemoryAuditEventWriter extends AuditEventWriter {
@@ -305,6 +352,52 @@ describe("AuthenticationService", () => {
     });
     await expect(service.resolveIdentity(login.rawToken)).rejects.toMatchObject({
       status: 401,
+    });
+  });
+
+  describe("registerBuyer", () => {
+    it("successfully creates a new buyer user, organisation, membership, and active session", async () => {
+      const result = await service.registerBuyer(
+        {
+          email: "buyer.new@procurement.com",
+          password: "StrongPassword123!",
+          companyName: "Acme Sustainable Textiles",
+          contactName: "Jean Dupont",
+          country: "FR",
+        },
+        CORRELATION_ID,
+      );
+
+      expect(result.rawToken).toBeDefined();
+      expect(result.response.user.email).toBe("buyer.new@procurement.com");
+      expect(result.response.organisation.name).toBe("Acme Sustainable Textiles");
+      expect(result.response.organisation.organisationType).toBe("BUYER");
+
+      // Verify that the created session is active and resolvable
+      const identity = await service.resolveIdentity(result.rawToken);
+      expect(identity.email).toBe("buyer.new@procurement.com");
+    });
+
+    it("rejects registration if email is already in use", async () => {
+      try {
+        await service.registerBuyer(
+          {
+            email: "synthetic@example.test", // already registered
+            password: "StrongPassword123!",
+            companyName: "Duplicate Corp",
+          },
+          CORRELATION_ID,
+        );
+        fail("Expected registerBuyer to throw");
+      } catch (err: unknown) {
+        expect(err).toBeInstanceOf(AuthenticationProblem);
+        const problem = err as AuthenticationProblem;
+        expect(problem.getStatus()).toBe(409);
+        expect(problem.getResponse()).toMatchObject({
+          code: "EMAIL_ALREADY_EXISTS",
+          detail: "An account with this email address already exists. Please log in instead.",
+        });
+      }
     });
   });
 });

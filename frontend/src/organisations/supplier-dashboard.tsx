@@ -3,6 +3,12 @@
 import { MatchingWorkspaceView, TraderCockpitView, TraderSuppliersView, TraderBuyersView } from "../matching";
 import { BuyerQuotesView } from "../quotes";
 import { TraderTradesView } from "../trades";
+import { TraderContractsView } from "../contracts";
+import { InspectorWorkQueueView, InspectionDetailView } from "../quality";
+import { TraderShipmentsView, LogisticsPartnerPortalView } from "../logistics";
+import { TraderDppView } from "../dpp/trader-dpp-view";
+import { CounterpartyDppView } from "../dpp/counterparty-dpp-view";
+import { TraderAiControlCenterView } from "../ai";
 
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -63,6 +69,7 @@ import {
 
 type SupplierDashboardProps = Readonly<{
   userEmail: string;
+  userRole?: string | null;
   onLogout: () => void;
   isLoggingOut: boolean;
 }>;
@@ -136,6 +143,7 @@ const DOCUMENT_TYPE_LABELS: Record<string, string> = {
 
 export function SupplierDashboard({
   userEmail,
+  userRole,
   onLogout,
   isLoggingOut,
 }: SupplierDashboardProps) {
@@ -157,6 +165,7 @@ export function SupplierDashboard({
   const [selectedMaterialFilter, setSelectedMaterialFilter] =
     useState<string>("ALL");
   const [cockpitMatchingOrderId, setCockpitMatchingOrderId] = useState<string | null>(null);
+  const [activeInspectionId, setActiveInspectionId] = useState<string | null>(null);
   const [selectedTraderSupplierId, setSelectedTraderSupplierId] = useState<string | null>(null);
   const [selectedTraderBuyerId, setSelectedTraderBuyerId] = useState<string | null>(null);
   const [selectedMarketplaceListingId, setSelectedMarketplaceListingId] =
@@ -219,7 +228,11 @@ export function SupplierDashboard({
             if (!isMounted) return;
             setListings([...listingCollection.items]);
           }
-          if (first.organisation.organisationType === "BUYER") {
+          if (userRole === "QUALITY_INSPECTOR") {
+            setActiveSection("quality-inspections");
+          } else if (userRole === "LOGISTICS_PARTNER") {
+            setActiveSection("logistics-partner-requests");
+          } else if (first.organisation.organisationType === "BUYER") {
             setActiveSection("marketplace");
           } else if (first.organisation.organisationType === "TRADER") {
             setActiveSection("trader-cockpit");
@@ -243,6 +256,11 @@ export function SupplierDashboard({
           setDocuments([]);
           setMembers([]);
           setListings([]);
+          if (userRole === "QUALITY_INSPECTOR") {
+            setActiveSection("quality-inspections");
+          } else if (userRole === "LOGISTICS_PARTNER") {
+            setActiveSection("logistics-partner-requests");
+          }
         }
       } catch (err: unknown) {
         if (!isMounted) return;
@@ -457,6 +475,35 @@ export function SupplierDashboard({
     );
   }
 
+  if (userRole === "QUALITY_INSPECTOR" && !profile) {
+    return (
+      <AuthenticatedAppShell
+        activeSection="quality-inspections"
+        onSelectSection={() => {}}
+        userEmail={userEmail}
+        userRole={userRole}
+        organisationType="INSPECTOR"
+        companyName="Quality Inspector"
+        verificationStatus="VERIFIED"
+        onLogout={onLogout}
+        isLoggingOut={isLoggingOut}
+      >
+        {activeInspectionId ? (
+          <InspectionDetailView
+            inspectionId={activeInspectionId}
+            isTraderView={false}
+            onBack={() => setActiveInspectionId(null)}
+          />
+        ) : (
+          <InspectorWorkQueueView
+            isTraderView={false}
+            onOpenInspection={(id) => setActiveInspectionId(id)}
+          />
+        )}
+      </AuthenticatedAppShell>
+    );
+  }
+
   if (!profile) {
     return (
       <div className="min-h-screen bg-[#faf8f1] p-6 sm:p-12">
@@ -552,9 +599,10 @@ export function SupplierDashboard({
         setActiveSection(section);
       }}
       userEmail={userEmail}
-      organisationType={profile.organisationType}
-      companyName={profile.name}
-      verificationStatus={profile.verificationStatus}
+      userRole={userRole ?? undefined}
+      organisationType={profile?.organisationType}
+      companyName={profile?.name}
+      verificationStatus={profile?.verificationStatus}
       onLogout={onLogout}
       isLoggingOut={isLoggingOut}
     >
@@ -594,6 +642,13 @@ export function SupplierDashboard({
         activeSection !== "trader-suppliers" &&
         activeSection !== "trader-buyers" &&
         activeSection !== "trader-trades" &&
+        activeSection !== "trader-contracts" &&
+        activeSection !== "trader-shipments" &&
+        activeSection !== "trader-dpp" &&
+        activeSection !== "buyer-dpp" &&
+        activeSection !== "supplier-dpp" &&
+        activeSection !== "logistics-partner-requests" &&
+        activeSection !== "quality-inspections" &&
         activeSection !== "buyer-quotes" && (
         <div className="mb-8 rounded-2xl border border-[#e2dccd] bg-white p-6 shadow-2xs">
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
@@ -2107,9 +2162,79 @@ export function SupplierDashboard({
       {activeSection === "trader-trades" && (
         <TraderTradesView
           onNavigateSection={(sec) => setActiveSection(sec as NavSection)}
+          onOpenInspection={(id) => {
+            setActiveInspectionId(id);
+            setActiveSection("quality-inspections");
+          }}
         />
       )}
 
+      {/* VIEW 10B: TRADER CONTRACTS (SPRINT 08 BLOCK 01) */}
+      {activeSection === "trader-contracts" && (
+        <TraderContractsView
+          onNavigateSection={(sec) => setActiveSection(sec as NavSection)}
+          onOpenTrade={() => {
+            setActiveSection("trader-trades");
+          }}
+        />
+      )}
+
+      {/* VIEW 10C: TRADER SHIPMENTS (SPRINT 08 BLOCK 02) */}
+      {activeSection === "trader-shipments" && (
+        <TraderShipmentsView
+          onNavigateSection={(sec) => setActiveSection(sec as NavSection)}
+          onOpenContract={() => {
+            setActiveSection("trader-contracts");
+          }}
+        />
+      )}
+
+      {/* VIEW 13: DIGITAL PRODUCT PASSPORTS (SPRINT 09 BLOCK 01) */}
+      {activeSection === "trader-dpp" && (
+        <TraderDppView />
+      )}
+
+      {/* VIEW 16: TRADER AI CONTROL CENTER (SPRINT 10) */}
+      {activeSection === "trader-ai" && (
+        <TraderAiControlCenterView
+          currentUserId={profile?.id}
+          organisationId={orgId ?? undefined}
+        />
+      )}
+
+      {/* VIEW 14: BUYER DIGITAL PRODUCT PASSPORTS (SPRINT 09 BLOCK 02) */}
+      {activeSection === "buyer-dpp" && (
+        <CounterpartyDppView userRole="BUYER" />
+      )}
+
+      {/* VIEW 15: SUPPLIER DIGITAL PRODUCT PASSPORTS (SPRINT 09 BLOCK 02) */}
+      {activeSection === "supplier-dpp" && (
+        <CounterpartyDppView userRole="SUPPLIER" />
+      )}
+
+      {/* VIEW 12: LOGISTICS PARTNER PORTAL (SPRINT 08 BLOCK 02) */}
+      {activeSection === "logistics-partner-requests" && (
+        <LogisticsPartnerPortalView />
+      )}
+
+      {/* VIEW 11: QUALITY INSPECTIONS (SPRINT 07 BLOCK 01) */}
+      {activeSection === "quality-inspections" && (
+        activeInspectionId ? (
+          <InspectionDetailView
+            inspectionId={activeInspectionId}
+            isTraderView={profile?.organisationType?.toUpperCase() === "TRADER"}
+            onBack={() => setActiveInspectionId(null)}
+            onOpenTrade={() => {
+              setActiveSection("trader-trades");
+            }}
+          />
+        ) : (
+          <InspectorWorkQueueView
+            isTraderView={profile?.organisationType?.toUpperCase() === "TRADER"}
+            onOpenInspection={(id) => setActiveInspectionId(id)}
+          />
+        )
+      )}
     </AuthenticatedAppShell>
   );
 }

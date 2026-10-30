@@ -60,6 +60,32 @@ export interface TradeDetail extends TradeSummary {
     assignedInspectorEmail?: string | null;
     completedAt?: string | null;
   }>;
+  contract?: {
+    id: string;
+    contractNumber: string;
+    status: string;
+    hasDocument: boolean;
+    confirmedAt?: string | null;
+    acceptedCommercialAmount?: number;
+    quantity?: number;
+    quantityUnit?: string;
+    currency?: string;
+    materialType?: string;
+    productForm?: string | null;
+    buyerOrganisationName?: string;
+    supplierOrganisationName?: string;
+    acceptedTolerance?: string | null;
+    incoterm?: string | null;
+    qualityConditions?: string | null;
+    inspectionMethod?: string | null;
+    pickupDate?: string | null;
+    deliveryDate?: string | null;
+    paymentTerms?: string | null;
+    claimsProcess?: string | null;
+    requiredDocuments?: string | null;
+    cancellationConditions?: string | null;
+    governingLaw?: string | null;
+  } | null;
 }
 
 export interface TradeCollection {

@@ -72,6 +72,30 @@ type TradePrismaRecord = {
     qualityResult?: { decision: string; classificationLabel: string } | null;
     certificate?: { id: string; certificateNumber: string } | null;
   }>;
+  contract?: {
+    id: string;
+    contractNumber: string;
+    status: string;
+    storageKey: string | null;
+    confirmedAt: Date | null;
+    acceptedCommercialAmount?: number | null;
+    quantity?: number | null;
+    quantityUnit?: string | null;
+    currency?: string | null;
+    materialType?: string | null;
+    productForm?: string | null;
+    acceptedTolerance?: string | null;
+    incoterm?: string | null;
+    qualityConditions?: string | null;
+    inspectionMethod?: string | null;
+    pickupDate?: Date | null;
+    deliveryDate?: Date | null;
+    paymentTerms?: string | null;
+    claimsProcess?: string | null;
+    requiredDocuments?: string | null;
+    cancellationConditions?: string | null;
+    governingLaw?: string | null;
+  } | null;
 };
 
 import {
@@ -171,6 +195,32 @@ export class TradesService {
                 certificate: { select: { id: true, certificateNumber: true } },
               },
               orderBy: { createdAt: "desc" },
+            },
+            contract: {
+              select: {
+                id: true,
+                contractNumber: true,
+                status: true,
+                storageKey: true,
+                confirmedAt: true,
+                acceptedCommercialAmount: true,
+                quantity: true,
+                quantityUnit: true,
+                currency: true,
+                materialType: true,
+                productForm: true,
+                acceptedTolerance: true,
+                incoterm: true,
+                qualityConditions: true,
+                inspectionMethod: true,
+                pickupDate: true,
+                deliveryDate: true,
+                paymentTerms: true,
+                claimsProcess: true,
+                requiredDocuments: true,
+                cancellationConditions: true,
+                governingLaw: true,
+              },
             },
           },
         })
@@ -367,6 +417,41 @@ export class TradesService {
           ? new Date(ins.completedAt).toISOString()
           : null,
       })),
+      contract: trade.contract
+        ? {
+            id: trade.contract.id,
+            contractNumber: trade.contract.contractNumber,
+            status: trade.contract.status,
+            hasDocument: Boolean(trade.contract.storageKey),
+            confirmedAt: trade.contract.confirmedAt
+              ? new Date(trade.contract.confirmedAt).toISOString()
+              : null,
+            acceptedCommercialAmount:
+              trade.contract.acceptedCommercialAmount ?? trade.acceptedTotalAmount,
+            quantity: trade.contract.quantity ?? trade.quantity,
+            quantityUnit: trade.contract.quantityUnit ?? trade.quantityUnit,
+            currency: trade.contract.currency ?? trade.currency,
+            materialType: trade.contract.materialType ?? trade.materialType,
+            productForm: trade.contract.productForm ?? trade.productForm,
+            buyerOrganisationName: trade.buyerOrganisation?.name ?? "",
+            supplierOrganisationName: trade.supplierOrganisation?.name ?? "",
+            acceptedTolerance: trade.contract.acceptedTolerance ?? null,
+            incoterm: trade.contract.incoterm ?? trade.incoterm ?? null,
+            qualityConditions: trade.contract.qualityConditions ?? null,
+            inspectionMethod: trade.contract.inspectionMethod ?? null,
+            pickupDate: trade.contract.pickupDate
+              ? new Date(trade.contract.pickupDate).toISOString()
+              : null,
+            deliveryDate: trade.contract.deliveryDate
+              ? new Date(trade.contract.deliveryDate).toISOString()
+              : null,
+            paymentTerms: trade.contract.paymentTerms ?? trade.paymentTerms ?? null,
+            claimsProcess: trade.contract.claimsProcess ?? null,
+            requiredDocuments: trade.contract.requiredDocuments ?? null,
+            cancellationConditions: trade.contract.cancellationConditions ?? null,
+            governingLaw: trade.contract.governingLaw ?? null,
+          }
+        : null,
     };
   }
 

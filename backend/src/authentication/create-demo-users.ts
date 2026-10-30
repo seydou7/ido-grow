@@ -132,6 +132,21 @@ export async function createDemoUsers(): Promise<void> {
         create: { userId: buyerUser.id, organisationId: buyerOrg.id },
       });
 
+      // 4. Quality Inspector User
+      const inspectorEmail =
+        process.env.IDO_GROW_DEMO_INSPECTOR_EMAIL || "inspector@demo.idogrow.com";
+      const inspectorPassword =
+        process.env.IDO_GROW_DEMO_INSPECTOR_PASSWORD ||
+        process.env.IDO_GROW_DEMO_PASSWORD ||
+        traderPassword;
+      const inspectorHash = await passwordHasher.hash(inspectorPassword);
+
+      await transaction.user.upsert({
+        where: { email: inspectorEmail },
+        update: { passwordHash: inspectorHash, isActive: true, role: "QUALITY_INSPECTOR" },
+        create: { email: inspectorEmail, passwordHash: inspectorHash, role: "QUALITY_INSPECTOR" },
+      });
+
       // 3. Trader User & Organisation
       const traderUser = await transaction.user.upsert({
         where: { email: traderEmail },

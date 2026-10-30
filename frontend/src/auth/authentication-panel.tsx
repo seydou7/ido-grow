@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
@@ -182,6 +183,7 @@ export function AuthenticationPanel() {
     return (
       <SupplierDashboard
         userEmail={session.user.email}
+        userRole={session.user.role}
         onLogout={() => void submitLogout()}
         isLoggingOut={busy}
       />
@@ -333,6 +335,16 @@ export function AuthenticationPanel() {
               </button>
             </form>
           )}
+
+          <div className="mt-6 pt-6 border-t border-[#e2dbca] text-center">
+            <p className="text-xs text-[#65736e]">Looking to source traceable European natural raw materials?</p>
+            <Link
+              href="/marketplace"
+              className="mt-1.5 inline-flex items-center text-sm font-semibold text-[#284f41] hover:underline"
+            >
+              <span>Explore Public Marketplace without an account &rarr;</span>
+            </Link>
+          </div>
 
           {requestError ? (
             <div

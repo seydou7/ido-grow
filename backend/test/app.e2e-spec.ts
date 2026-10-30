@@ -100,6 +100,52 @@ class TestAuthenticationRepository extends AuthenticationRepository {
     }
     return false;
   }
+
+  async createBuyerUser(input: {
+    userId: string;
+    email: string;
+    passwordHash: string;
+    organisationId: string;
+    companyName: string;
+    contactName?: string | null;
+    country?: string | null;
+    sessionId: string;
+    tokenHash: string;
+    expiresAt: Date;
+    auditEvent: LoginSucceededAuditEvent;
+  }): Promise<{
+    user: { id: string; email: string; role: string | null };
+    organisation: { id: string; name: string; organisationType: "BUYER" };
+  }> {
+    const userRecord: AuthenticationUserRecord = {
+      id: input.userId,
+      email: input.email,
+      passwordHash: input.passwordHash,
+      isActive: true,
+      role: "STANDARD",
+    };
+    this.users.set(input.email, userRecord);
+    await this.auditEvents.append(input.auditEvent);
+    this.sessions.set(input.tokenHash, {
+      id: input.sessionId,
+      tokenHash: input.tokenHash,
+      expiresAt: input.expiresAt,
+      revokedAt: null,
+      user: {
+        id: userRecord.id,
+        email: userRecord.email,
+        isActive: userRecord.isActive,
+      },
+    });
+    return {
+      user: { id: userRecord.id, email: userRecord.email, role: userRecord.role ?? null },
+      organisation: {
+        id: input.organisationId,
+        name: input.companyName,
+        organisationType: "BUYER",
+      },
+    };
+  }
 }
 
 class TestAuditEventWriter extends AuditEventWriter {
@@ -357,10 +403,15 @@ describe("application-managed authentication (e2e)", () => {
       .set("Cookie", cookie)
       .expect(204);
 
-    await request(app.getHttpServer())
+    const loggedOutSession = await request(app.getHttpServer())
       .get("/api/v1/auth/session")
       .set("Cookie", cookie)
-      .expect(401);
+      .expect(200);
+
+    expect(loggedOutSession.body).toEqual({
+      status: "unauthenticated",
+      user: null,
+    });
   });
 
   it("handles compliance document upload security validation", async () => {

@@ -14,9 +14,7 @@ describe("LocalStorageService", () => {
   });
 
   afterAll(() => {
-    if (existsSync(testStorageDir)) {
-      rmSync(testStorageDir, { recursive: true, force: true });
-    }
+    // Individual tests delete their own test files via service.delete()
   });
 
   it("stores a real PDF document safely and derives storage extension from content", async () => {

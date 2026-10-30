@@ -7,8 +7,13 @@ export type NavSection =
   | "trader-cockpit"
   | "trader-demand"
   | "trader-trades"
+  | "trader-contracts"
+  | "trader-shipments"
+  | "trader-dpp"
   | "trader-suppliers"
   | "trader-buyers"
+  | "quality-inspections"
+  | "logistics-partner-requests"
   | "overview"
   | "organisation"
   | "sites"
@@ -17,12 +22,16 @@ export type NavSection =
   | "listings"
   | "marketplace"
   | "buy-orders"
-  | "buyer-quotes";
+  | "buyer-quotes"
+  | "buyer-dpp"
+  | "supplier-dpp"
+  | "trader-ai";
 
 type AppShellProps = Readonly<{
   activeSection: NavSection;
   onSelectSection: (section: NavSection) => void;
   userEmail: string;
+  userRole?: string;
   organisationType?: string;
   companyName?: string;
   verificationStatus?: string;
@@ -135,6 +144,16 @@ function StoreIcon({ className = "h-4 w-4" }: Readonly<{ className?: string }>) 
   );
 }
 
+function CpuIcon({ className = "h-4 w-4" }: Readonly<{ className?: string }>) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <rect x="4" y="4" width="16" height="16" rx="2" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="9" y="9" width="6" height="6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function LogoutIcon({ className = "h-4 w-4" }: Readonly<{ className?: string }>) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -159,10 +178,31 @@ function CloseIcon({ className = "h-5 w-5" }: Readonly<{ className?: string }>) 
   );
 }
 
+function TruckIcon({ className = "h-4 w-4" }: Readonly<{ className?: string }>) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+    </svg>
+  );
+}
+
+function QrCodeIcon({ className = "h-4 w-4" }: Readonly<{ className?: string }>) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="3" width="7" height="7" rx="1" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="14" y="3" width="7" height="7" rx="1" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="3" y="14" width="7" height="7" rx="1" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M14 14h3v3h-3zM17 17h4v4h-4zM14 20h3M20 14v3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function AuthenticatedAppShell({
   activeSection,
   onSelectSection,
   userEmail,
+  userRole,
   organisationType = "SUPPLIER",
   companyName,
   verificationStatus,
@@ -176,16 +216,40 @@ export function AuthenticatedAppShell({
     ? userEmail.substring(0, 2).toUpperCase()
     : "ID";
 
-  const isBuyer = organisationType.toUpperCase() === "BUYER";
-  const isTrader = organisationType.toUpperCase() === "TRADER";
+  const isInspector = userRole === "QUALITY_INSPECTOR";
+  const isLogisticsPartner = userRole === "LOGISTICS_PARTNER";
+  const isBuyer = !isInspector && !isLogisticsPartner && organisationType.toUpperCase() === "BUYER";
+  const isTrader = !isInspector && !isLogisticsPartner && organisationType.toUpperCase() === "TRADER";
 
-  const portalTitle = isBuyer
-    ? "Buyer Portal"
-    : isTrader
-      ? "Trader Portal"
-      : "Supplier Portal";
+  const portalTitle = isInspector
+    ? "Quality Inspector Portal"
+    : isLogisticsPartner
+      ? "Logistics Partner Portal"
+      : isBuyer
+        ? "Buyer Portal"
+        : isTrader
+          ? "Trader Portal"
+          : "Supplier Portal";
 
-  const navigationItems = isBuyer
+  const navigationItems = isInspector
+    ? [
+        {
+          id: "quality-inspections" as const,
+          label: "My Inspections",
+          sublabel: "Assigned tasks & field measurements",
+          icon: ClipboardCheckIcon,
+        },
+      ]
+    : isLogisticsPartner
+    ? [
+        {
+          id: "logistics-partner-requests" as const,
+          label: "Transport Requests",
+          sublabel: "Quote invitations & freight bids",
+          icon: TruckIcon,
+        },
+      ]
+    : isBuyer
     ? [
         {
           id: "marketplace" as const,
@@ -204,6 +268,12 @@ export function AuthenticatedAppShell({
           label: "Quotations",
           sublabel: "Received commercial proposals",
           icon: DocumentTextIcon,
+        },
+        {
+          id: "buyer-dpp" as const,
+          label: "Product Passports",
+          sublabel: "Traceability & provenance passports",
+          icon: QrCodeIcon,
         },
         {
           id: "organisation" as const,
@@ -237,6 +307,36 @@ export function AuthenticatedAppShell({
             label: "Transactions",
             sublabel: "Trade records & commercial baselines",
             icon: DocumentCheckIcon,
+          },
+          {
+            id: "trader-contracts" as const,
+            label: "Contracts",
+            sublabel: "Legal contracts & PDF documents",
+            icon: DocumentTextIcon,
+          },
+          {
+            id: "trader-shipments" as const,
+            label: "Shipments & Logistics",
+            sublabel: "Freight ledger & carrier quotes",
+            icon: TruckIcon,
+          },
+          {
+            id: "trader-dpp" as const,
+            label: "Digital Product Passports",
+            sublabel: "Traceable lots & provenance events",
+            icon: QrCodeIcon,
+          },
+          {
+            id: "trader-ai" as const,
+            label: "AI Control Center",
+            sublabel: "Runs, approvals & safe tools",
+            icon: CpuIcon,
+          },
+          {
+            id: "quality-inspections" as const,
+            label: "Quality Inspections",
+            sublabel: "Verification tasks & measurements",
+            icon: ClipboardCheckIcon,
           },
           {
             id: "trader-suppliers" as const,
@@ -305,6 +405,12 @@ export function AuthenticatedAppShell({
             label: "Product Listings",
             sublabel: "Material inventory & offers",
             icon: TagIcon,
+          },
+          {
+            id: "supplier-dpp" as const,
+            label: "Product Passports",
+            sublabel: "Lot traceability & certificates",
+            icon: QrCodeIcon,
           },
         ];
 

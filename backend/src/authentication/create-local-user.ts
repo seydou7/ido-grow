@@ -20,6 +20,8 @@ const SYNTHETIC_TRADER_ORG_ID = "30000000-0000-4000-8000-000000000001";
 const SYNTHETIC_TRADER_ORG_NAME = "Synthetic I Do Grow Trading Desk";
 const DEFAULT_TRADER_EMAIL = "trader@example.test";
 
+const DEFAULT_INSPECTOR_EMAIL = "inspector@example.test";
+
 async function createLocalUser(): Promise<void> {
   if (!isLocalRuntime()) {
     throw new Error("Synthetic user creation is restricted to the local runtime.");
@@ -30,6 +32,8 @@ async function createLocalUser(): Promise<void> {
     process.env.IDO_GROW_BUYER_TEST_USER_EMAIL || DEFAULT_BUYER_EMAIL;
   const configuredTraderEmail =
     process.env.IDO_GROW_TRADER_TEST_USER_EMAIL || DEFAULT_TRADER_EMAIL;
+  const configuredInspectorEmail =
+    process.env.IDO_GROW_INSPECTOR_TEST_USER_EMAIL || DEFAULT_INSPECTOR_EMAIL;
   const password = process.env.IDO_GROW_TEST_USER_PASSWORD;
   const databaseUrl = process.env.DATABASE_URL;
 
@@ -48,6 +52,10 @@ async function createLocalUser(): Promise<void> {
   const traderEmail = validateLocalSyntheticUserTarget(
     databaseUrl,
     configuredTraderEmail,
+  );
+  const inspectorEmail = validateLocalSyntheticUserTarget(
+    databaseUrl,
+    configuredInspectorEmail,
   );
   assertUsableLocalSyntheticUserPassword(password);
 
@@ -163,13 +171,20 @@ async function createLocalUser(): Promise<void> {
         update: {},
         create: { userId: traderUser.id, organisationId: traderOrg.id },
       });
+
+      // 4. Quality Inspector User (Role-based, no organisation)
+      await transaction.user.upsert({
+        where: { email: inspectorEmail },
+        update: { passwordHash, isActive: true, role: "QUALITY_INSPECTOR" },
+        create: { email: inspectorEmail, passwordHash, role: "QUALITY_INSPECTOR" },
+      });
     });
   } finally {
     await prisma.$disconnect();
   }
 
   process.stdout.write(
-    "Synthetic local users (Supplier, Buyer, Trader) and organisation-membership contexts are ready.\n",
+    "Synthetic local users (Supplier, Buyer, Trader, Quality Inspector) and organisation-membership contexts are ready.\n",
   );
 }
 

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { BREAKDOWN_FIELD_LABELS, type CommercialBreakdown } from "../quotes/contracts";
 import { getTraderTradeById, getTraderTrades, TradesRequestError } from "./api";
 import type { TradeDetail, TradeSummary } from "./contracts";
+import { CreateInspectionModal, AssignInspectorModal } from "../quality";
+import { TradeContractSection } from "../contracts/trade-contract-section";
 
 export interface TraderTradesViewProps {
   onOpenMatchingWorkspace?: (buyOrderId: string) => void;
@@ -23,7 +25,10 @@ export function TraderTradesView({
   const [selectedTradeDetail, setSelectedTradeDetail] = useState<TradeDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState<boolean>(false);
   const [detailError, setDetailError] = useState<string | null>(null);
-
+  const [isCreateInspectionOpen, setIsCreateInspectionOpen] = useState(false);
+  const [isAssignInspectionOpen, setIsAssignInspectionOpen] = useState(false);
+  const [activeInspectionIdToAssign, setActiveInspectionIdToAssign] = useState<string | null>(null);
+  const [activeInspectionRefToAssign, setActiveInspectionRefToAssign] = useState<string | null>(null);
 
   const loadTrades = async () => {
     setLoading(true);
@@ -368,14 +373,189 @@ export function TraderTradesView({
                   </div>
 
 
-                  {/* PRODUCT QUALITY INSPECTION */}
-                  <div className="rounded-xl border border-[#e2dccd] bg-white p-4 space-y-2">
-                    <h4 className="font-bold text-xs uppercase tracking-wider text-[#173f35]">
-                      Quality Assurance & Verification
-                    </h4>
-                    <p className="text-xs text-[#52635c]">
-                      Formal quality inspection tasks, field measurements, evidence documentation, and inspection certificates belong to subsequent roadmap sprints.
-                    </p>
+                  {/* PRODUCT QUALITY INSPECTION (SPRINT 07) */}
+                  <div className="rounded-xl border border-[#e2dccd] bg-white p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-bold text-xs uppercase tracking-wider text-[#173f35]">
+                        Product Quality Inspection
+                      </h4>
+                      {selectedTradeDetail.latestInspection ? (
+                        <span
+                          className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-semibold ${
+                            selectedTradeDetail.latestInspection.status === "COMPLETED"
+                              ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                              : selectedTradeDetail.latestInspection.status === "IN_PROGRESS"
+                              ? "bg-indigo-50 text-indigo-800 border-indigo-200"
+                              : selectedTradeDetail.latestInspection.status === "ASSIGNED"
+                              ? "bg-blue-50 text-blue-800 border-blue-200"
+                              : "bg-amber-50 text-amber-800 border-amber-200"
+                          }`}
+                        >
+                          {selectedTradeDetail.latestInspection.status === "COMPLETED"
+                            ? "Inspection Data Complete"
+                            : selectedTradeDetail.latestInspection.status === "IN_PROGRESS"
+                            ? "Inspection In Progress"
+                            : selectedTradeDetail.latestInspection.status === "ASSIGNED"
+                            ? "Inspection Assigned"
+                            : "Inspection Unassigned"}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center rounded-md border border-[#e2dccd] bg-[#fbf9f4] px-2 py-0.5 text-[11px] font-semibold text-[#6e7d77]">
+                          No Inspection
+                        </span>
+                      )}
+                    </div>
+
+                    {selectedTradeDetail.latestInspection ? (
+                      <div className="space-y-2 text-xs">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-[#fcfaf5] p-3 rounded-lg border border-[#f0ece1]">
+                          <div>
+                            <span className="text-[#6e7d77] block text-[10px]">Reference</span>
+                            <span className="font-mono font-bold text-[#173f35]">
+                              {selectedTradeDetail.latestInspection.inspectionReference}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[#6e7d77] block text-[10px]">Method</span>
+                            <span className="font-semibold text-[#173f35]">
+                              {selectedTradeDetail.latestInspection.inspectionMethod}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[#6e7d77] block text-[10px]">Inspector</span>
+                            <span className="font-medium text-[#173f35]">
+                              {selectedTradeDetail.latestInspection.assignedInspectorEmail || "Unassigned"}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[#6e7d77] block text-[10px]">Status Meaning</span>
+                            <span className="font-medium text-[#52635c]">
+                              {selectedTradeDetail.latestInspection.status === "COMPLETED"
+                                ? "Measurements recorded (Grade pending)"
+                                : "Field verification ongoing"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* BLOCK 02 EVIDENCE & ASSESSMENT SUMMARY */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-[#faf8f1] p-2.5 rounded-lg border border-[#e2dccd] text-xs">
+                          <div>
+                            <span className="text-[#6e7d77] block text-[10px]">Evidence</span>
+                            <span className="font-semibold text-[#173f35]">
+                              {selectedTradeDetail.latestInspection.evidenceCount ?? 0} files
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[#6e7d77] block text-[10px]">Preliminary Assessment</span>
+                            <span className="font-semibold text-[#173f35]">
+                              {selectedTradeDetail.latestInspection.assessmentStatus === "ASSESSMENT_RECORDED"
+                                ? "Recorded"
+                                : "Not Assessed"}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[#6e7d77] block text-[10px]">Non-Conformities</span>
+                            <span className={`font-semibold ${(selectedTradeDetail.latestInspection.openNonConformitiesCount ?? 0) > 0 ? "text-amber-700" : "text-emerald-700"}`}>
+                              {(selectedTradeDetail.latestInspection.openNonConformitiesCount ?? 0) > 0
+                                ? `${selectedTradeDetail.latestInspection.openNonConformitiesCount} Open`
+                                : "None Open"}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[#6e7d77] block text-[10px]">Physical Inspection</span>
+                            <span className={`font-semibold ${selectedTradeDetail.latestInspection.physicalInspectionRequired ? "text-rose-700 font-bold" : "text-[#52635c]"}`}>
+                              {selectedTradeDetail.latestInspection.physicalInspectionRequired ? "REQUIRED" : "Standard"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* BLOCK 03 FINAL QUALITY DECISION & CERTIFICATE */}
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-[#faf8f1] p-3 rounded-lg border border-[#e2dccd] text-xs">
+                          <div>
+                            <span className="text-[#6e7d77] block text-[10px]">Final Quality Decision</span>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span
+                                className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-bold ${
+                                  selectedTradeDetail.latestInspection.qualityDecision === "APPROVED"
+                                    ? "bg-emerald-100 text-emerald-900 border-emerald-300"
+                                    : selectedTradeDetail.latestInspection.qualityDecision === "REJECTED"
+                                    ? "bg-rose-100 text-rose-900 border-rose-300"
+                                    : "bg-amber-50 text-amber-800 border-amber-200"
+                                }`}
+                              >
+                                {selectedTradeDetail.latestInspection.qualityDecision || "Decision Pending"}
+                              </span>
+                              {selectedTradeDetail.latestInspection.classificationLabel && (
+                                <span className="font-semibold text-[#173f35]">
+                                  ({selectedTradeDetail.latestInspection.classificationLabel})
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {selectedTradeDetail.latestInspection.certificateNumber && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-mono font-bold text-[#173f35]">
+                                Cert: {selectedTradeDetail.latestInspection.certificateNumber}
+                              </span>
+                              {onOpenInspection && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    onOpenInspection(selectedTradeDetail.latestInspection!.id);
+                                    handleCloseDetail();
+                                  }}
+                                  className="rounded-lg bg-[#173f35] px-2.5 py-1 text-xs font-semibold text-white hover:bg-[#123129] transition-all"
+                                >
+                                  View Certificate →
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 pt-1">
+                          {selectedTradeDetail.latestInspection.status === "DRAFT" && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveInspectionIdToAssign(selectedTradeDetail.latestInspection!.id);
+                                setActiveInspectionRefToAssign(selectedTradeDetail.latestInspection!.inspectionReference);
+                                setIsAssignInspectionOpen(true);
+                              }}
+                              className="rounded-lg bg-[#173f35] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#123129] transition-all"
+                            >
+                              Assign Inspector
+                            </button>
+                          )}
+                          {onOpenInspection && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onOpenInspection(selectedTradeDetail.latestInspection!.id);
+                                handleCloseDetail();
+                              }}
+                              className="rounded-lg border border-[#e2dccd] bg-white px-3 py-1.5 text-xs font-semibold text-[#173f35] hover:bg-[#faf8f1] transition-all"
+                            >
+                              View Inspection →
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-[#fcfaf5] p-3 rounded-lg border border-[#f0ece1] text-xs">
+                        <p className="text-[#52635c]">
+                          No quality inspection task has been initiated for this trade.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setIsCreateInspectionOpen(true)}
+                          className="self-start sm:self-auto shrink-0 rounded-lg bg-[#173f35] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#123129] shadow-sm transition-all"
+                        >
+                          Request Inspection
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* SOURCE TRACEABILITY LINKS */}
@@ -508,6 +688,16 @@ export function TraderTradesView({
                       </div>
                     )}
                   </div>
+
+                  {/* STRUCTURED CONTRACT (SPRINT 08 BLOCK 01) */}
+                  <TradeContractSection
+                    trade={selectedTradeDetail}
+                    onContractUpdated={(updatedContract) => {
+                      setSelectedTradeDetail((prev) =>
+                        prev ? { ...prev, contract: updatedContract } : null,
+                      );
+                    }}
+                  />
                 </>
               ) : null}
             </div>
@@ -530,6 +720,61 @@ export function TraderTradesView({
       )}
 
       {/* QUALITY MODALS */}
+      {selectedTradeDetail && (
+        <>
+          <CreateInspectionModal
+            isOpen={isCreateInspectionOpen}
+            onClose={() => setIsCreateInspectionOpen(false)}
+            tradeId={selectedTradeDetail.id}
+            tradeNumber={selectedTradeDetail.tradeNumber}
+            materialType={selectedTradeDetail.materialType}
+            quantity={selectedTradeDetail.quantity}
+            quantityUnit={selectedTradeDetail.quantityUnit}
+            supplierName={selectedTradeDetail.supplierOrganisationName}
+            onCreated={(newIns) => {
+              setSelectedTradeDetail((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      latestInspection: {
+                        id: newIns.id,
+                        inspectionReference: newIns.inspectionReference,
+                        status: newIns.status,
+                        inspectionMethod: newIns.inspectionMethod,
+                        assignedInspectorEmail: newIns.assignedInspector?.email ?? null,
+                        completedAt: null,
+                      },
+                    }
+                  : null
+              );
+            }}
+          />
+
+          {activeInspectionIdToAssign && activeInspectionRefToAssign && (
+            <AssignInspectorModal
+              isOpen={isAssignInspectionOpen}
+              onClose={() => setIsAssignInspectionOpen(false)}
+              inspectionId={activeInspectionIdToAssign}
+              inspectionReference={activeInspectionRefToAssign}
+              onAssigned={(updatedIns) => {
+                setSelectedTradeDetail((prev) =>
+                  prev && prev.latestInspection
+                    ? {
+                        ...prev,
+                        latestInspection: {
+                          ...prev.latestInspection,
+                          status: updatedIns.status,
+                          assignedInspectorEmail: updatedIns.assignedInspector?.email ?? null,
+                        },
+                      }
+                    : null
+                );
+              }}
+            />
+          )}
+        </>
+      )}
+
     </div>
   );
 }

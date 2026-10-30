@@ -19,7 +19,7 @@ export function parseAuthenticatedSession(
     return null;
   }
 
-  const { id, email } = value.user;
+  const { id, email, role } = value.user as { id: unknown; email: unknown; role?: unknown };
 
   if (
     typeof id !== "string" ||
@@ -32,6 +32,10 @@ export function parseAuthenticatedSession(
 
   return {
     status: "authenticated",
-    user: { id, email },
+    user: {
+      id,
+      email,
+      ...(typeof role === "string" ? { role } : {}),
+    },
   };
 }
