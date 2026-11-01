@@ -11,12 +11,14 @@ export interface TraderTradesViewProps {
   onOpenMatchingWorkspace?: (buyOrderId: string) => void;
   onNavigateSection?: (section: string) => void;
   onOpenInspection?: (inspectionId: string) => void;
+  onSelectTrade?: (tradeId: string) => void;
 }
 
 export function TraderTradesView({
   onOpenMatchingWorkspace,
   onNavigateSection,
   onOpenInspection,
+  onSelectTrade,
 }: TraderTradesViewProps) {
   const [trades, setTrades] = useState<TradeSummary[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -52,6 +54,10 @@ export function TraderTradesView({
   }, []);
 
   const handleOpenDetail = async (id: string) => {
+    if (onSelectTrade) {
+      onSelectTrade(id);
+      return;
+    }
     setSelectedTradeId(id);
     setSelectedTradeDetail(null);
     setLoadingDetail(true);

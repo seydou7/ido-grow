@@ -1,14 +1,13 @@
 "use client";
 
-import { MatchingWorkspaceView, TraderCockpitView, TraderSuppliersView, TraderBuyersView } from "../matching";
+import { MatchingWorkspaceView, TraderCockpitView, TraderPartnersHubView } from "../matching";
 import { BuyerQuotesView } from "../quotes";
-import { TraderTradesView } from "../trades";
-import { TraderContractsView } from "../contracts";
+import { TraderTransactionsHubView } from "../trades";
 import { InspectorWorkQueueView, InspectionDetailView } from "../quality";
-import { TraderShipmentsView, LogisticsPartnerPortalView } from "../logistics";
-import { TraderDppView } from "../dpp/trader-dpp-view";
+import { LogisticsPartnerPortalView } from "../logistics";
 import { CounterpartyDppView } from "../dpp/counterparty-dpp-view";
 import { TraderAiControlCenterView } from "../ai";
+import { TraderSettingsView } from "./trader-settings-view";
 
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -171,6 +170,8 @@ export function SupplierDashboard({
   const [selectedMarketplaceListingId, setSelectedMarketplaceListingId] =
     useState<string | null>(null);
 
+  const isTrader = profile?.organisationType?.toUpperCase() === "TRADER";
+
   // Document upload state
   const [selectedDocType, setSelectedDocType] = useState("COMPANY_REGISTRATION");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -235,7 +236,7 @@ export function SupplierDashboard({
           } else if (first.organisation.organisationType === "BUYER") {
             setActiveSection("marketplace");
           } else if (first.organisation.organisationType === "TRADER") {
-            setActiveSection("trader-cockpit");
+            setActiveSection("trader-dashboard");
           }
           resetProfileForm({
             name: fullProfile.name,
@@ -634,20 +635,9 @@ export function SupplierDashboard({
       )}
 
       {/* Top Organisation Header & Progress Overview (Supplier Only) */}
-      {profile && profile.organisationType !== "BUYER" &&
+      {profile && profile.organisationType === "SUPPLIER" &&
         activeSection !== "marketplace" &&
         activeSection !== "buy-orders" &&
-        activeSection !== "trader-demand" &&
-        activeSection !== "trader-cockpit" &&
-        activeSection !== "trader-suppliers" &&
-        activeSection !== "trader-buyers" &&
-        activeSection !== "trader-trades" &&
-        activeSection !== "trader-contracts" &&
-        activeSection !== "trader-shipments" &&
-        activeSection !== "trader-dpp" &&
-        activeSection !== "buyer-dpp" &&
-        activeSection !== "supplier-dpp" &&
-        activeSection !== "logistics-partner-requests" &&
         activeSection !== "quality-inspections" &&
         activeSection !== "buyer-quotes" && (
         <div className="mb-8 rounded-2xl border border-[#e2dccd] bg-white p-6 shadow-2xs">
@@ -904,8 +894,29 @@ export function SupplierDashboard({
         </div>
       )}
 
-      {/* VIEW 1: ORGANISATION PROFILE */}
-      {activeSection === "organisation" && (
+      {/* TRADER SETTINGS VIEW */}
+      {isTrader &&
+        (activeSection === "trader-settings" ||
+          activeSection === "organisation" ||
+          activeSection === "members") && (
+          <TraderSettingsView
+            initialTab={activeSection === "members" ? "members" : "organisation"}
+            profile={profile}
+            documents={documents}
+            members={members}
+            onProfileUpdated={(updated) => {
+              setProfile(updated);
+              setSuccessMessage("Profil de l'organisation mis à jour avec succès.");
+            }}
+            onDocumentsUpdated={(docs) => {
+              setDocuments(docs);
+            }}
+            onNavigateSection={setActiveSection}
+          />
+        )}
+
+      {/* VIEW 1: ORGANISATION PROFILE (Supplier only) */}
+      {!isTrader && activeSection === "organisation" && (
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           {/* Main 2/3 Column: General Information Card */}
           <div className="rounded-2xl border border-[#e2dccd] bg-white p-6 shadow-2xs lg:col-span-2">
@@ -1574,8 +1585,8 @@ export function SupplierDashboard({
         </div>
       )}
 
-      {/* SECTION: Team & Members */}
-      {activeSection === "members" && (
+      {/* SECTION: Team & Members (Supplier only) */}
+      {!isTrader && activeSection === "members" && (
         <div className="space-y-6">
           <div className="flex flex-col justify-between gap-4 border-b border-[#e2dccd] pb-5 sm:flex-row sm:items-center">
             <div>
@@ -2080,8 +2091,8 @@ export function SupplierDashboard({
         </div>
       )}
 
-      {/* VIEW 0: TRADER COCKPIT */}
-      {activeSection === "trader-cockpit" && (
+      {/* VIEW 0: TRADER DASHBOARD / COCKPIT */}
+      {(activeSection === "trader-dashboard" || activeSection === "trader-cockpit") && (
         <div>
           {cockpitMatchingOrderId ? (
             <MatchingWorkspaceView
@@ -2090,37 +2101,71 @@ export function SupplierDashboard({
             />
           ) : (
             <TraderCockpitView
-              onOpenMatching={(buyOrderId) => setCockpitMatchingOrderId(buyOrderId)}
+              onOpenMatching={(buyOrderId) => {
+                setCockpitMatchingOrderId(buyOrderId);
+                setActiveSection("trader-dashboard");
+              }}
               onNavigateSection={(sec) => setActiveSection(sec as NavSection)}
               onNavigateToSupplier={(supplierId) => {
                 setSelectedTraderSupplierId(supplierId);
-                setActiveSection("trader-suppliers");
+                setActiveSection("trader-partners");
               }}
               onNavigateToBuyer={(buyerId) => {
                 setSelectedTraderBuyerId(buyerId);
-                setActiveSection("trader-buyers");
+                setActiveSection("trader-partners");
               }}
             />
           )}
         </div>
       )}
 
-      {/* VIEW: TRADER SUPPLIERS MANAGEMENT */}
-      {activeSection === "trader-suppliers" && (
-        <TraderSuppliersView
-          initialSupplierId={selectedTraderSupplierId}
-          onSelectSupplier={(supplierId) => setSelectedTraderSupplierId(supplierId)}
-        />
+      {/* VIEW: TRADER MATCHING & BUYER DEMAND */}
+      {(activeSection === "trader-matching" || activeSection === "trader-demand") && (
+        <TraderDemandOverview />
       )}
 
-      {/* VIEW: TRADER BUYERS MANAGEMENT */}
-      {activeSection === "trader-buyers" && (
-        <TraderBuyersView
-          initialBuyerId={selectedTraderBuyerId}
+      {/* VIEW: TRADER PARTNERS DIRECTORY HUB */}
+      {(activeSection === "trader-partners" ||
+        activeSection === "trader-suppliers" ||
+        activeSection === "trader-buyers") && (
+        <TraderPartnersHubView
+          initialTab={activeSection === "trader-buyers" ? "buyers" : "suppliers"}
+          selectedSupplierId={selectedTraderSupplierId}
+          onSelectSupplier={(supplierId) => setSelectedTraderSupplierId(supplierId)}
+          selectedBuyerId={selectedTraderBuyerId}
           onSelectBuyer={(buyerId) => setSelectedTraderBuyerId(buyerId)}
           onOpenMatching={(buyOrderId: string) => {
             setCockpitMatchingOrderId(buyOrderId);
-            setActiveSection("trader-cockpit");
+            setActiveSection("trader-matching");
+          }}
+          onNavigateSection={setActiveSection}
+        />
+      )}
+
+      {/* VIEW: TRADER TRANSACTIONS WORKSPACE HUB */}
+      {(activeSection === "trader-transactions" ||
+        activeSection === "trader-trades" ||
+        activeSection === "trader-contracts" ||
+        activeSection === "trader-shipments" ||
+        activeSection === "trader-dpp") && (
+        <TraderTransactionsHubView
+          initialTab={
+            activeSection === "trader-contracts"
+              ? "contracts"
+              : activeSection === "trader-shipments"
+              ? "shipments"
+              : activeSection === "trader-dpp"
+              ? "dpp"
+              : "trades"
+          }
+          onNavigateSection={(sec) => setActiveSection(sec as NavSection)}
+          onOpenInspection={(id) => {
+            setActiveInspectionId(id);
+            setActiveSection("quality-inspections");
+          }}
+          onOpenMatchingWorkspace={(boId) => {
+            setCockpitMatchingOrderId(boId);
+            setActiveSection("trader-dashboard");
           }}
         />
       )}
@@ -2148,53 +2193,12 @@ export function SupplierDashboard({
         <BuyerBuyOrdersView buyerOrganisationId={orgId ?? undefined} />
       )}
 
-      {/* VIEW 8: TRADER DEMAND OVERVIEW */}
-      {activeSection === "trader-demand" && (
-        <TraderDemandOverview />
-      )}
-
       {/* VIEW 9: BUYER QUOTATIONS */}
       {activeSection === "buyer-quotes" && (
         <BuyerQuotesView />
       )}
 
-      {/* VIEW 10: TRADER TRANSACTIONS / TRADE RECORDS (SPRINT 06 BLOCK 03) */}
-      {activeSection === "trader-trades" && (
-        <TraderTradesView
-          onNavigateSection={(sec) => setActiveSection(sec as NavSection)}
-          onOpenInspection={(id) => {
-            setActiveInspectionId(id);
-            setActiveSection("quality-inspections");
-          }}
-        />
-      )}
-
-      {/* VIEW 10B: TRADER CONTRACTS (SPRINT 08 BLOCK 01) */}
-      {activeSection === "trader-contracts" && (
-        <TraderContractsView
-          onNavigateSection={(sec) => setActiveSection(sec as NavSection)}
-          onOpenTrade={() => {
-            setActiveSection("trader-trades");
-          }}
-        />
-      )}
-
-      {/* VIEW 10C: TRADER SHIPMENTS (SPRINT 08 BLOCK 02) */}
-      {activeSection === "trader-shipments" && (
-        <TraderShipmentsView
-          onNavigateSection={(sec) => setActiveSection(sec as NavSection)}
-          onOpenContract={() => {
-            setActiveSection("trader-contracts");
-          }}
-        />
-      )}
-
-      {/* VIEW 13: DIGITAL PRODUCT PASSPORTS (SPRINT 09 BLOCK 01) */}
-      {activeSection === "trader-dpp" && (
-        <TraderDppView />
-      )}
-
-      {/* VIEW 16: TRADER AI CONTROL CENTER (SPRINT 10) */}
+      {/* VIEW 16: TRADER AI CONTROL CENTER (SPRINT 10 - SYSTEM ONLY) */}
       {activeSection === "trader-ai" && (
         <TraderAiControlCenterView
           currentUserId={profile?.id}

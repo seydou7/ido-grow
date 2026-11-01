@@ -16,9 +16,14 @@ import { TradeLogisticsSection } from "../logistics";
 interface TradeContractSectionProps {
   trade: TradeDetail;
   onContractUpdated?: (contract: ContractSummary) => void;
+  hideLogistics?: boolean;
 }
 
-export function TradeContractSection({ trade, onContractUpdated }: TradeContractSectionProps) {
+export function TradeContractSection({
+  trade,
+  onContractUpdated,
+  hideLogistics = false,
+}: TradeContractSectionProps) {
   const [contract, setContract] = useState<ContractSummary | ContractDetail | null>(
     trade.contract ?? null,
   );
@@ -598,7 +603,7 @@ export function TradeContractSection({ trade, onContractUpdated }: TradeContract
             </div>
           )}
 
-          {contract.status === "CONFIRMED" && (
+          {contract.status === "CONFIRMED" && !hideLogistics && (
             <TradeLogisticsSection contract={contract} />
           )}
         </div>

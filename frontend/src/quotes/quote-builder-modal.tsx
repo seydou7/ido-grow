@@ -62,6 +62,9 @@ interface QuoteBuilderModalProps {
     currency?: string;
     incoterm?: string | null;
     paymentTerms?: string | null;
+    supplierPriceAmount?: number | null;
+    originCountry?: string | null;
+    destinationCountry?: string | null;
   };
   onQuoteUpdated?: (quote: QuoteDetail) => void;
 }
@@ -96,6 +99,9 @@ export function QuoteBuilderModal({
 
   const [quote, setQuote] = useState<QuoteDetail | null>(null);
 
+  // UX Toggle for compact vs detailed 11-line cost breakdown
+  const [showDetailedBreakdown, setShowDetailedBreakdown] = useState<boolean>(false);
+
   // Form State — initialize without invented defaults
   const [breakdown, setBreakdown] = useState<CommercialBreakdown>(DEFAULT_BREAKDOWN);
   const [incoterm, setIncoterm] = useState<string>("");
@@ -127,7 +133,16 @@ export function QuoteBuilderModal({
   };
 
   const resetForm = () => {
-    setBreakdown(DEFAULT_BREAKDOWN);
+    // If supplier price amount is available and quantity is known, prefill productValue
+    const initialProductValue =
+      matchedContext?.supplierPriceAmount && matchedContext?.quantity
+        ? Math.round(matchedContext.supplierPriceAmount * matchedContext.quantity * 100) / 100
+        : 0;
+
+    setBreakdown({
+      ...DEFAULT_BREAKDOWN,
+      productValue: initialProductValue,
+    });
     // Prefill from matched context if available, otherwise blank
     setIncoterm(matchedContext?.incoterm || "");
     setPaymentTerms(matchedContext?.paymentTerms || "");
@@ -194,6 +209,56 @@ export function QuoteBuilderModal({
 
     return Math.round(total * 100) / 100;
   }, [breakdown]);
+
+  const logisticsTotal = useMemo(() => {
+    return (
+      Math.round(
+        ((Number(breakdown.inlandTransportCost) || 0) +
+          (Number(breakdown.internationalFreightCost) || 0)) *
+          100,
+      ) / 100
+    );
+  }, [breakdown.inlandTransportCost, breakdown.internationalFreightCost]);
+
+  const ancillaryFeesTotal = useMemo(() => {
+    return (
+      Math.round(
+        ((Number(breakdown.inspectionCost) || 0) +
+          (Number(breakdown.packagingCost) || 0) +
+          (Number(breakdown.customsCost) || 0) +
+          (Number(breakdown.insuranceCost) || 0) +
+          (Number(breakdown.storageCost) || 0) +
+          (Number(breakdown.taxAmount) || 0) +
+          (Number(breakdown.otherServiceFees) || 0)) *
+          100,
+      ) / 100
+    );
+  }, [
+    breakdown.inspectionCost,
+    breakdown.packagingCost,
+    breakdown.customsCost,
+    breakdown.insuranceCost,
+    breakdown.storageCost,
+    breakdown.taxAmount,
+    breakdown.otherServiceFees,
+  ]);
+
+  const marginPercentage = useMemo(() => {
+    const margin = Number(breakdown.idoGrowMarginCommission) || 0;
+    if (calculatedLiveTotal <= 0) return 0;
+    return Math.round((margin / calculatedLiveTotal) * 1000) / 10;
+  }, [breakdown.idoGrowMarginCommission, calculatedLiveTotal]);
+
+  const handleSuggest12PercentMargin = () => {
+    const baseCost = calculatedLiveTotal - (Number(breakdown.idoGrowMarginCommission) || 0);
+    if (baseCost > 0) {
+      const suggestedMargin = Math.round(baseCost * (0.12 / 0.88) * 100) / 100;
+      setBreakdown((prev) => ({
+        ...prev,
+        idoGrowMarginCommission: suggestedMargin,
+      }));
+    }
+  };
 
   const activeCurrency = quote?.currency || matchedContext?.currency || null;
   const currencySymbol = activeCurrency ? formatCurrencySymbol(activeCurrency) : "";
@@ -796,7 +861,113 @@ export function QuoteBuilderModal({
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* COMPACT SYNTHESIS CARD (VUE INITIALE RAPIDE) */}
+                <div className="rounded-2xl border border-[#e2dccd] bg-white p-4 shadow-2xs mb-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#f0ece1] pb-2.5 mb-3">
+                    <div>
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-[#173f35]">
+                        Synthèse commerciale rapide
+                      </h3>
+                      <p className="text-[11px] text-[#52635c]">
+                        Modèle de marge et composition du prix client final
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <span className="rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 px-2.5 py-0.5 text-[10px] font-bold">
+                        🔒 Marge Trader Confidentielle
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    {/* 1. Prix Fournisseur */}
+                    <div className="rounded-xl border border-[#e2dccd] bg-[#fbf9f4] p-3">
+                      <span className="text-[11px] font-semibold text-[#6e7d77] block">
+                        Prix Produit Fournisseur
+                      </span>
+                      <strong className="text-sm font-bold text-[#173f35] block mt-0.5">
+                        {formatMonetaryDisplay(Number(breakdown.productValue) || 0, activeCurrency || quote?.currency || "")}
+                      </strong>
+                      <span className="text-[10px] text-[#85968f]">
+                        Base marchandise
+                      </span>
+                    </div>
+
+                    {/* 2. Logistique Estimée */}
+                    <div className="rounded-xl border border-[#e2dccd] bg-[#fbf9f4] p-3">
+                      <span className="text-[11px] font-semibold text-[#6e7d77] block">
+                        Logistique Estimée
+                      </span>
+                      <strong className="text-sm font-bold text-[#173f35] block mt-0.5">
+                        {formatMonetaryDisplay(logisticsTotal, activeCurrency || quote?.currency || "")}
+                      </strong>
+                      <span className="text-[10px] text-[#85968f]">
+                        Inland + Fret maritime
+                      </span>
+                    </div>
+
+                    {/* 3. Frais & Taxes */}
+                    <div className="rounded-xl border border-[#e2dccd] bg-[#fbf9f4] p-3">
+                      <span className="text-[11px] font-semibold text-[#6e7d77] block">
+                        Frais Annexes & Taxes
+                      </span>
+                      <strong className="text-sm font-bold text-[#173f35] block mt-0.5">
+                        {formatMonetaryDisplay(ancillaryFeesTotal, activeCurrency || quote?.currency || "")}
+                      </strong>
+                      <span className="text-[10px] text-[#85968f]">
+                        Douane, qualité, assurance
+                      </span>
+                    </div>
+
+                    {/* 4. Marge I DO GROW (Trader-only) */}
+                    <div className="rounded-xl border border-[#173f35]/30 bg-[#f7fbf9] p-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-[#173f35]">
+                          Marge I DO GROW
+                        </span>
+                        <span className="rounded bg-[#173f35]/10 px-1.5 py-0.2 text-[9px] font-extrabold text-[#173f35]">
+                          {marginPercentage}%
+                        </span>
+                      </div>
+                      <strong className="text-sm font-bold text-[#173f35] block mt-0.5">
+                        {formatMonetaryDisplay(Number(breakdown.idoGrowMarginCommission) || 0, activeCurrency || quote?.currency || "")}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {/* Prix Client Final */}
+                  <div className="mt-3 flex items-center justify-between rounded-xl bg-[#173f35] px-4 py-2.5 text-[#fffaf0]">
+                    <div>
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#e5b84b]">
+                        Prix Total Client Final
+                      </span>
+                      <p className="text-[11px] text-[#d0e0da]">
+                        Montant contractuel facturé à l'acheteur
+                      </p>
+                    </div>
+                    <span className="text-lg font-black text-[#fffaf0] tabular-nums">
+                      {formatMonetaryDisplay(calculatedLiveTotal, activeCurrency || quote?.currency || "")}
+                    </span>
+                  </div>
+
+                  {/* Toggle Detailed 11 fields */}
+                  <div className="mt-3 flex items-center justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setShowDetailedBreakdown(!showDetailedBreakdown)}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-[#173f35] hover:underline"
+                    >
+                      <span>
+                        {showDetailedBreakdown
+                          ? "Masquer le détail des 11 postes de coûts ↑"
+                          : "Afficher le détail des 11 postes de coûts ↓"}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className={showDetailedBreakdown ? "grid grid-cols-1 md:grid-cols-2 gap-4" : "hidden"}>
                   {/* Group 1: Product & Margin */}
                   <div className="rounded-2xl border border-[#e2dccd] bg-[#fbf9f4]/40 p-4 space-y-3">
                     <h3 className="text-xs font-bold text-[#173f35] uppercase tracking-wider border-b border-[#e2dccd] pb-1.5">

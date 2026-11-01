@@ -4,6 +4,13 @@ import { useState } from "react";
 import { LanguageSelector } from "@/i18n/language-selector";
 
 export type NavSection =
+  // Target Trader navigation entries
+  | "trader-dashboard"
+  | "trader-matching"
+  | "trader-transactions"
+  | "trader-partners"
+  | "trader-settings"
+  // Legacy & internal Trader entries (preserved for full compatibility)
   | "trader-cockpit"
   | "trader-demand"
   | "trader-trades"
@@ -12,6 +19,8 @@ export type NavSection =
   | "trader-dpp"
   | "trader-suppliers"
   | "trader-buyers"
+  | "trader-ai"
+  // Shared & other roles
   | "quality-inspections"
   | "logistics-partner-requests"
   | "overview"
@@ -24,8 +33,7 @@ export type NavSection =
   | "buy-orders"
   | "buyer-quotes"
   | "buyer-dpp"
-  | "supplier-dpp"
-  | "trader-ai";
+  | "supplier-dpp";
 
 type AppShellProps = Readonly<{
   activeSection: NavSection;
@@ -198,6 +206,108 @@ function QrCodeIcon({ className = "h-4 w-4" }: Readonly<{ className?: string }>)
   );
 }
 
+function CogIcon({ className = "h-4 w-4" }: Readonly<{ className?: string }>) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  );
+}
+
+type NavItem = {
+  id: NavSection;
+  label: string;
+  sublabel: string;
+  icon: (props: { className?: string }) => React.ReactElement;
+};
+
+function isNavItemActive(itemId: NavSection, activeSection: NavSection, isTrader: boolean): boolean {
+  if (itemId === activeSection) return true;
+  if (!isTrader) return false;
+
+  switch (itemId) {
+    case "trader-dashboard":
+    case "trader-cockpit":
+      return activeSection === "trader-dashboard" || activeSection === "trader-cockpit";
+    case "trader-matching":
+    case "trader-demand":
+      return activeSection === "trader-matching" || activeSection === "trader-demand";
+    case "trader-transactions":
+    case "trader-trades":
+      return (
+        activeSection === "trader-transactions" ||
+        activeSection === "trader-trades" ||
+        activeSection === "trader-contracts" ||
+        activeSection === "trader-shipments" ||
+        activeSection === "trader-dpp"
+      );
+    case "trader-partners":
+      return (
+        activeSection === "trader-partners" ||
+        activeSection === "trader-suppliers" ||
+        activeSection === "trader-buyers"
+      );
+    case "trader-settings":
+      return (
+        activeSection === "trader-settings" ||
+        activeSection === "organisation" ||
+        activeSection === "members"
+      );
+    default:
+      return itemId === activeSection;
+  }
+}
+
+function getHeaderTitle(
+  activeSection: NavSection,
+  isTrader: boolean,
+  primaryItems: NavItem[],
+  secondaryItems: NavItem[] = [],
+): string {
+  if (isTrader) {
+    switch (activeSection) {
+      case "trader-dashboard":
+      case "trader-cockpit":
+        return "Dashboard";
+      case "trader-matching":
+      case "trader-demand":
+        return "Matching";
+      case "trader-transactions":
+        return "Transactions";
+      case "trader-trades":
+        return "Transactions · Trade Records";
+      case "trader-contracts":
+        return "Transactions · Contracts";
+      case "trader-shipments":
+        return "Transactions · Shipments & Logistics";
+      case "trader-dpp":
+        return "Transactions · Product Passports";
+      case "trader-partners":
+        return "Partners";
+      case "trader-suppliers":
+        return "Partners · Suppliers";
+      case "trader-buyers":
+        return "Partners · Buyers";
+      case "trader-settings":
+        return "Settings";
+      case "organisation":
+        return "Settings · Organisation Profile";
+      case "members":
+        return "Settings · Team & Members";
+      case "quality-inspections":
+        return "Quality Inspections";
+      case "marketplace":
+        return "Marketplace";
+      default:
+        break;
+    }
+  }
+  const allItems = [...primaryItems, ...secondaryItems];
+  const item = allItems.find((n) => isNavItemActive(n.id, activeSection, isTrader));
+  return item?.label ?? "Dashboard";
+}
+
 export function AuthenticatedAppShell({
   activeSection,
   onSelectSection,
@@ -231,188 +341,219 @@ export function AuthenticatedAppShell({
           ? "Trader Portal"
           : "Supplier Portal";
 
-  const navigationItems = isInspector
-    ? [
-        {
-          id: "quality-inspections" as const,
-          label: "My Inspections",
-          sublabel: "Assigned tasks & field measurements",
-          icon: ClipboardCheckIcon,
-        },
-      ]
-    : isLogisticsPartner
-    ? [
-        {
-          id: "logistics-partner-requests" as const,
-          label: "Transport Requests",
-          sublabel: "Quote invitations & freight bids",
-          icon: TruckIcon,
-        },
-      ]
-    : isBuyer
-    ? [
-        {
-          id: "marketplace" as const,
-          label: "Marketplace",
-          sublabel: "Discover raw material supply",
-          icon: StoreIcon,
-        },
-        {
-          id: "buy-orders" as const,
-          label: "My Buy Orders",
-          sublabel: "Procurement & demand orders",
-          icon: ClipboardCheckIcon,
-        },
-        {
-          id: "buyer-quotes" as const,
-          label: "Quotations",
-          sublabel: "Received commercial proposals",
-          icon: DocumentTextIcon,
-        },
-        {
-          id: "buyer-dpp" as const,
-          label: "Product Passports",
-          sublabel: "Traceability & provenance passports",
-          icon: QrCodeIcon,
-        },
-        {
-          id: "organisation" as const,
-          label: "Buyer Profile",
-          sublabel: "Company details & verification",
-          icon: BuildingIcon,
-        },
-        {
-          id: "members" as const,
-          label: "Team & Members",
-          sublabel: "Organisation users & access",
-          icon: UsersIcon,
-        },
-      ]
-    : isTrader
-      ? [
-          {
-            id: "trader-cockpit" as const,
-            label: "Trader Cockpit",
-            sublabel: "Operations & Matching Queue",
-            icon: LayoutDashboardIcon,
-          },
-          {
-            id: "trader-demand" as const,
-            label: "Buyer Demand & Matching",
-            sublabel: "Demands & Matching Cockpit",
-            icon: ClipboardCheckIcon,
-          },
-          {
-            id: "trader-trades" as const,
-            label: "Transactions",
-            sublabel: "Trade records & commercial baselines",
-            icon: DocumentCheckIcon,
-          },
-          {
-            id: "trader-contracts" as const,
-            label: "Contracts",
-            sublabel: "Legal contracts & PDF documents",
-            icon: DocumentTextIcon,
-          },
-          {
-            id: "trader-shipments" as const,
-            label: "Shipments & Logistics",
-            sublabel: "Freight ledger & carrier quotes",
-            icon: TruckIcon,
-          },
-          {
-            id: "trader-dpp" as const,
-            label: "Digital Product Passports",
-            sublabel: "Traceable lots & provenance events",
-            icon: QrCodeIcon,
-          },
-          {
-            id: "trader-ai" as const,
-            label: "AI Control Center",
-            sublabel: "Runs, approvals & safe tools",
-            icon: CpuIcon,
-          },
-          {
-            id: "quality-inspections" as const,
-            label: "Quality Inspections",
-            sublabel: "Verification tasks & measurements",
-            icon: ClipboardCheckIcon,
-          },
-          {
-            id: "trader-suppliers" as const,
-            label: "Suppliers",
-            sublabel: "Supplier accounts & listings",
-            icon: SproutIcon,
-          },
-          {
-            id: "trader-buyers" as const,
-            label: "Buyers",
-            sublabel: "Buyer accounts & demands",
-            icon: UsersIcon,
-          },
-          {
-            id: "marketplace" as const,
-            label: "Marketplace",
-            sublabel: "Browse & inspect supply",
-            icon: StoreIcon,
-          },
-          {
-            id: "organisation" as const,
-            label: "Organisation Profile",
-            sublabel: "Company details & legal identity",
-            icon: BuildingIcon,
-          },
-          {
-            id: "members" as const,
-            label: "Team & Members",
-            sublabel: "Organisation users & access",
-            icon: UsersIcon,
-          },
-        ]
-      : [
-          {
-            id: "overview" as const,
-            label: "Onboarding Overview",
-            sublabel: "Getting started & readiness",
-            icon: ClipboardCheckIcon,
-          },
-          {
-            id: "organisation" as const,
-            label: "Organisation Profile",
-            sublabel: "Company details & legal identity",
-            icon: BuildingIcon,
-          },
-          {
-            id: "sites" as const,
-            label: "Production Sites",
-            sublabel: "Farms, parcels & facilities",
-            icon: SproutIcon,
-          },
-          {
-            id: "compliance" as const,
-            label: "Compliance & Documents",
-            sublabel: "Certificates & registry evidence",
-            icon: DocumentCheckIcon,
-          },
-          {
-            id: "members" as const,
-            label: "Team & Members",
-            sublabel: "Organisation users & access",
-            icon: UsersIcon,
-          },
-          {
-            id: "listings" as const,
-            label: "Product Listings",
-            sublabel: "Material inventory & offers",
-            icon: TagIcon,
-          },
-          {
-            id: "supplier-dpp" as const,
-            label: "Product Passports",
-            sublabel: "Lot traceability & certificates",
-            icon: QrCodeIcon,
-          },
-        ];
+  let primaryNavigationItems: NavItem[] = [];
+  let secondaryNavigationItems: NavItem[] = [];
+
+  if (isInspector) {
+    primaryNavigationItems = [
+      {
+        id: "quality-inspections",
+        label: "My Inspections",
+        sublabel: "Assigned tasks & field measurements",
+        icon: ClipboardCheckIcon,
+      },
+    ];
+  } else if (isLogisticsPartner) {
+    primaryNavigationItems = [
+      {
+        id: "logistics-partner-requests",
+        label: "Transport Requests",
+        sublabel: "Quote invitations & freight bids",
+        icon: TruckIcon,
+      },
+    ];
+  } else if (isBuyer) {
+    primaryNavigationItems = [
+      {
+        id: "marketplace",
+        label: "Marketplace",
+        sublabel: "Discover raw material supply",
+        icon: StoreIcon,
+      },
+      {
+        id: "buy-orders",
+        label: "My Buy Orders",
+        sublabel: "Procurement & demand orders",
+        icon: ClipboardCheckIcon,
+      },
+      {
+        id: "buyer-quotes",
+        label: "Quotations",
+        sublabel: "Received commercial proposals",
+        icon: DocumentTextIcon,
+      },
+      {
+        id: "buyer-dpp",
+        label: "Product Passports",
+        sublabel: "Traceability & provenance passports",
+        icon: QrCodeIcon,
+      },
+    ];
+    secondaryNavigationItems = [
+      {
+        id: "organisation",
+        label: "Buyer Profile",
+        sublabel: "Company details & verification",
+        icon: BuildingIcon,
+      },
+      {
+        id: "members",
+        label: "Team & Members",
+        sublabel: "Organisation users & access",
+        icon: UsersIcon,
+      },
+    ];
+  } else if (isTrader) {
+    primaryNavigationItems = [
+      {
+        id: "trader-dashboard",
+        label: "Dashboard",
+        sublabel: "Operations & Priorities",
+        icon: LayoutDashboardIcon,
+      },
+      {
+        id: "trader-matching",
+        label: "Matching",
+        sublabel: "Buyer Demands & Sourcing",
+        icon: ClipboardCheckIcon,
+      },
+      {
+        id: "trader-transactions",
+        label: "Transactions",
+        sublabel: "Trades, Contracts & Logistics",
+        icon: DocumentCheckIcon,
+      },
+      {
+        id: "quality-inspections",
+        label: "Quality",
+        sublabel: "Verification & Inspections",
+        icon: ClipboardCheckIcon,
+      },
+      {
+        id: "marketplace",
+        label: "Marketplace",
+        sublabel: "Browse & Inspect Supply",
+        icon: StoreIcon,
+      },
+    ];
+    secondaryNavigationItems = [
+      {
+        id: "trader-partners",
+        label: "Partners",
+        sublabel: "Suppliers & Buyers",
+        icon: UsersIcon,
+      },
+      {
+        id: "trader-settings",
+        label: "Settings",
+        sublabel: "Organisation & Team",
+        icon: CogIcon,
+      },
+    ];
+  } else {
+    // Supplier
+    primaryNavigationItems = [
+      {
+        id: "overview",
+        label: "Onboarding Overview",
+        sublabel: "Getting started & readiness",
+        icon: ClipboardCheckIcon,
+      },
+      {
+        id: "listings",
+        label: "Product Listings",
+        sublabel: "Material inventory & offers",
+        icon: TagIcon,
+      },
+      {
+        id: "compliance",
+        label: "Compliance & Documents",
+        sublabel: "Certificates & registry evidence",
+        icon: DocumentCheckIcon,
+      },
+      {
+        id: "supplier-dpp",
+        label: "Product Passports",
+        sublabel: "Lot traceability & certificates",
+        icon: QrCodeIcon,
+      },
+    ];
+    secondaryNavigationItems = [
+      {
+        id: "sites",
+        label: "Production Sites",
+        sublabel: "Farms, parcels & facilities",
+        icon: SproutIcon,
+      },
+      {
+        id: "organisation",
+        label: "Organisation Profile",
+        sublabel: "Company details & legal identity",
+        icon: BuildingIcon,
+      },
+      {
+        id: "members",
+        label: "Team & Members",
+        sublabel: "Organisation users & access",
+        icon: UsersIcon,
+      },
+    ];
+  }
+
+  const renderNavButton = (item: NavItem) => {
+    const active = isNavItemActive(item.id, activeSection, isTrader);
+    const Icon = item.icon;
+    return (
+      <button
+        key={item.id}
+        onClick={() => onSelectSection(item.id)}
+        type="button"
+        className={`group flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-left text-sm font-medium transition-all ${
+          active
+            ? "bg-[#284f41] text-[#fffaf0] shadow-sm ring-1 ring-white/10"
+            : "text-[#d6deda] hover:bg-[#204539] hover:text-[#fffaf0]"
+        }`}
+      >
+        <Icon className={`h-4 w-4 shrink-0 transition-colors ${active ? "text-[#e5b84b]" : "text-[#a8bbb4] group-hover:text-[#fffaf0]"}`} />
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-medium">{item.label}</p>
+        </div>
+        {active && (
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#e5b84b]" />
+        )}
+      </button>
+    );
+  };
+
+  const renderMobileNavButton = (item: NavItem) => {
+    const active = isNavItemActive(item.id, activeSection, isTrader);
+    const Icon = item.icon;
+    return (
+      <button
+        key={item.id}
+        onClick={() => {
+          onSelectSection(item.id);
+          setMobileMenuOpen(false);
+        }}
+        type="button"
+        className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium ${
+          active
+            ? "bg-[#284f41] text-[#fffaf0]"
+            : "text-[#d6deda] hover:bg-[#204539]"
+        }`}
+      >
+        <Icon className={`h-4 w-4 ${active ? "text-[#e5b84b]" : "text-[#a8bbb4]"}`} />
+        <span>{item.label}</span>
+      </button>
+    );
+  };
+
+  const currentHeaderTitle = getHeaderTitle(
+    activeSection,
+    isTrader,
+    primaryNavigationItems,
+    secondaryNavigationItems,
+  );
 
   return (
     <div className="flex min-h-screen w-full bg-[#faf8f1] font-sans antialiased">
@@ -437,31 +578,21 @@ export function AuthenticatedAppShell({
         </div>
 
         {/* Main Navigation */}
-        <nav className="flex-1 space-y-1.5 px-3 py-2">
-          {navigationItems.map((item) => {
-            const active = activeSection === item.id;
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                onClick={() => onSelectSection(item.id)}
-                type="button"
-                className={`group flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-left text-sm font-medium transition-all ${
-                  active
-                    ? "bg-[#284f41] text-[#fffaf0] shadow-sm ring-1 ring-white/10"
-                    : "text-[#d6deda] hover:bg-[#204539] hover:text-[#fffaf0]"
-                }`}
-              >
-                <Icon className={`h-4 w-4 shrink-0 transition-colors ${active ? "text-[#e5b84b]" : "text-[#a8bbb4] group-hover:text-[#fffaf0]"}`} />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{item.label}</p>
-                </div>
-                {active && (
-                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#e5b84b]" />
-                )}
-              </button>
-            );
-          })}
+        <nav className="flex-1 space-y-1.5 overflow-y-auto px-3 py-2">
+          <div className="space-y-1">
+            {primaryNavigationItems.map((item) => renderNavButton(item))}
+          </div>
+
+          {secondaryNavigationItems.length > 0 && (
+            <div className="mt-4 border-t border-[#245347]/70 pt-3">
+              <p className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-[#a8bbb4]/70">
+                Secondary / Workspace
+              </p>
+              <div className="space-y-1">
+                {secondaryNavigationItems.map((item) => renderNavButton(item))}
+              </div>
+            </div>
+          )}
         </nav>
 
         {/* User Account / Sign Out Footer */}
@@ -510,7 +641,7 @@ export function AuthenticatedAppShell({
                 {portalTitle}
               </p>
               <h1 className="text-base font-bold text-slate-800 sm:text-lg">
-                {navigationItems.find((n) => n.id === activeSection)?.label ?? "Dashboard"}
+                {currentHeaderTitle}
               </h1>
             </div>
           </div>
@@ -548,29 +679,21 @@ export function AuthenticatedAppShell({
                 </button>
               </div>
 
-              <nav className="mt-4 flex-1 space-y-1">
-                {navigationItems.map((item) => {
-                  const active = activeSection === item.id;
-                  const Icon = item.icon;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => {
-                        onSelectSection(item.id);
-                        setMobileMenuOpen(false);
-                      }}
-                      type="button"
-                      className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium ${
-                        active
-                          ? "bg-[#284f41] text-[#fffaf0]"
-                          : "text-[#d6deda] hover:bg-[#204539]"
-                      }`}
-                    >
-                      <Icon className={`h-4 w-4 ${active ? "text-[#e5b84b]" : "text-[#a8bbb4]"}`} />
-                      <span>{item.label}</span>
-                    </button>
-                  );
-                })}
+              <nav className="mt-4 flex-1 space-y-1 overflow-y-auto">
+                <div className="space-y-1">
+                  {primaryNavigationItems.map((item) => renderMobileNavButton(item))}
+                </div>
+
+                {secondaryNavigationItems.length > 0 && (
+                  <div className="mt-3 border-t border-[#245347] pt-3">
+                    <p className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-[#a8bbb4]/70">
+                      Secondary / Workspace
+                    </p>
+                    <div className="space-y-1">
+                      {secondaryNavigationItems.map((item) => renderMobileNavButton(item))}
+                    </div>
+                  </div>
+                )}
               </nav>
 
               <div className="border-t border-[#245347] pt-4">
