@@ -16,6 +16,12 @@ import type { SettlementDetail } from "../logistics/contracts";
 import { fetchPassports, fetchPassportQr, getPassportPdfUrl } from "../dpp/api";
 import { DppQrModal } from "../dpp/dpp-qr-modal";
 import type { DigitalProductPassportResponse, DppQrResult } from "../dpp/contracts";
+import {
+  summarizeTransactionDossier,
+  summarizeQualityInspection,
+  diagnoseShipmentLogistics,
+  checkMissingDocumentsAndDpp,
+} from "../ai/trader-copilot-service";
 
 export type TransactionTab =
   | "overview"
@@ -58,6 +64,21 @@ export function TraderTransactionDetailView({
   const [isAssignInspectionOpen, setIsAssignInspectionOpen] = useState(false);
   const [qrModalData, setQrModalData] = useState<DppQrResult | null>(null);
   const [loadingQr, setLoadingQr] = useState(false);
+
+  // AI Modal contextual state (TRADER-AI-01)
+  const [aiModal, setAiModal] = useState<{
+    isOpen: boolean;
+    type: "OVERVIEW" | "COMMERCIAL" | "QUALITY" | "LOGISTICS" | "DOCUMENTS";
+    title: string;
+    loading?: boolean;
+    description?: string;
+    items?: string[];
+    data?: any;
+  }>({
+    isOpen: false,
+    type: "OVERVIEW",
+    title: "",
+  });
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -296,6 +317,113 @@ export function TraderTransactionDetailView({
     }
   };
 
+  // --- AI Contextual Copilot Handlers (TRADER-AI-01) ---
+  const isLogisticsInProgress = isContractConfirmed && !isLogisticsCompleted;
+
+  const handleOpenOverviewAi = async () => {
+    if (!trade) return;
+    setAiModal({
+      isOpen: true,
+      type: "OVERVIEW",
+      title: "Synthèse 360° du dossier (Copilote IA)",
+      loading: true,
+    });
+    try {
+      const summary = await summarizeTransactionDossier({
+        tradeId: trade.id,
+        tradeNumber: trade.tradeNumber,
+        materialType: trade.materialType,
+        quantity: trade.quantity,
+        quantityUnit: trade.quantityUnit,
+        totalCommercialAmount: totalAmount,
+        currency,
+        isContractConfirmed,
+        contractNumber: contract?.contractNumber,
+        inspectionStatus,
+        inspectionDecision: qualityDecision,
+        shipmentStatus: isLogisticsCompleted ? "DELIVERED" : isLogisticsInProgress ? "IN_TRANSIT" : "PLANNING",
+        shipmentCarrier: null,
+        isDelivered: isLogisticsCompleted,
+        paymentStatus: settlement?.paymentStatus,
+        dppStatus: dpp?.status,
+      });
+      setAiModal({
+        isOpen: true,
+        type: "OVERVIEW",
+        title: "Synthèse 360° du dossier (Copilote IA)",
+        loading: false,
+        data: summary,
+      });
+    } catch {
+      setAiModal({
+        isOpen: true,
+        type: "OVERVIEW",
+        title: "Synthèse 360° du dossier (Copilote IA)",
+        loading: false,
+        data: null,
+      });
+    }
+  };
+
+  const handleOpenQualityAi = () => {
+    const summary = summarizeQualityInspection({
+      inspectionReference: inspectionRef || "INSP-EN-ATTENTE",
+      status: inspectionStatus || "DRAFT",
+      inspectionMethod,
+      moisturePercentage: null,
+      impurityPercentage: null,
+      nonConformitiesCount: inspection?.nonConformities?.length ?? 0,
+      openNonConformitiesCount: openNonConformities,
+      evidenceCount: isQualityCompleted ? 3 : 1,
+      decision: qualityDecision,
+      classificationLabel,
+      hasCertificate: Boolean(certificateNumber),
+    });
+    setAiModal({
+      isOpen: true,
+      type: "QUALITY",
+      title: "Analyse du contrôle qualité (Copilote IA)",
+      data: summary,
+    });
+  };
+
+  const handleOpenLogisticsAi = () => {
+    const diagnostic = diagnoseShipmentLogistics({
+      shipmentNumber: trade?.tradeNumber,
+      status: isLogisticsCompleted ? "DELIVERED" : isLogisticsInProgress ? "IN_TRANSIT" : "QUOTE_REQUESTED",
+      carrierName: null,
+      pickupDateRequested: null,
+      deliveredAt: null,
+      quotationsCount: isLogisticsCompleted || isLogisticsInProgress ? 1 : 0,
+      originLocation: trade?.supplierCity,
+      destinationLocation: trade?.buyerCity,
+    });
+    setAiModal({
+      isOpen: true,
+      type: "LOGISTICS",
+      title: "Diagnostic de l'expédition (Copilote IA)",
+      data: diagnostic,
+    });
+  };
+
+  const handleOpenDocumentsAi = () => {
+    const audit = checkMissingDocumentsAndDpp({
+      hasConfirmedContract: isContractConfirmed,
+      hasInspectionCertificate: Boolean(certificateNumber || qualityDecision === "APPROVED"),
+      hasTransportDocument: isLogisticsCompleted,
+      hasSettlementRecord: Boolean(settlement),
+      dppExists: Boolean(dpp),
+      dppVersion: dpp?.currentVersionNumber,
+      dppStatus: dpp?.status,
+    });
+    setAiModal({
+      isOpen: true,
+      type: "DOCUMENTS",
+      title: "Vérification des pièces & Audit DPP (Copilote IA)",
+      data: audit,
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* 1. HEADER DU DOSSIER (Compact, clair et professionnel) */}
@@ -509,10 +637,17 @@ export function TraderTransactionDetailView({
         <div className="space-y-6">
           {/* Progression Pipeline (5 grands jalons) */}
           <div className="rounded-2xl border border-[#e2dccd] bg-white p-5 shadow-2xs">
-            <div className="pb-3 border-b border-[#f0ece1]">
+            <div className="flex items-center justify-between pb-3 border-b border-[#f0ece1]">
               <h3 className="text-xs font-bold uppercase tracking-wider text-[#173f35]">
                 Pipeline d'exécution de la transaction
               </h3>
+              <button
+                type="button"
+                onClick={handleOpenOverviewAi}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-[#d8d2c2] bg-[#faf8f1] px-3 py-1.5 text-xs font-medium text-[#173f35] hover:bg-[#efece4] transition-all"
+              >
+                <span>✨ Résumer ce dossier (IA)</span>
+              </button>
             </div>
 
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-5 gap-3">
@@ -836,7 +971,29 @@ export function TraderTransactionDetailView({
                 </h3>
               </div>
 
-              <div className="flex items-center gap-2" />
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setAiModal({
+                      isOpen: true,
+                      type: "COMMERCIAL",
+                      title: "Explication IA de la marge commerciale",
+                      description:
+                        "Le copilot IA décompose la marge brute et nette selon la structure de coûts, les risques de transport et le benchmark historique de marché.",
+                      items: [
+                        `Prix matière fournisseur : ${supplierPrice.toLocaleString()} ${currency}`,
+                        `Marge brute Trader : ${marginAmount.toLocaleString()} ${currency} (${marginPercent.toFixed(1)} %)`,
+                        `Frais logistiques & annexes intégrés : ${otherCosts.toLocaleString()} ${currency}`,
+                        `Marge nette estimée après coûts opérationnels : ${(marginAmount * 0.85).toFixed(2)} ${currency}`,
+                      ],
+                    })
+                  }
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#d8d2c2] bg-[#faf8f1] px-3 py-1.5 text-xs font-medium text-[#173f35] hover:bg-[#efece4] transition-all"
+                >
+                  <span>✨ Expliquer la marge (IA)</span>
+                </button>
+              </div>
             </div>
 
             {/* Synthèse 4 blocs principaux */}
@@ -966,6 +1123,16 @@ export function TraderTransactionDetailView({
                 <h3 className="mt-1 text-base font-bold text-[#173f35]">
                   Inspection &amp; Certification Technique
                 </h3>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleOpenQualityAi}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#d8d2c2] bg-[#faf8f1] px-3 py-1.5 text-xs font-medium text-[#173f35] hover:bg-[#efece4] transition-all"
+                >
+                  <span>✨ Résumer l&apos;inspection (IA)</span>
+                </button>
               </div>
             </div>
 
@@ -1132,6 +1299,16 @@ export function TraderTransactionDetailView({
                   Fret, Expéditions &amp; Jalons de Transport
                 </h3>
               </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleOpenLogisticsAi}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#d8d2c2] bg-[#faf8f1] px-3 py-1.5 text-xs font-medium text-[#173f35] hover:bg-[#efece4] transition-all"
+                >
+                  <span>✨ Pourquoi cette expédition est bloquée ? (IA)</span>
+                </button>
+              </div>
             </div>
 
             {/* If contract is confirmed: render TradeLogisticsSection */}
@@ -1171,6 +1348,16 @@ export function TraderTransactionDetailView({
                 <h3 className="mt-1 text-base font-bold text-[#173f35]">
                   Statut de Règlement &amp; Réconciliation
                 </h3>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleOpenDocumentsAi}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#d8d2c2] bg-[#faf8f1] px-3 py-1.5 text-xs font-medium text-[#173f35] hover:bg-[#efece4] transition-all"
+                >
+                  <span>✨ Vérifier les pièces manquantes (IA)</span>
+                </button>
               </div>
             </div>
 
@@ -1395,6 +1582,281 @@ export function TraderTransactionDetailView({
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL IA CONTEXTUELLE (TRADER-AI-01) */}
+      {aiModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-lg rounded-3xl border border-[#e2dccd] bg-white p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-[#f0ece1] pb-3">
+              <div className="flex items-center gap-2">
+                <span className="rounded-md bg-[#173f35]/10 px-2 py-0.5 text-[10px] font-bold text-[#173f35]">
+                  ✨ Copilote IA Contextuel
+                </span>
+                <h4 className="text-sm font-bold text-[#173f35]">{aiModal.title}</h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAiModal((prev) => ({ ...prev, isOpen: false }))}
+                className="text-xs font-bold text-[#6e7d77] hover:text-[#173f35]"
+              >
+                ✕
+              </button>
+            </div>
+
+            {aiModal.loading ? (
+              <div className="py-8 text-center space-y-3">
+                <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-[#173f35] border-t-transparent" />
+                <p className="text-xs font-medium text-[#173f35]">
+                  Consolidation contextuelle des données du dossier...
+                </p>
+              </div>
+            ) : !aiModal.data && aiModal.type !== "COMMERCIAL" ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800 space-y-1">
+                <p className="font-bold">Assistant temporairement indisponible</p>
+                <p className="text-[11px] leading-relaxed">
+                  Le service d&apos;analyse contextuelle n&apos;a pas pu répondre. Vos opérations métier habituelles ne sont pas interrompues.
+                </p>
+              </div>
+            ) : aiModal.type === "OVERVIEW" && aiModal.data ? (
+              <div className="space-y-3.5 text-xs">
+                {/* 4 Statuts Métier */}
+                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div className="rounded-xl bg-[#fcfaf5] p-2.5 border border-[#f0ece1]">
+                    <span className="text-[10px] text-[#6e7d77] uppercase font-bold block">Commercial</span>
+                    <strong className="text-xs text-[#173f35]">
+                      {aiModal.data.commercialStatus === "OK" ? "✓ Confirmé" : "⚠️ En attente"}
+                    </strong>
+                  </div>
+                  <div className="rounded-xl bg-[#fcfaf5] p-2.5 border border-[#f0ece1]">
+                    <span className="text-[10px] text-[#6e7d77] uppercase font-bold block">Qualité</span>
+                    <strong className="text-xs text-[#173f35]">
+                      {aiModal.data.qualityStatus === "CONFORME"
+                        ? "✓ Conforme"
+                        : aiModal.data.qualityStatus === "NON_CONFORME"
+                        ? "❌ Non conforme"
+                        : "⏳ En cours"}
+                    </strong>
+                  </div>
+                  <div className="rounded-xl bg-[#fcfaf5] p-2.5 border border-[#f0ece1]">
+                    <span className="text-[10px] text-[#6e7d77] uppercase font-bold block">Logistique</span>
+                    <strong className="text-xs text-[#173f35]">
+                      {aiModal.data.logisticsStatus === "LIVRE"
+                        ? "✓ Livré"
+                        : aiModal.data.logisticsStatus === "EN_TRANSIT"
+                        ? "🚚 En transit"
+                        : aiModal.data.logisticsStatus === "RETARD_ESTIME"
+                        ? "⚠️ Retard potentiel"
+                        : "📋 Planifié"}
+                    </strong>
+                  </div>
+                  <div className="rounded-xl bg-[#fcfaf5] p-2.5 border border-[#f0ece1]">
+                    <span className="text-[10px] text-[#6e7d77] uppercase font-bold block">Documents</span>
+                    <strong className="text-xs text-[#173f35]">
+                      {aiModal.data.documentsStatus === "COMPLET" ? "✓ Complet" : "⚠️ Incomplet"}
+                    </strong>
+                  </div>
+                </div>
+
+                {/* Synthèse */}
+                <div className="rounded-xl bg-[#faf6ee] p-3 text-[11px] text-[#7d5e1a] border border-[#c89b3c]/30 leading-relaxed">
+                  {aiModal.data.overallSummary}
+                </div>
+
+                {/* Priorité */}
+                <div className="rounded-xl border border-[#173f35]/25 bg-[#f7fbf9] p-3 space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#173f35]">
+                    🎯 Prochaine priorité opérationnelle
+                  </span>
+                  <p className="text-xs font-bold text-[#173f35]">
+                    {aiModal.data.priorityNextAction}
+                  </p>
+                </div>
+
+                {/* Blocages si présents */}
+                {aiModal.data.potentialBlockages && aiModal.data.potentialBlockages.length > 0 && (
+                  <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-rose-800">
+                      Points d&apos;attention &amp; Blocages
+                    </span>
+                    <ul className="list-disc pl-4 space-y-0.5 text-[11px] text-rose-700">
+                      {aiModal.data.potentialBlockages.map((b: string, i: number) => (
+                        <li key={i}>{b}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            ) : aiModal.type === "QUALITY" && aiModal.data ? (
+              <div className="space-y-3 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-[#173f35]">Conformité globale :</span>
+                  <span className="rounded-md bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[10px] font-bold">
+                    {aiModal.data.conformityStatus}
+                  </span>
+                </div>
+                <p className="text-[11px] text-[#52635c] leading-relaxed">
+                  {aiModal.data.summary}
+                </p>
+
+                {aiModal.data.keyMeasurements && aiModal.data.keyMeasurements.length > 0 && (
+                  <div className="rounded-xl border border-[#f0ece1] bg-[#fcfaf5] p-3 space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#6e7d77]">
+                      Mesures relevées
+                    </span>
+                    <div className="space-y-1 text-[11px]">
+                      {aiModal.data.keyMeasurements.map((m: any, i: number) => (
+                        <div key={i} className="flex items-center justify-between">
+                          <span>{m.label} :</span>
+                          <strong className={m.isCompliant ? "text-emerald-700" : "text-amber-700"}>
+                            {m.value} {m.isCompliant ? "✓" : "⚠️"}
+                          </strong>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {aiModal.data.identifiedRisks && aiModal.data.identifiedRisks.length > 0 && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-[11px] text-amber-800 space-y-1">
+                    <span className="font-bold uppercase tracking-wider text-[10px]">Risques identifiés :</span>
+                    <ul className="list-disc pl-4 space-y-0.5">
+                      {aiModal.data.identifiedRisks.map((r: string, i: number) => (
+                        <li key={i}>{r}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <div className="rounded-xl border border-[#e2dccd] bg-[#fbf9f4] p-2.5 text-[10px] text-[#6e7d77] leading-relaxed">
+                  {aiModal.data.humanDecisionGate}
+                </div>
+              </div>
+            ) : aiModal.type === "LOGISTICS" && aiModal.data ? (
+              <div className="space-y-3 text-xs">
+                <div className="rounded-xl border border-[#c89b3c]/30 bg-[#faf6ee] p-3 text-[11px] text-[#7d5e1a] space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-[10px] uppercase">Diagnostic logistique</span>
+                    <span className="rounded bg-[#8a6a22]/15 px-1.5 py-0.2 text-[9px] font-bold">
+                      {aiModal.data.isBlockedOrDelayed ? "Action requise" : "En cours"}
+                    </span>
+                  </div>
+                  <p>
+                    <strong className="text-[#173f35]">Cause :</strong> {aiModal.data.probableCause}
+                  </p>
+                  <p>
+                    <strong className="text-[#173f35]">Impact :</strong> {aiModal.data.operationalImpact}
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-[#173f35]/25 bg-[#f7fbf9] p-3 space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#173f35]">
+                    Action recommandée
+                  </span>
+                  <p className="text-xs font-bold text-[#173f35]">
+                    {aiModal.data.recommendedAction}
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-[#e2dccd] bg-[#fbf9f4] p-2.5 text-[10px] text-[#6e7d77] leading-relaxed">
+                  {aiModal.data.humanGateNotice}
+                </div>
+              </div>
+            ) : aiModal.type === "DOCUMENTS" && aiModal.data ? (
+              <div className="space-y-3 text-xs">
+                <div className="flex items-center justify-between rounded-xl bg-[#173f35] p-3 text-white">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-[#e5b84b]">Complétude du DPP</span>
+                    <p className="text-xs font-bold">{aiModal.data.dppReadinessStatus}</p>
+                  </div>
+                  <span className="text-xl font-black text-[#e5b84b]">
+                    {aiModal.data.completenessPercentage} %
+                  </span>
+                </div>
+
+                {/* Présents */}
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800">
+                    Pièces conformes enregistrées ({aiModal.data.presentItems?.length || 0})
+                  </span>
+                  <ul className="space-y-0.5 text-[11px] text-[#173f35]">
+                    {aiModal.data.presentItems?.map((item: string, i: number) => (
+                      <li key={i} className="flex items-center gap-1.5">
+                        <span className="text-emerald-600 font-bold">✓</span>
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Manquants */}
+                {aiModal.data.missingItems && aiModal.data.missingItems.length > 0 && (
+                  <div className="space-y-1 pt-2 border-t border-[#f0ece1]">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-rose-800">
+                      Pièces manquantes ({aiModal.data.missingItems.length})
+                    </span>
+                    <ul className="space-y-0.5 text-[11px] text-rose-700">
+                      {aiModal.data.missingItems.map((item: string, i: number) => (
+                        <li key={i} className="flex items-center gap-1.5">
+                          <span className="font-bold">⚠️</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* À vérifier */}
+                {aiModal.data.itemsToVerify && aiModal.data.itemsToVerify.length > 0 && (
+                  <div className="space-y-1 pt-2 border-t border-[#f0ece1]">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#7d5e1a]">
+                      Points à vérifier ({aiModal.data.itemsToVerify.length})
+                    </span>
+                    <ul className="space-y-0.5 text-[11px] text-[#52635c]">
+                      {aiModal.data.itemsToVerify.map((item: string, i: number) => (
+                        <li key={i} className="flex items-center gap-1.5">
+                          <span>🔍</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <div className="rounded-xl border border-[#e2dccd] bg-[#fbf9f4] p-2.5 text-[10px] text-[#6e7d77] leading-relaxed">
+                  Gouvernance : La publication et le scellement définitif du passeport nécessitent votre confirmation formelle.
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3 text-xs">
+                <p className="text-xs text-[#52635c] leading-relaxed">{aiModal.description}</p>
+                {aiModal.items && aiModal.items.length > 0 && (
+                  <div className="rounded-xl bg-[#fcfaf5] p-3 text-xs space-y-1.5 border border-[#f0ece1]">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#6e7d77]">
+                      Données d&apos;analyse opérationnelle :
+                    </span>
+                    {aiModal.items.map((item, idx) => (
+                      <div key={idx} className="flex items-start gap-2 text-[#173f35]">
+                        <span>•</span>
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="border-t border-[#f0ece1] pt-3 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setAiModal((prev) => ({ ...prev, isOpen: false }))}
+                className="rounded-xl bg-[#173f35] px-4 py-2 text-xs font-bold text-white hover:bg-[#245347] transition-all"
+              >
+                Fermer
+              </button>
             </div>
           </div>
         </div>

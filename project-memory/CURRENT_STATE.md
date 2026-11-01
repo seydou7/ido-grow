@@ -1,9 +1,24 @@
 # Current State
 
-- **ACTIVE / CURRENT STATE — SPRINT 10 COMPLETE (DEVELOPMENT FREEZE FOR GLOBAL VALIDATION CAMPAIGN):**
-  - **Delivery Rule (From Sprint 10 onward):** Do not split normal sprints into mini-sprints unless technically unavoidable. Single coherent delivery executed.
-  - **Development Freeze Notice:** STOP DEVELOPMENT. Await comprehensive validation campaign covering all previously deferred / untested functionality. DO NOT START SPRINT 11.
-  - **DECISION_LOG Integrity:** No new DEC created.
+- **ACTIVE / CURRENT STATE — TRADER UX REFACTOR & CONTEXTUAL COPILOT (DEEPSEEK MVP) COMPLETE:**
+  - **Trader UX Consolidation (TRADER-UX-01 to TRADER-UX-05):**
+    - Navigation & Shell simplified to 5 core operational modules (Dashboard, Matching, Transactions 360°, Quality, Marketplace) + secondary Partners & Settings.
+    - Dashboard redesigned as an action-oriented pilot post ("Qu'est-ce que je dois traiter maintenant ?").
+    - Continuous Matching to Quote flow: Buyer Demand → Filtered Candidate Lots → Compare & Select → Direct Quote Builder.
+    - Unified Transaction Dossier (360° overview across Commercial, Quality, Logistics, Documents, Activity).
+    - Secondary Partners and Settings hubs cleaned up and consolidated.
+  - **Contextual Copilot Integration (TRADER-AI-01 to TRADER-AI-05):**
+    - AI embedded in context across 8 capabilities without requiring an isolated AI control center.
+    - Standard OpenAI-compatible REST adapter (`ExternalLlmAiProvider`) wired via `AiProviderFactory`.
+    - Primary MVP LLM Provider: **DeepSeek** (`deepseek-flash`, endpoint `https://api.deepseek.com/chat/completions`), with `deepseek-v4-pro` supported for advanced reasoning.
+    - Live network execution verified: Dashboard briefing (6.8s), Matching lot explanation (18.7s), Quote margin assistance (14.8s).
+    - Robust failover order: `DeepSeek → timeout / HTTP error / invalid JSON → DeterministicFakeAiProvider → zero downtime`.
+    - Human-in-the-Loop strictly verified: Level 1 (Read-Only), Level 2 (Proposals applied by human click), Level 3 (Critical business actions strictly human only).
+    - Qwen preserved as an alternative external LLM configuration (`AI_PROVIDER="qwen"`).
+  - **Automated Verification:**
+    - Backend: 43 test suites, 459 tests passed. Typecheck 0 errors.
+    - Frontend: 147 tests passed. Typecheck 0 errors. Next.js production build succeeded (9 pages generated).
+  - **Next Recommended Step:** Review proposed 3-commit sequence, perform commits, and proceed to staging deployment.
 
 - **Sprint 10 — AI Platform Foundation:**
   - **Status:** FUNCTIONALLY IMPLEMENTED LOCALLY, UNCOMMITTED, NOT DEPLOYED, GLOBAL VALIDATION PENDING.

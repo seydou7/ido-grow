@@ -22,6 +22,10 @@ import {
   type QuantityUnit,
   QUANTITY_UNIT_LABELS,
 } from "../buy-orders/contracts";
+import {
+  explainCandidateLot,
+  summarizeCandidateComparison,
+} from "../ai/trader-copilot-service";
 
 interface MatchingWorkspaceViewProps {
   buyOrderId: string;
@@ -70,6 +74,10 @@ export function MatchingWorkspaceView({
 
   // Expanded technical details drawer for candidate cards
   const [expandedDetailsId, setExpandedDetailsId] = useState<string | null>(null);
+
+  // AI helper popovers / states (placeholders for TRADER-AI-01)
+  const [aiExplainingLotId, setAiExplainingLotId] = useState<string | null>(null);
+  const [showAiComparisonSummary, setShowAiComparisonSummary] = useState(false);
 
   const loadWorkspace = async (preferredCandidateId?: string | null) => {
     try {
@@ -736,6 +744,114 @@ export function MatchingWorkspaceView({
                         </p>
                       )}
 
+                      {/* AI Lot Explanation (TRADER-AI-01 Contextual) */}
+                      {aiExplainingLotId === candidate.id && (() => {
+                        const explanation = explainCandidateLot({
+                          demand: {
+                            materialType: workspace.buyOrder.materialType,
+                            productForm: workspace.buyOrder.productForm,
+                            quantity: workspace.buyOrder.quantity,
+                            quantityUnit: workspace.buyOrder.quantityUnit,
+                            deliveryCountry: workspace.buyOrder.deliveryCountry,
+                            targetPriceAmount: workspace.buyOrder.targetPriceAmount,
+                            currency: workspace.buyOrder.currency,
+                          },
+                          candidate: {
+                            id: candidate.id,
+                            title: candidate.title,
+                            organisationName: candidate.organisationName,
+                            materialType: candidate.materialType,
+                            productForm: candidate.productForm,
+                            quantity: candidate.quantity,
+                            quantityUnit: candidate.quantityUnit,
+                            priceAmount: candidate.priceAmount,
+                            currency: candidate.currency,
+                            originCountry: candidate.originCountry,
+                            verifiedProducer: true,
+                            harvestYear: candidate.harvestYear,
+                            moisturePercentage: null,
+                            certification: candidate.compatibility.certification,
+                          },
+                        });
+
+                        return (
+                          <div className="mt-3 rounded-xl border border-[#c89b3c]/40 bg-[#faf6ee] p-3.5 text-xs text-[#7d5e1a] space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold flex items-center gap-1.5 text-[#173f35]">
+                                <span>✨</span> Pourquoi ce lot ?
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="rounded bg-[#8a6a22]/15 px-2 py-0.5 text-[10px] font-extrabold text-[#7d5e1a]">
+                                  {explanation.matchLevel} ({explanation.scorePercentage}%)
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => setAiExplainingLotId(null)}
+                                  className="text-[11px] font-bold text-[#8a6a22] hover:text-[#5c4613]"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Pros */}
+                            {explanation.pros.length > 0 && (
+                              <div className="space-y-0.5">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800">
+                                  Points forts
+                                </span>
+                                <ul className="space-y-0.5 text-[11px] text-[#173f35]">
+                                  {explanation.pros.map((pro, idx) => (
+                                    <li key={idx} className="flex items-start gap-1.5">
+                                      <span className="text-emerald-600 font-bold">+</span>
+                                      <span>{pro}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {/* Watchpoints */}
+                            {explanation.watchpoints.length > 0 && (
+                              <div className="space-y-0.5 pt-1 border-t border-[#c89b3c]/20">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800">
+                                  Attention &amp; Écarts
+                                </span>
+                                <ul className="space-y-0.5 text-[11px] text-[#8a6a22]">
+                                  {explanation.watchpoints.map((wp, idx) => (
+                                    <li key={idx} className="flex items-start gap-1.5">
+                                      <span className="text-amber-600 font-bold">⚠️</span>
+                                      <span>{wp}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {/* Operational Risks */}
+                            {explanation.operationalRisks.length > 0 && (
+                              <div className="space-y-0.5 pt-1 border-t border-[#c89b3c]/20">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-rose-800">
+                                  Risques opérationnels
+                                </span>
+                                <ul className="space-y-0.5 text-[11px] text-rose-700">
+                                  {explanation.operationalRisks.map((risk, idx) => (
+                                    <li key={idx} className="flex items-start gap-1.5">
+                                      <span className="font-bold">•</span>
+                                      <span>{risk}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            <p className="pt-1 border-t border-[#c89b3c]/20 text-[11px] leading-relaxed italic text-[#52635c]">
+                              {explanation.summaryText}
+                            </p>
+                          </div>
+                        );
+                      })()}
+
                       {/* Technical Details Drawer */}
                       {expandedDetailsId === candidate.id && (
                         <div className="mt-3 rounded-xl border border-[#e2dccd] bg-[#fbf9f4] p-3 text-xs text-[#52635c] space-y-1.5">
@@ -810,6 +926,20 @@ export function MatchingWorkspaceView({
                         <button
                           type="button"
                           onClick={() =>
+                            setAiExplainingLotId(
+                              aiExplainingLotId === candidate.id ? null : candidate.id,
+                            )
+                          }
+                          className="inline-flex items-center gap-1 rounded-lg border border-[#c89b3c]/30 bg-[#faf6ee] px-2 py-1 text-[11px] font-medium text-[#7d5e1a] hover:bg-[#f5ebd2]"
+                          title="Aperçu Copilote IA"
+                        >
+                          <span>✨</span>
+                          <span>Pourquoi ce lot ?</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
                             setExpandedDetailsId(
                               expandedDetailsId === candidate.id ? null : candidate.id,
                             )
@@ -879,7 +1009,114 @@ export function MatchingWorkspaceView({
                 Comparez les dimensions critiques sans télémétrie technique brute.
               </p>
             </div>
+
+            {comparisonCandidates.length >= 2 && (
+              <button
+                type="button"
+                onClick={() => setShowAiComparisonSummary(!showAiComparisonSummary)}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-[#c89b3c]/40 bg-[#faf6ee] px-3 py-1.5 text-xs font-semibold text-[#7d5e1a] hover:bg-[#f5ebd2] transition-all shadow-2xs self-start sm:self-auto"
+              >
+                <span>✨</span>
+                <span>Résumer les différences (IA)</span>
+              </button>
+            )}
           </div>
+
+          {showAiComparisonSummary && comparisonCandidates.length >= 2 && (() => {
+            const synthesis = summarizeCandidateComparison(
+              workspace.buyOrder.quantity,
+              comparisonCandidates.map((c) => ({
+                id: c.id,
+                organisationName: c.organisationName,
+                title: c.title,
+                priceAmount: c.priceAmount,
+                currency: c.currency,
+                quantity: c.quantity,
+                quantityUnit: c.quantityUnit,
+                originCountry: c.originCountry,
+                certification: c.compatibility.certification,
+                harvestYear: c.harvestYear,
+                moisturePercentage: null,
+              })),
+            );
+
+            return (
+              <div className="mb-4 rounded-xl border border-[#c89b3c]/40 bg-[#faf6ee] p-4 text-xs text-[#7d5e1a] space-y-3">
+                <div className="flex items-center justify-between border-b border-[#c89b3c]/20 pb-2">
+                  <span className="font-bold flex items-center gap-1.5 text-sm text-[#173f35]">
+                    <span>✨</span> Synthèse comparative des offres (Copilote IA)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowAiComparisonSummary(false)}
+                    className="font-bold text-[#8a6a22] hover:text-[#5c4613]"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div className="rounded-lg bg-white/80 p-2.5 border border-[#c89b3c]/20">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 block">
+                      Meilleur choix économique
+                    </span>
+                    <strong className="text-xs text-[#173f35] block mt-0.5">
+                      {synthesis.bestEconomicChoice.organisationName}
+                    </strong>
+                    <span className="text-[11px] text-[#52635c]">
+                      {synthesis.bestEconomicChoice.detail}
+                    </span>
+                  </div>
+
+                  <div className="rounded-lg bg-white/80 p-2.5 border border-[#c89b3c]/20">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-blue-800 block">
+                      Meilleur choix qualité
+                    </span>
+                    <strong className="text-xs text-[#173f35] block mt-0.5">
+                      {synthesis.bestQualityChoice.organisationName}
+                    </strong>
+                    <span className="text-[11px] text-[#52635c]">
+                      {synthesis.bestQualityChoice.detail}
+                    </span>
+                  </div>
+
+                  <div className="rounded-lg bg-white/80 p-2.5 border border-[#c89b3c]/20">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-purple-800 block">
+                      Meilleure disponibilité
+                    </span>
+                    <strong className="text-xs text-[#173f35] block mt-0.5">
+                      {synthesis.bestAvailabilityChoice.organisationName}
+                    </strong>
+                    <span className="text-[11px] text-[#52635c]">
+                      {synthesis.bestAvailabilityChoice.detail}
+                    </span>
+                  </div>
+                </div>
+
+                {synthesis.keyTradeoffs.length > 0 && (
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#173f35]">
+                      Principaux compromis
+                    </span>
+                    <ul className="space-y-1 text-[11px] text-[#52635c] list-disc pl-4">
+                      {synthesis.keyTradeoffs.map((t, idx) => (
+                        <li key={idx} className="leading-relaxed">
+                          {t}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <div className="rounded-lg bg-[#173f35]/5 p-2.5 border border-[#173f35]/15 text-[11px] text-[#173f35]">
+                  <strong>Recommandation :</strong> {synthesis.recommendation}
+                  <p className="mt-1 text-[10px] text-[#6e7d77]">
+                    Décision humaine : la sélection et la validation du devis restent sous votre responsabilité.
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
 
           {comparisonCandidates.length === 0 ? (
             <p className="text-xs text-[#52635c]">

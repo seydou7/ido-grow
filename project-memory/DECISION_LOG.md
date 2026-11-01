@@ -291,3 +291,68 @@ Record important architectural and product decisions here. Previous decisions mu
 - The `Match` model enforces a maximum of one `APPROVED` match per `BuyOrder` via transaction-safe backend business rules.
 - Cancelling an approved match transitions its status to `CANCELLED`, preserving historical audit records and enabling the Trader to subsequently approve an alternative candidate.
 - Matching only operates on `BuyOrder.status = 'OPEN'` and `Listing.status = 'PUBLISHED'`.
+
+## DEC-008 — French as Default Application Locale
+
+- **Status:** Approved — partially supersedes DEC-005 (default locale selection only)
+- **Decision type:** Approved project decision
+- **Scope:** Frontend internationalization default locale and fallback convention. DEC-001 through DEC-004, DEC-006, and DEC-007 remain unchanged; DEC-005 remains preserved as historical decision evidence and remains active for all non-superseded clauses.
+
+### Decision
+
+- French (`fr`) is the default application locale (`DEFAULT_LOCALE = "fr"`) and missing-copy fallback when the `ido_grow_locale` preference cookie is absent or invalid.
+- Supported locales remain English (`en`), Dutch (`nl`), and French (`fr`), with deterministic resolution via the validated first-party `ido_grow_locale` cookie and explicit user selection via the header language selector.
+- All other internationalization runtime conventions established in DEC-005 (cookie attributes, absence of locale-prefixed URLs, server/client HTML `lang` consistency, and identical non-empty catalog keys across `en`, `nl`, and `fr`) remain unchanged.
+- The historical text of DEC-005 is preserved without modification.
+
+### Consequences and constraints
+
+- Unauthenticated and authenticated visitors without an existing `ido_grow_locale` cookie receive the French (`fr`) interface by default.
+- Users may switch to English (`en`) or Dutch (`nl`) at any time via the language selector.
+
+## DEC-009 — LLM Provider Selection: DeepSeek as MVP Foundation LLM
+
+- **Status:** Approved
+- **Decision type:** Approved project decision
+- **Scope:** LLM Provider selection for MVP Trader Contextual Copilot and AI Platform Foundation.
+- **Source relationship:** Establishes the authoritative LLM provider selection for the I DO GROW MVP, resolving the TBD status from DEC-001.
+
+### Decision
+
+- **DeepSeek** (`deepseek-flash`) is selected as the primary MVP LLM provider via OpenAI-compatible REST endpoint (`https://api.deepseek.com/chat/completions`).
+- For advanced reasoning requirements, `deepseek-v4-pro` is supported as an opt-in model override via `AI_MODEL_NAME`.
+- The architecture preserves strict provider neutrality: `AiOrchestratorService → AiProvider → AiProviderFactory → ExternalLlmAiProvider`.
+- Automatic graceful fallback to `DeterministicFakeAiProvider` is mandatory upon network timeout, HTTP error, or malformed JSON, guaranteeing zero downtime and uninterrupted business continuity.
+- Qwen is preserved as an alternative external LLM provider configuration (`AI_PROVIDER="qwen"`).
+
+### Consequences and constraints
+
+- Zero vendor-specific SDK dependencies: REST communication relies on native `fetch` with OpenAI-compatible payload.
+- All AI responses must validate against `StructuredAiOutputEnvelope` (`summary`, `confidence`, `evidence`, `missingInformation`, `proposedActions`).
+- Default prompt language is French, preserving exact business identifiers and codes.
+- API keys are strictly local and never committed to version control.
+
+## DEC-010 — Trader Portal UX Simplification & Contextual Copilot Architecture
+
+- **Status:** Approved
+- **Decision type:** Approved project decision
+- **Scope:** Trader Portal consolidation (TRADER-UX-01 through UX-05) and Contextual Copilot integration (TRADER-AI-01 through AI-05).
+
+### Decision
+
+- The Trader experience is consolidated around 5 core operational modules: Dashboard, Matching, Transactions (Dossier Unique 360°), Quality, Marketplace, plus secondary Partners and Settings.
+- AI is not presented as an isolated "AI Control Center", but embedded directly in workflow context across 8 capabilities:
+  1. `TRADER_DASHBOARD_BRIEFING`: Daily operational briefing & priority identification ("Que dois-je traiter en premier ?").
+  2. `TRADER_LOT_EXPLANATION`: Matching candidate explanation ("Pourquoi ce lot ?").
+  3. `TRADER_COMPARISON_SYNTHESIS`: Multi-lot comparison ("Résumer les différences").
+  4. `TRADER_QUOTE_MARGIN`: Quote margin assistance & landed cost optimization (10–12% range).
+  5. `TRADER_CONTEXT_ASSISTANT`: Transaction 360° dossier synthesis.
+  6. `TRADER_QUALITY_INSPECTION`: Inspection measurements, non-conformities, and risk analysis.
+  7. `TRADER_LOGISTICS_DIAGNOSTIC`: Shipment blockage root cause and transport analysis.
+  8. `TRADER_DOCUMENTS_AUDIT`: Document completeness & DPP readiness audit.
+- **Strict Human-in-the-Loop Governance:**
+  - **Level 1 (Read-Only):** Summaries, explanations, diagnostic analyses.
+  - **Level 2 (Proposal):** Margin recommendation, lot suggestions — applied only upon explicit Trader button click.
+  - **Level 3 (Critical Actions):** Accept quote, confirm contract, approve/reject inspection, select carrier, confirm delivery, seal DPP — strictly reserved for human actors; AI cannot perform or trigger these actions.
+
+

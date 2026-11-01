@@ -18,6 +18,7 @@ import {
   reviseCounterQuote,
   QuotesRequestError,
 } from "./api";
+import { analyzeQuoteMargin } from "../ai/trader-copilot-service";
 
 export function formatCurrencySymbol(currencyCode: string): string {
   const normalized = (currencyCode || "").trim().toUpperCase();
@@ -101,6 +102,7 @@ export function QuoteBuilderModal({
 
   // UX Toggle for compact vs detailed 11-line cost breakdown
   const [showDetailedBreakdown, setShowDetailedBreakdown] = useState<boolean>(false);
+  const [showAiMarginAnalysis, setShowAiMarginAnalysis] = useState<boolean>(false);
 
   // Form State — initialize without invented defaults
   const [breakdown, setBreakdown] = useState<CommercialBreakdown>(DEFAULT_BREAKDOWN);
@@ -933,8 +935,104 @@ export function QuoteBuilderModal({
                       <strong className="text-sm font-bold text-[#173f35] block mt-0.5">
                         {formatMonetaryDisplay(Number(breakdown.idoGrowMarginCommission) || 0, activeCurrency || quote?.currency || "")}
                       </strong>
+                      {!isLocked && (
+                        <div className="mt-1 flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setShowAiMarginAnalysis(!showAiMarginAnalysis)}
+                            className="inline-flex items-center gap-1 text-[10px] font-bold text-[#8a6a22] hover:underline"
+                            title="Analyser la marge et afficher les suggestions IA"
+                          >
+                            <span>✨ Aide à la marge</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
+
+                  {/* AI Margin Analysis Drawer / Panel (TRADER-AI-01) */}
+                  {showAiMarginAnalysis && (() => {
+                    const analysis = analyzeQuoteMargin({
+                      productValue: Number(breakdown.productValue) || 0,
+                      logisticsTotal,
+                      ancillaryFeesTotal,
+                      currentMarginAmount: Number(breakdown.idoGrowMarginCommission) || 0,
+                      currency: activeCurrency || quote?.currency || "",
+                    });
+
+                    return (
+                      <div className="mt-3 rounded-xl border border-[#c89b3c]/40 bg-[#faf6ee] p-3.5 text-xs text-[#7d5e1a] space-y-2.5">
+                        <div className="flex items-center justify-between border-b border-[#c89b3c]/20 pb-2">
+                          <span className="font-bold flex items-center gap-1.5 text-xs text-[#173f35]">
+                            <span>✨</span> Analyse de marge &amp; Suggestion Copilote IA
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setShowAiMarginAnalysis(false)}
+                            className="font-bold text-[#8a6a22] hover:text-[#5c4613]"
+                          >
+                            ✕
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                          <div className="rounded-lg bg-white/80 p-2.5 border border-[#c89b3c]/20">
+                            <span className="text-[#6e7d77] block text-[10px] uppercase font-bold">Marge actuelle</span>
+                            <strong className="text-sm text-[#173f35] block mt-0.5">
+                              {analysis.currentMarginPercent} %
+                            </strong>
+                            <span className="text-[10px] text-[#52635c]">
+                              {formatMonetaryDisplay(analysis.currentMarginAmount, activeCurrency || quote?.currency || "")}
+                            </span>
+                          </div>
+
+                          <div className="rounded-lg bg-white/80 p-2.5 border border-[#c89b3c]/20">
+                            <span className="text-emerald-800 block text-[10px] uppercase font-bold">Suggestion IA</span>
+                            <strong className="text-sm text-emerald-700 block mt-0.5">
+                              {analysis.suggestedRange} ({analysis.suggestedPercentage}%)
+                            </strong>
+                            <span className="text-[10px] text-[#52635c]">
+                              {formatMonetaryDisplay(analysis.suggestedMarginAmount, activeCurrency || quote?.currency || "")}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#173f35]">
+                            Raisonnement &amp; Justification
+                          </span>
+                          <ul className="space-y-0.5 text-[11px] text-[#52635c] list-disc pl-4">
+                            {analysis.reasons.map((r, idx) => (
+                              <li key={idx} className="leading-relaxed">
+                                {r}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        {!isLocked && (
+                          <div className="pt-2 border-t border-[#c89b3c]/20 flex items-center justify-between gap-2">
+                            <span className="text-[10px] text-[#6e7d77] italic">
+                              L&apos;IA ne modifie rien sans votre accord
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setBreakdown((prev) => ({
+                                  ...prev,
+                                  idoGrowMarginCommission: analysis.suggestedMarginAmount,
+                                }));
+                                setShowAiMarginAnalysis(false);
+                              }}
+                              className="rounded-lg bg-[#173f35] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#123129] transition-all shadow-2xs"
+                            >
+                              Appliquer la suggestion ({analysis.suggestedPercentage}%)
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   {/* Prix Client Final */}
                   <div className="mt-3 flex items-center justify-between rounded-xl bg-[#173f35] px-4 py-2.5 text-[#fffaf0]">

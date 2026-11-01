@@ -14,6 +14,7 @@ import type {
 import type { TradeSummary } from "../trades/contracts";
 import type { ShipmentSummary } from "../logistics/contracts";
 import { MatchingWorkspaceView } from "./matching-workspace-view";
+import { generateDashboardBriefing, type DashboardBriefingResult } from "../ai/trader-copilot-service";
 
 export interface TraderCockpitViewProps {
   onOpenMatching?: (buyOrderId: string) => void;
@@ -105,6 +106,9 @@ export function TraderCockpitView({
       currency?: string;
     };
   } | null>(null);
+
+  // AI Copilot placeholder modal
+  const [showAiModal, setShowAiModal] = useState(false);
 
   // Recent Activity toggle state
   const [showAllActivity, setShowAllActivity] = useState(false);
@@ -495,6 +499,20 @@ export function TraderCockpitView({
           <span className="hidden sm:inline-block text-xs text-[#6e7d77] capitalize mr-1">
             {todayFormatted}
           </span>
+
+          {/* AI Copilot Contextual Briefing Entry Point */}
+          <button
+            type="button"
+            onClick={() => setShowAiModal(true)}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-[#c89b3c]/35 bg-[#faf6ee] px-2.5 py-1.5 text-xs font-medium text-[#7d5e1a] hover:bg-[#f5ebd2] hover:border-[#c89b3c]/60 transition-all shadow-2xs"
+            title="Consulter le briefing contextuel IA"
+          >
+            <span className="text-[11px]">✨</span>
+            <span>Copilote IA</span>
+            <span className="rounded bg-[#8a6a22]/10 px-1 py-0.2 text-[9px] font-medium text-[#7d5e1a]">
+              Briefing
+            </span>
+          </button>
 
           <button
             type="button"
@@ -908,6 +926,162 @@ export function TraderCockpitView({
           }}
         />
       )}
+
+      {/* AI COPILOT CONTEXTUAL BRIEFING MODAL */}
+      {showAiModal && (() => {
+        const briefingData = generateDashboardBriefing({
+          urgentCount: urgentItems.length,
+          actionRequiredCount: toProcessItems.length,
+          toWatchCount: inProgressItems.length,
+          demandsNeedingOffers48h: urgentDemands.length,
+          counterOffersReceived: 0,
+          blockedShipments: delayedOrDisputedShipments.length,
+          reviewsPending: 0,
+          inspectionsPending: 0,
+          topPriorityItem: urgentDemands[0]
+            ? {
+                id: urgentDemands[0].id,
+                title: `Demande ${urgentDemands[0].buyerOrganisationName} (${urgentDemands[0].quantity} ${urgentDemands[0].quantityUnit} ${urgentDemands[0].materialType})`,
+                counterparty: urgentDemands[0].buyerOrganisationName,
+                ageHours: Math.round((Date.now() - new Date(urgentDemands[0].createdAt).getTime()) / 3600000),
+                type: "DEMAND" as const,
+              }
+            : delayedOrDisputedShipments[0]
+            ? {
+                id: delayedOrDisputedShipments[0].id,
+                title: `Expédition ${delayedOrDisputedShipments[0].shipmentNumber || delayedOrDisputedShipments[0].id} (${delayedOrDisputedShipments[0].status})`,
+                counterparty: delayedOrDisputedShipments[0].supplierOrganisationName || "Fournisseur",
+                type: "SHIPMENT" as const,
+              }
+            : null,
+        });
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+            <div className="flex w-full max-w-lg flex-col rounded-3xl border border-[#e2dccd] bg-white p-6 shadow-2xl">
+              <div className="flex items-center justify-between border-b border-[#f0ece1] pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">✨</span>
+                  <h3 className="text-base font-bold text-[#173f35]">
+                    Briefing Quotidien Copilote IA
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAiModal(false)}
+                  className="rounded-lg p-1 text-[#6e7d77] hover:bg-[#faf8f1]"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-4 py-4 text-xs text-[#52635c]">
+                {/* 1. Résumé du jour */}
+                <div className="rounded-xl border border-[#c89b3c]/30 bg-[#faf5e6] p-3 text-[#8a6a22]">
+                  <p className="font-bold text-sm text-[#173f35]">{briefingData.headline}</p>
+                  <ul className="mt-2 space-y-1 list-disc pl-4 text-xs text-[#52635c]">
+                    {briefingData.summaryPoints.map((point, idx) => (
+                      <li key={idx} className="leading-relaxed">
+                        {point}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* 2. Que dois-je traiter en premier ? */}
+                <div className="rounded-xl border border-[#173f35]/20 bg-[#f7fbf9] p-3.5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#173f35]">
+                      🎯 Que dois-je traiter en premier ?
+                    </span>
+                    <span
+                      className={`rounded px-1.5 py-0.5 text-[9px] font-extrabold uppercase ${
+                        briefingData.topPriority.level === "URGENT"
+                          ? "bg-rose-100 text-rose-800"
+                          : briefingData.topPriority.level === "ACTION_REQUISE"
+                          ? "bg-amber-100 text-amber-800"
+                          : "bg-emerald-100 text-emerald-800"
+                      }`}
+                    >
+                      {briefingData.topPriority.level.replace("_", " ")}
+                    </span>
+                  </div>
+
+                  <p className="text-xs font-bold text-[#173f35]">
+                    {briefingData.topPriority.title}
+                  </p>
+
+                  <div className="space-y-1 text-[11px] leading-relaxed">
+                    <p>
+                      <strong className="text-[#173f35]">Pourquoi :</strong>{" "}
+                      {briefingData.topPriority.justification}
+                    </p>
+                    <p>
+                      <strong className="text-[#173f35]">Impact :</strong>{" "}
+                      {briefingData.topPriority.impact}
+                    </p>
+                  </div>
+
+                  <div className="mt-3 pt-2 border-t border-[#e2dccd] flex items-center justify-between gap-2">
+                    <span className="text-[11px] text-[#52635c] italic">
+                      Action recommandée :
+                    </span>
+                    {urgentDemands[0] ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAiModal(false);
+                          handleOpenDemandMatching(urgentDemands[0].id);
+                        }}
+                        className="rounded-lg bg-[#173f35] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#123129] transition-all shadow-2xs"
+                      >
+                        Matcher la demande →
+                      </button>
+                    ) : delayedOrDisputedShipments[0] ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAiModal(false);
+                          onNavigateSection?.("trader-transactions");
+                        }}
+                        className="rounded-lg bg-[#173f35] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#123129] transition-all shadow-2xs"
+                      >
+                        Consulter l&apos;expédition →
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAiModal(false);
+                          onNavigateSection?.("trader-demand");
+                        }}
+                        className="rounded-lg bg-[#173f35] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#123129] transition-all shadow-2xs"
+                      >
+                        Ouvrir le Matching →
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* 3. Human Gate Notice */}
+                <div className="rounded-xl border border-[#e2dccd] bg-[#fbf9f4] p-2.5 text-[10px] text-[#6e7d77] leading-relaxed">
+                  <strong className="text-[#173f35]">Gouvernance Human-in-the-loop :</strong> L&apos;IA priorise et synthétise. Toute acceptation commerciale, confirmation de contrat ou attribution de fret reste sous votre contrôle exclusif.
+                </div>
+              </div>
+
+              <div className="flex justify-end border-t border-[#f0ece1] pt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowAiModal(false)}
+                  className="rounded-xl border border-[#e2dccd] bg-white px-4 py-2 text-xs font-semibold text-[#173f35] hover:bg-[#faf8f1] transition-all"
+                >
+                  Fermer
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

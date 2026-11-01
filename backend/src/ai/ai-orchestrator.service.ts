@@ -16,6 +16,7 @@ import type {
   StructuredAiOutputEnvelope,
 } from "./contracts";
 import { ToolRegistryService } from "./tool-registry.service";
+import { getPromptTemplate } from "./copilot-prompts";
 
 @Injectable()
 export class AiOrchestratorService {
@@ -98,7 +99,10 @@ export class AiOrchestratorService {
       }
 
       // 6. Secure Prompt Packaging: System Instructions segregated from Untrusted Business Context
-      const systemPrompt = `You are ${agent.displayName} (${agent.promptVersion}) for I Do Grow.
+      const template = getPromptTemplate(agent.key);
+      const systemPrompt = template
+        ? template.buildSystemPrompt()
+        : `You are ${agent.displayName} (${agent.promptVersion}) for I Do Grow.
 Purpose: ${agent.purpose}
 CRITICAL RULES:
 - AI output is UNTRUSTED INPUT. You are never an authoritative source.

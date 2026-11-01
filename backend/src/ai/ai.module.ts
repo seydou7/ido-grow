@@ -11,6 +11,7 @@ import { AiOrchestratorService } from "./ai-orchestrator.service";
 import { AiProvider } from "./ai-provider.interface";
 import { AiController } from "./ai.controller";
 import { DeterministicFakeAiProvider } from "./deterministic-fake-ai.provider";
+import { createAiProvider } from "./ai-provider.factory";
 import { ToolRegistryService } from "./tool-registry.service";
 
 @Module({
@@ -24,8 +25,9 @@ import { ToolRegistryService } from "./tool-registry.service";
   providers: [
     {
       provide: AiProvider,
-      useClass: DeterministicFakeAiProvider,
+      useFactory: createAiProvider,
     },
+    DeterministicFakeAiProvider,
     AgentRegistryService,
     ToolRegistryService,
     AiContextRetrieverService,
