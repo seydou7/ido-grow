@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useI18n } from "@/i18n/i18n-provider";
 import { formatMaterialType, formatOriginCountry, formatProductForm } from "./formatters";
 import type { PublicMarketplaceFacets } from "./public-contracts";
 
@@ -33,13 +34,7 @@ const PRODUCT_FORMS = [
   "YARN",
   "HURDS",
 ];
-const COUNTRIES = [
-  { code: "FR", name: "France" },
-  { code: "BE", name: "Belgium" },
-  { code: "NL", name: "Netherlands" },
-  { code: "ES", name: "Spain" },
-  { code: "DE", name: "Germany" },
-];
+const COUNTRIES = ["FR", "BE", "NL", "ES", "DE"];
 
 export function HorizontalFilterToolbar({
   selectedMaterial,
@@ -58,9 +53,9 @@ export function HorizontalFilterToolbar({
   onUpdateParam,
   onOpenAllFilters,
 }: HorizontalFilterToolbarProps) {
+  const { locale, t } = useI18n();
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
-  // Local draft states for volume and price ranges
   const [localMinQty, setLocalMinQty] = useState(minQuantity);
   const [localMaxQty, setLocalMaxQty] = useState(maxQuantity);
   const [localMinPrice, setLocalMinPrice] = useState(minPrice);
@@ -68,7 +63,6 @@ export function HorizontalFilterToolbar({
 
   const toolbarRef = useRef<HTMLDivElement>(null);
 
-  // Sync drafts when props change
   useEffect(() => {
     setLocalMinQty(minQuantity);
     setLocalMaxQty(maxQuantity);
@@ -79,7 +73,6 @@ export function HorizontalFilterToolbar({
     setLocalMaxPrice(maxPrice);
   }, [minPrice, maxPrice]);
 
-  // Click outside to close any open dropdown
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (toolbarRef.current && !toolbarRef.current.contains(event.target as Node)) {
@@ -103,12 +96,19 @@ export function HorizontalFilterToolbar({
     setOpenDropdown((current) => (current === name ? null : name));
   };
 
+  const pillClass = (isActive: boolean) =>
+    `inline-flex items-center gap-1.5 py-2 px-3.5 rounded-sm text-xs font-semibold border transition-colors cursor-pointer ${
+      isActive
+        ? "bg-[#173f35] text-white border-[#173f35]"
+        : "bg-white text-[#173f35] border-[#d8d1bd] hover:border-[#173f35]"
+    }`;
+
   return (
     <div
       ref={toolbarRef}
-      className="sticky top-[64px] z-30 bg-[#faf8f1]/95 backdrop-blur-md border-y border-[#e2dcce] py-3 shadow-xs"
+      className="sticky top-[64px] z-30 bg-[#faf8f1]/95 backdrop-blur-md border-b border-[#e4ded0] py-3"
     >
-      <div className="max-w-[1650px] mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-5 sm:px-8">
         <div className="flex items-center justify-between gap-3">
           {/* Left: Horizontal Filter Buttons (Desktop) */}
           <div className="hidden lg:flex items-center gap-2 flex-wrap">
@@ -118,24 +118,22 @@ export function HorizontalFilterToolbar({
                 type="button"
                 onClick={() => toggleDropdown("material")}
                 aria-expanded={openDropdown === "material"}
-                className={`inline-flex items-center gap-1.5 py-2 px-3.5 rounded-lg text-xs font-semibold border transition-all ${
-                  selectedMaterial !== "ALL"
-                    ? "bg-[#173f35] text-white border-[#173f35] shadow-xs"
-                    : "bg-white text-[#173f35] border-[#d8d1bd] hover:border-[#173f35] hover:bg-[#fbf9f4]"
-                }`}
+                className={pillClass(selectedMaterial !== "ALL")}
               >
                 <span>
                   {selectedMaterial !== "ALL"
-                    ? `Material: ${formatMaterialType(selectedMaterial)}`
-                    : "Material"}
+                    ? `${t("marketplace.filter.material")}: ${formatMaterialType(selectedMaterial, locale)}`
+                    : t("marketplace.filter.material")}
                 </span>
-                <span className="text-[10px] opacity-70">▾</span>
+                <span className="text-[10px] opacity-70" aria-hidden="true">
+                  ▾
+                </span>
               </button>
 
               {openDropdown === "material" && (
-                <div className="absolute left-0 mt-2 w-64 bg-white rounded-xl border border-[#ded8c4] shadow-xl p-3 z-50 animate-in fade-in zoom-in-95 duration-100">
-                  <div className="text-[11px] font-bold uppercase tracking-wider text-[#7d8f85] px-2 py-1 mb-1">
-                    Select Material
+                <div className="absolute left-0 mt-2 w-64 bg-white rounded-md border border-[#ded8c4] shadow-xl p-2.5 z-50">
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-[#8a6a22] px-2.5 py-1 mb-1">
+                    {t("marketplace.filter.material")}
                   </div>
                   <div className="space-y-1">
                     <button
@@ -144,13 +142,13 @@ export function HorizontalFilterToolbar({
                         onUpdateParam({ materialType: null });
                         setOpenDropdown(null);
                       }}
-                      className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between ${
+                      className={`w-full text-left px-2.5 py-1.5 rounded-sm text-xs font-medium flex items-center justify-between cursor-pointer ${
                         selectedMaterial === "ALL"
                           ? "bg-[#173f35] text-white font-bold"
-                          : "text-[#173f35] hover:bg-[#f4f0e2]"
+                          : "text-[#173f35] hover:bg-[#f2eddf]"
                       }`}
                     >
-                      <span>All Materials</span>
+                      <span>{t("marketplace.filter.allMaterials")}</span>
                     </button>
                     {MATERIALS.map((mat) => {
                       const count = facets?.materials.find(
@@ -165,17 +163,17 @@ export function HorizontalFilterToolbar({
                             onUpdateParam({ materialType: mat });
                             setOpenDropdown(null);
                           }}
-                          className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between ${
+                          className={`w-full text-left px-2.5 py-1.5 rounded-sm text-xs font-medium flex items-center justify-between cursor-pointer ${
                             isSelected
                               ? "bg-[#173f35] text-white font-bold"
-                              : "text-[#173f35] hover:bg-[#f4f0e2]"
+                              : "text-[#173f35] hover:bg-[#f2eddf]"
                           }`}
                         >
-                          <span>{formatMaterialType(mat)}</span>
+                          <span>{formatMaterialType(mat, locale)}</span>
                           {count !== undefined && (
                             <span
-                              className={`text-[10px] ${
-                                isSelected ? "text-white/80" : "text-[#7d8f85]"
+                              className={`text-[10px] tabular-nums ${
+                                isSelected ? "text-white/80" : "text-[#5c6e66]"
                               }`}
                             >
                               ({count})
@@ -195,24 +193,22 @@ export function HorizontalFilterToolbar({
                 type="button"
                 onClick={() => toggleDropdown("form")}
                 aria-expanded={openDropdown === "form"}
-                className={`inline-flex items-center gap-1.5 py-2 px-3.5 rounded-lg text-xs font-semibold border transition-all ${
-                  selectedForm !== "ALL"
-                    ? "bg-[#173f35] text-white border-[#173f35] shadow-xs"
-                    : "bg-white text-[#173f35] border-[#d8d1bd] hover:border-[#173f35] hover:bg-[#fbf9f4]"
-                }`}
+                className={pillClass(selectedForm !== "ALL")}
               >
                 <span>
                   {selectedForm !== "ALL"
-                    ? `Form: ${formatProductForm(selectedForm)}`
-                    : "Product Form"}
+                    ? `${t("marketplace.filter.form")}: ${formatProductForm(selectedForm, locale)}`
+                    : t("marketplace.filter.form")}
                 </span>
-                <span className="text-[10px] opacity-70">▾</span>
+                <span className="text-[10px] opacity-70" aria-hidden="true">
+                  ▾
+                </span>
               </button>
 
               {openDropdown === "form" && (
-                <div className="absolute left-0 mt-2 w-64 bg-white rounded-xl border border-[#ded8c4] shadow-xl p-3 z-50 max-h-80 overflow-y-auto animate-in fade-in zoom-in-95 duration-100">
-                  <div className="text-[11px] font-bold uppercase tracking-wider text-[#7d8f85] px-2 py-1 mb-1">
-                    Select Product Form
+                <div className="absolute left-0 mt-2 w-64 bg-white rounded-md border border-[#ded8c4] shadow-xl p-2.5 z-50 max-h-80 overflow-y-auto">
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-[#8a6a22] px-2.5 py-1 mb-1">
+                    {t("marketplace.filter.form")}
                   </div>
                   <div className="space-y-1">
                     <button
@@ -221,13 +217,13 @@ export function HorizontalFilterToolbar({
                         onUpdateParam({ productForm: null });
                         setOpenDropdown(null);
                       }}
-                      className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between ${
+                      className={`w-full text-left px-2.5 py-1.5 rounded-sm text-xs font-medium flex items-center justify-between cursor-pointer ${
                         selectedForm === "ALL"
                           ? "bg-[#173f35] text-white font-bold"
-                          : "text-[#173f35] hover:bg-[#f4f0e2]"
+                          : "text-[#173f35] hover:bg-[#f2eddf]"
                       }`}
                     >
-                      <span>All Forms</span>
+                      <span>{t("marketplace.filter.allForms")}</span>
                     </button>
                     {PRODUCT_FORMS.map((form) => {
                       const isSelected = selectedForm === form;
@@ -239,13 +235,13 @@ export function HorizontalFilterToolbar({
                             onUpdateParam({ productForm: form });
                             setOpenDropdown(null);
                           }}
-                          className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between ${
+                          className={`w-full text-left px-2.5 py-1.5 rounded-sm text-xs font-medium flex items-center justify-between cursor-pointer ${
                             isSelected
                               ? "bg-[#173f35] text-white font-bold"
-                              : "text-[#173f35] hover:bg-[#f4f0e2]"
+                              : "text-[#173f35] hover:bg-[#f2eddf]"
                           }`}
                         >
-                          <span>{formatProductForm(form)}</span>
+                          <span>{formatProductForm(form, locale)}</span>
                         </button>
                       );
                     })}
@@ -260,24 +256,22 @@ export function HorizontalFilterToolbar({
                 type="button"
                 onClick={() => toggleDropdown("origin")}
                 aria-expanded={openDropdown === "origin"}
-                className={`inline-flex items-center gap-1.5 py-2 px-3.5 rounded-lg text-xs font-semibold border transition-all ${
-                  selectedCountry !== "ALL"
-                    ? "bg-[#173f35] text-white border-[#173f35] shadow-xs"
-                    : "bg-white text-[#173f35] border-[#d8d1bd] hover:border-[#173f35] hover:bg-[#fbf9f4]"
-                }`}
+                className={pillClass(selectedCountry !== "ALL")}
               >
                 <span>
                   {selectedCountry !== "ALL"
-                    ? `Origin: ${formatOriginCountry(selectedCountry)}`
-                    : "Origin"}
+                    ? `${t("marketplace.filter.origin")}: ${formatOriginCountry(selectedCountry, locale)}`
+                    : t("marketplace.filter.origin")}
                 </span>
-                <span className="text-[10px] opacity-70">▾</span>
+                <span className="text-[10px] opacity-70" aria-hidden="true">
+                  ▾
+                </span>
               </button>
 
               {openDropdown === "origin" && (
-                <div className="absolute left-0 mt-2 w-60 bg-white rounded-xl border border-[#ded8c4] shadow-xl p-3 z-50 animate-in fade-in zoom-in-95 duration-100">
-                  <div className="text-[11px] font-bold uppercase tracking-wider text-[#7d8f85] px-2 py-1 mb-1">
-                    Select Origin
+                <div className="absolute left-0 mt-2 w-60 bg-white rounded-md border border-[#ded8c4] shadow-xl p-2.5 z-50">
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-[#8a6a22] px-2.5 py-1 mb-1">
+                    {t("marketplace.filter.origin")}
                   </div>
                   <div className="space-y-1">
                     <button
@@ -286,38 +280,37 @@ export function HorizontalFilterToolbar({
                         onUpdateParam({ originCountry: null });
                         setOpenDropdown(null);
                       }}
-                      className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between ${
+                      className={`w-full text-left px-2.5 py-1.5 rounded-sm text-xs font-medium flex items-center justify-between cursor-pointer ${
                         selectedCountry === "ALL"
                           ? "bg-[#173f35] text-white font-bold"
-                          : "text-[#173f35] hover:bg-[#f4f0e2]"
+                          : "text-[#173f35] hover:bg-[#f2eddf]"
                       }`}
                     >
-                      <span>All Origins</span>
+                      <span>{t("marketplace.filter.allOrigins")}</span>
                     </button>
-                    {COUNTRIES.map((c) => {
-                      const isSelected =
-                        selectedCountry === c.code || selectedCountry === c.name;
+                    {COUNTRIES.map((code) => {
+                      const isSelected = selectedCountry === code;
                       return (
                         <button
-                          key={c.code}
+                          key={code}
                           type="button"
                           onClick={() => {
-                            onUpdateParam({ originCountry: c.code });
+                            onUpdateParam({ originCountry: code });
                             setOpenDropdown(null);
                           }}
-                          className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between ${
+                          className={`w-full text-left px-2.5 py-1.5 rounded-sm text-xs font-medium flex items-center justify-between cursor-pointer ${
                             isSelected
                               ? "bg-[#173f35] text-white font-bold"
-                              : "text-[#173f35] hover:bg-[#f4f0e2]"
+                              : "text-[#173f35] hover:bg-[#f2eddf]"
                           }`}
                         >
-                          <span>{c.name}</span>
+                          <span>{formatOriginCountry(code, locale)}</span>
                           <span
                             className={`text-[10px] ${
-                              isSelected ? "text-white/80" : "text-[#7d8f85]"
+                              isSelected ? "text-white/80" : "text-[#5c6e66]"
                             }`}
                           >
-                            {c.code}
+                            {code}
                           </span>
                         </button>
                       );
@@ -333,29 +326,27 @@ export function HorizontalFilterToolbar({
                 type="button"
                 onClick={() => toggleDropdown("volume")}
                 aria-expanded={openDropdown === "volume"}
-                className={`inline-flex items-center gap-1.5 py-2 px-3.5 rounded-lg text-xs font-semibold border transition-all ${
-                  minQuantity || maxQuantity
-                    ? "bg-[#173f35] text-white border-[#173f35] shadow-xs"
-                    : "bg-white text-[#173f35] border-[#d8d1bd] hover:border-[#173f35] hover:bg-[#fbf9f4]"
-                }`}
+                className={pillClass(Boolean(minQuantity || maxQuantity))}
               >
                 <span>
                   {minQuantity || maxQuantity
-                    ? `Volume: ${minQuantity || "0"}–${maxQuantity || "∞"} t`
-                    : "Volume"}
+                    ? `${t("marketplace.filter.volume")}: ${minQuantity || "0"}–${maxQuantity || "∞"} t`
+                    : t("marketplace.filter.volume")}
                 </span>
-                <span className="text-[10px] opacity-70">▾</span>
+                <span className="text-[10px] opacity-70" aria-hidden="true">
+                  ▾
+                </span>
               </button>
 
               {openDropdown === "volume" && (
-                <div className="absolute left-0 mt-2 w-64 bg-white rounded-xl border border-[#ded8c4] shadow-xl p-4 z-50 animate-in fade-in zoom-in-95 duration-100">
-                  <div className="text-[11px] font-bold uppercase tracking-wider text-[#7d8f85] mb-2">
-                    Volume Range (Tonnes)
+                <div className="absolute left-0 mt-2 w-64 bg-white rounded-md border border-[#ded8c4] shadow-xl p-4 z-50">
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-[#8a6a22] mb-2.5">
+                    {t("marketplace.filter.volumeRange")}
                   </div>
                   <div className="grid grid-cols-2 gap-2 mb-3">
                     <div>
-                      <label className="block text-[10px] text-[#5c6e66] uppercase mb-0.5">
-                        Min
+                      <label className="block text-[10px] text-[#5c6e66] uppercase mb-1">
+                        {t("marketplace.filter.min")}
                       </label>
                       <input
                         type="number"
@@ -363,12 +354,12 @@ export function HorizontalFilterToolbar({
                         placeholder="0"
                         value={localMinQty}
                         onChange={(e) => setLocalMinQty(e.target.value)}
-                        className="w-full py-1.5 px-2 bg-[#faf8f1] border border-[#d8d1bd] rounded-lg text-xs text-[#173f35] focus:outline-none focus:ring-1 focus:ring-[#173f35]"
+                        className="w-full py-1.5 px-2.5 bg-[#faf8f1] border border-[#d8d1bd] rounded-sm text-xs text-[#173f35] focus:outline-none focus:ring-1 focus:ring-[#173f35]"
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] text-[#5c6e66] uppercase mb-0.5">
-                        Max
+                      <label className="block text-[10px] text-[#5c6e66] uppercase mb-1">
+                        {t("marketplace.filter.max")}
                       </label>
                       <input
                         type="number"
@@ -376,11 +367,11 @@ export function HorizontalFilterToolbar({
                         placeholder="500"
                         value={localMaxQty}
                         onChange={(e) => setLocalMaxQty(e.target.value)}
-                        className="w-full py-1.5 px-2 bg-[#faf8f1] border border-[#d8d1bd] rounded-lg text-xs text-[#173f35] focus:outline-none focus:ring-1 focus:ring-[#173f35]"
+                        className="w-full py-1.5 px-2.5 bg-[#faf8f1] border border-[#d8d1bd] rounded-sm text-xs text-[#173f35] focus:outline-none focus:ring-1 focus:ring-[#173f35]"
                       />
                     </div>
                   </div>
-                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#f0ebe0]">
+                  <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-[#e4ded0]">
                     <button
                       type="button"
                       onClick={() => {
@@ -389,9 +380,9 @@ export function HorizontalFilterToolbar({
                         onUpdateParam({ minQuantity: null, maxQuantity: null });
                         setOpenDropdown(null);
                       }}
-                      className="text-xs text-[#6d7e76] hover:text-[#173f35] font-semibold"
+                      className="text-xs text-[#5c6e66] hover:text-[#173f35] font-semibold cursor-pointer"
                     >
-                      Reset
+                      {t("marketplace.filter.reset")}
                     </button>
                     <button
                       type="button"
@@ -402,9 +393,9 @@ export function HorizontalFilterToolbar({
                         });
                         setOpenDropdown(null);
                       }}
-                      className="py-1.5 px-3 bg-[#173f35] hover:bg-[#1e5442] text-white text-xs font-bold rounded-lg shadow-xs"
+                      className="py-1.5 px-3.5 bg-[#173f35] hover:bg-[#1e5442] text-white text-xs font-bold rounded-sm cursor-pointer"
                     >
-                      Apply
+                      {t("marketplace.filter.apply")}
                     </button>
                   </div>
                 </div>
@@ -417,29 +408,27 @@ export function HorizontalFilterToolbar({
                 type="button"
                 onClick={() => toggleDropdown("price")}
                 aria-expanded={openDropdown === "price"}
-                className={`inline-flex items-center gap-1.5 py-2 px-3.5 rounded-lg text-xs font-semibold border transition-all ${
-                  minPrice || maxPrice
-                    ? "bg-[#173f35] text-white border-[#173f35] shadow-xs"
-                    : "bg-white text-[#173f35] border-[#d8d1bd] hover:border-[#173f35] hover:bg-[#fbf9f4]"
-                }`}
+                className={pillClass(Boolean(minPrice || maxPrice))}
               >
                 <span>
                   {minPrice || maxPrice
-                    ? `Price: €${minPrice || "0"}–€${maxPrice || "∞"}`
-                    : "Price"}
+                    ? `${t("marketplace.filter.price")}: €${minPrice || "0"}–€${maxPrice || "∞"}`
+                    : t("marketplace.filter.price")}
                 </span>
-                <span className="text-[10px] opacity-70">▾</span>
+                <span className="text-[10px] opacity-70" aria-hidden="true">
+                  ▾
+                </span>
               </button>
 
               {openDropdown === "price" && (
-                <div className="absolute left-0 mt-2 w-64 bg-white rounded-xl border border-[#ded8c4] shadow-xl p-4 z-50 animate-in fade-in zoom-in-95 duration-100">
-                  <div className="text-[11px] font-bold uppercase tracking-wider text-[#7d8f85] mb-2">
-                    Indicative Price (€/tonne)
+                <div className="absolute left-0 mt-2 w-64 bg-white rounded-md border border-[#ded8c4] shadow-xl p-4 z-50">
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-[#8a6a22] mb-2.5">
+                    {t("marketplace.filter.priceRange")}
                   </div>
                   <div className="grid grid-cols-2 gap-2 mb-3">
                     <div>
-                      <label className="block text-[10px] text-[#5c6e66] uppercase mb-0.5">
-                        Min €
+                      <label className="block text-[10px] text-[#5c6e66] uppercase mb-1">
+                        {t("marketplace.filter.min")} €
                       </label>
                       <input
                         type="number"
@@ -447,12 +436,12 @@ export function HorizontalFilterToolbar({
                         placeholder="0"
                         value={localMinPrice}
                         onChange={(e) => setLocalMinPrice(e.target.value)}
-                        className="w-full py-1.5 px-2 bg-[#faf8f1] border border-[#d8d1bd] rounded-lg text-xs text-[#173f35] focus:outline-none focus:ring-1 focus:ring-[#173f35]"
+                        className="w-full py-1.5 px-2.5 bg-[#faf8f1] border border-[#d8d1bd] rounded-sm text-xs text-[#173f35] focus:outline-none focus:ring-1 focus:ring-[#173f35]"
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] text-[#5c6e66] uppercase mb-0.5">
-                        Max €
+                      <label className="block text-[10px] text-[#5c6e66] uppercase mb-1">
+                        {t("marketplace.filter.max")} €
                       </label>
                       <input
                         type="number"
@@ -460,11 +449,11 @@ export function HorizontalFilterToolbar({
                         placeholder="1200"
                         value={localMaxPrice}
                         onChange={(e) => setLocalMaxPrice(e.target.value)}
-                        className="w-full py-1.5 px-2 bg-[#faf8f1] border border-[#d8d1bd] rounded-lg text-xs text-[#173f35] focus:outline-none focus:ring-1 focus:ring-[#173f35]"
+                        className="w-full py-1.5 px-2.5 bg-[#faf8f1] border border-[#d8d1bd] rounded-sm text-xs text-[#173f35] focus:outline-none focus:ring-1 focus:ring-[#173f35]"
                       />
                     </div>
                   </div>
-                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#f0ebe0]">
+                  <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-[#e4ded0]">
                     <button
                       type="button"
                       onClick={() => {
@@ -473,9 +462,9 @@ export function HorizontalFilterToolbar({
                         onUpdateParam({ minPrice: null, maxPrice: null });
                         setOpenDropdown(null);
                       }}
-                      className="text-xs text-[#6d7e76] hover:text-[#173f35] font-semibold"
+                      className="text-xs text-[#5c6e66] hover:text-[#173f35] font-semibold cursor-pointer"
                     >
-                      Reset
+                      {t("marketplace.filter.reset")}
                     </button>
                     <button
                       type="button"
@@ -486,9 +475,9 @@ export function HorizontalFilterToolbar({
                         });
                         setOpenDropdown(null);
                       }}
-                      className="py-1.5 px-3 bg-[#173f35] hover:bg-[#1e5442] text-white text-xs font-bold rounded-lg shadow-xs"
+                      className="py-1.5 px-3.5 bg-[#173f35] hover:bg-[#1e5442] text-white text-xs font-bold rounded-sm cursor-pointer"
                     >
-                      Apply
+                      {t("marketplace.filter.apply")}
                     </button>
                   </div>
                 </div>
@@ -501,16 +490,12 @@ export function HorizontalFilterToolbar({
               onClick={() =>
                 onUpdateParam({ hasQualityApproved: hasQualityApproved ? null : "true" })
               }
-              className={`inline-flex items-center gap-1.5 py-2 px-3.5 rounded-lg text-xs font-semibold border transition-all ${
-                hasQualityApproved
-                  ? "bg-[#173f35] text-white border-[#173f35] shadow-xs"
-                  : "bg-white text-[#173f35] border-[#d8d1bd] hover:border-[#173f35] hover:bg-[#fbf9f4]"
-              }`}
+              className={pillClass(hasQualityApproved)}
             >
               {hasQualityApproved && (
-                <span className="w-1.5 h-1.5 rounded-full bg-[#c89b3c]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#e2c98c]" aria-hidden="true" />
               )}
-              <span>Quality Verified</span>
+              <span>{t("marketplace.filter.quality")}</span>
             </button>
 
             {/* 7. Certifications Toggle Button */}
@@ -519,30 +504,24 @@ export function HorizontalFilterToolbar({
               onClick={() =>
                 onUpdateParam({ hasCertifications: hasCertifications ? null : "true" })
               }
-              className={`inline-flex items-center gap-1.5 py-2 px-3.5 rounded-lg text-xs font-semibold border transition-all ${
-                hasCertifications
-                  ? "bg-[#173f35] text-white border-[#173f35] shadow-xs"
-                  : "bg-white text-[#173f35] border-[#d8d1bd] hover:border-[#173f35] hover:bg-[#fbf9f4]"
-              }`}
+              className={pillClass(hasCertifications)}
             >
               {hasCertifications && (
-                <span className="w-1.5 h-1.5 rounded-full bg-[#c89b3c]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#e2c98c]" aria-hidden="true" />
               )}
-              <span>Certifications</span>
+              <span>{t("marketplace.filter.certifications")}</span>
             </button>
 
             {/* 8. Traceability / DPP Toggle Button */}
             <button
               type="button"
               onClick={() => onUpdateParam({ hasDpp: hasDpp ? null : "true" })}
-              className={`inline-flex items-center gap-1.5 py-2 px-3.5 rounded-lg text-xs font-semibold border transition-all ${
-                hasDpp
-                  ? "bg-[#173f35] text-white border-[#173f35] shadow-xs"
-                  : "bg-white text-[#173f35] border-[#d8d1bd] hover:border-[#173f35] hover:bg-[#fbf9f4]"
-              }`}
+              className={pillClass(hasDpp)}
             >
-              {hasDpp && <span className="w-1.5 h-1.5 rounded-full bg-[#c89b3c]" />}
-              <span>Traceability (DPP)</span>
+              {hasDpp && (
+                <span className="w-1.5 h-1.5 rounded-full bg-[#e2c98c]" aria-hidden="true" />
+              )}
+              <span>{t("marketplace.filter.dpp")}</span>
             </button>
           </div>
 
@@ -551,7 +530,7 @@ export function HorizontalFilterToolbar({
             <button
               type="button"
               onClick={onOpenAllFilters}
-              className="flex items-center gap-2 py-2 px-3.5 bg-white border border-[#c8c0aa] rounded-lg text-xs font-bold text-[#173f35] shadow-xs hover:bg-[#f4f0e2]"
+              className="flex items-center gap-2 py-2 px-3.5 bg-white border border-[#d8d1bd] rounded-sm text-xs font-bold text-[#173f35] hover:bg-[#f2eddf] cursor-pointer"
             >
               <svg
                 className="w-4 h-4 text-[#173f35]"
@@ -559,6 +538,7 @@ export function HorizontalFilterToolbar({
                 viewBox="0 0 24 24"
                 stroke="currentColor"
                 strokeWidth="2"
+                aria-hidden="true"
               >
                 <path
                   strokeLinecap="round"
@@ -566,9 +546,9 @@ export function HorizontalFilterToolbar({
                   d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
                 />
               </svg>
-              <span>Filters</span>
+              <span>{t("marketplace.filter.filtersMobile")}</span>
               {activeCount > 0 && (
-                <span className="w-5 h-5 rounded-full bg-[#173f35] text-white text-[10px] font-bold flex items-center justify-center">
+                <span className="w-5 h-5 rounded-full bg-[#173f35] text-white text-[10px] font-bold flex items-center justify-center tabular-nums">
                   {activeCount}
                 </span>
               )}
@@ -577,11 +557,10 @@ export function HorizontalFilterToolbar({
 
           {/* Right: All Filters Modal Trigger & Sort */}
           <div className="flex items-center gap-3">
-            {/* All Filters Button (Desktop) */}
             <button
               type="button"
               onClick={onOpenAllFilters}
-              className="hidden lg:inline-flex items-center gap-2 py-2 px-3.5 bg-white border border-[#d8d1bd] hover:border-[#173f35] rounded-lg text-xs font-bold text-[#173f35] shadow-xs hover:bg-[#fbf9f4] transition-all"
+              className="hidden lg:inline-flex items-center gap-2 py-2 px-3.5 bg-white border border-[#d8d1bd] hover:border-[#173f35] rounded-sm text-xs font-bold text-[#173f35] transition-colors cursor-pointer"
             >
               <svg
                 className="w-3.5 h-3.5 text-[#173f35]"
@@ -589,6 +568,7 @@ export function HorizontalFilterToolbar({
                 viewBox="0 0 24 24"
                 stroke="currentColor"
                 strokeWidth="2"
+                aria-hidden="true"
               >
                 <path
                   strokeLinecap="round"
@@ -596,33 +576,32 @@ export function HorizontalFilterToolbar({
                   d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
                 />
               </svg>
-              <span>All Filters</span>
+              <span>{t("marketplace.filter.allFilters")}</span>
               {activeCount > 0 && (
-                <span className="w-4 h-4 rounded-full bg-[#c89b3c] text-[#13352c] text-[10px] font-extrabold flex items-center justify-center">
+                <span className="w-4 h-4 rounded-full bg-[#c89b3c] text-[#13352c] text-[10px] font-extrabold flex items-center justify-center tabular-nums">
                   {activeCount}
                 </span>
               )}
             </button>
 
-            {/* Sort Selector */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               <label
                 htmlFor="toolbar-sort-select"
                 className="text-xs font-semibold text-[#5c6e66] hidden sm:inline"
               >
-                Sort:
+                {t("marketplace.sort.label")}:
               </label>
               <select
                 id="toolbar-sort-select"
                 value={sort}
                 onChange={(e) => onUpdateParam({ sort: e.target.value })}
-                className="py-2 px-3 bg-white border border-[#d8d1bd] hover:border-[#173f35] rounded-lg text-xs font-semibold text-[#173f35] focus:outline-none focus:ring-2 focus:ring-[#173f35] cursor-pointer shadow-xs"
+                className="py-2 px-3 bg-white border border-[#d8d1bd] hover:border-[#173f35] rounded-sm text-xs font-semibold text-[#173f35] focus:outline-none focus:ring-2 focus:ring-[#173f35] cursor-pointer"
               >
-                <option value="newest">Newest First</option>
-                <option value="price_asc">Price: Low to High</option>
-                <option value="price_desc">Price: High to Low</option>
-                <option value="quantity_desc">Volume: High to Low</option>
-                <option value="oldest">Oldest First</option>
+                <option value="newest">{t("marketplace.sort.newest")}</option>
+                <option value="price_asc">{t("marketplace.sort.priceAsc")}</option>
+                <option value="price_desc">{t("marketplace.sort.priceDesc")}</option>
+                <option value="quantity_desc">{t("marketplace.sort.volumeDesc")}</option>
+                <option value="oldest">{t("marketplace.sort.oldest")}</option>
               </select>
             </div>
           </div>

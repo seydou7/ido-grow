@@ -1,76 +1,77 @@
 "use client";
 
+import { useI18n } from "@/i18n/i18n-provider";
+
 export interface MaterialCategoriesProps {
   readonly selectedMaterial: string;
   readonly onSelectMaterial: (material: string) => void;
 }
 
-const CATEGORIES = [
-  {
-    id: "ALL",
-    name: "All Materials",
-    description: "Full European inventory",
-    image: "/images/warehouse_commodity.png",
-  },
-  {
-    id: "HEMP",
-    name: "Industrial Hemp",
-    description: "Retted straw, bast, shives",
-    image: "/images/categories/cat-hemp.jpg",
-  },
-  {
-    id: "FLAX",
-    name: "European Flax",
-    description: "Scutched line, combed tow",
-    image: "/images/categories/cat-flax.jpg",
-  },
-  {
-    id: "SISAL",
-    name: "Raw Sisal",
-    description: "Cordage & industrial bast",
-    image: "/images/categories/cat-sisal.jpg",
-  },
-  {
-    id: "JUTE",
-    name: "Golden Jute",
-    description: "Sacks, textiles & insulation",
-    image: "/images/categories/cat-jute.jpg",
-  },
-  {
-    id: "COIR",
-    name: "Coconut Coir",
-    description: "Erosion geotextiles, bulk",
-    image: "/images/categories/cat-coir.jpg",
-  },
-];
-
 export function MaterialCategories({
   selectedMaterial,
   onSelectMaterial,
 }: MaterialCategoriesProps) {
+  const { t } = useI18n();
+
+  const categories = [
+    {
+      id: "ALL",
+      name: t("marketplace.categories.all.name"),
+      description: t("marketplace.categories.all.desc"),
+      image: "/images/warehouse_commodity.png",
+    },
+    {
+      id: "HEMP",
+      name: t("marketplace.categories.hemp.name"),
+      description: t("marketplace.categories.hemp.desc"),
+      image: "/images/home-v2/fibre-hemp.jpg",
+    },
+    {
+      id: "FLAX",
+      name: t("marketplace.categories.flax.name"),
+      description: t("marketplace.categories.flax.desc"),
+      image: "/images/home-v2/fibre-flax.jpg",
+    },
+    {
+      id: "SISAL",
+      name: t("marketplace.categories.sisal.name"),
+      description: t("marketplace.categories.sisal.desc"),
+      image: "/images/home-v2/fibre-sisal.jpg",
+    },
+    {
+      id: "JUTE",
+      name: t("marketplace.categories.jute.name"),
+      description: t("marketplace.categories.jute.desc"),
+      image: "/images/home-v2/fibre-jute.jpg",
+    },
+    {
+      id: "COIR",
+      name: t("marketplace.categories.coir.name"),
+      description: t("marketplace.categories.coir.desc"),
+      image: "/images/home-v2/fibre-coir.jpg",
+    },
+  ];
+
   return (
-    <section className="py-4 sm:py-5 border-b border-[#e4decb] bg-white/70">
-      <div className="max-w-[1650px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h2 className="text-xs font-bold uppercase tracking-wider text-[#173f35]">
-              Explore by Material Category
-            </h2>
-          </div>
+    <section className="py-6 border-b border-[#e4ded0] bg-[#f2eddf]/70">
+      <div className="max-w-7xl mx-auto px-5 sm:px-8">
+        <div className="flex items-center justify-between mb-3.5">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8a6a22]">
+            {t("marketplace.categories.label")}
+          </h2>
           {selectedMaterial !== "ALL" && (
             <button
               type="button"
               onClick={() => onSelectMaterial("ALL")}
-              className="text-xs font-bold text-[#173f35] hover:underline"
+              className="text-xs font-semibold text-[#173f35] hover:text-[#1e5442] underline underline-offset-4 cursor-pointer"
             >
-              Reset to all materials &times;
+              {t("marketplace.categories.reset")} &times;
             </button>
           )}
         </div>
 
-        {/* Compact Horizontal Category Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5 sm:gap-3">
-          {CATEGORIES.map((cat) => {
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {categories.map((cat) => {
             const isSelected = selectedMaterial === cat.id;
 
             return (
@@ -78,38 +79,33 @@ export function MaterialCategories({
                 key={cat.id}
                 type="button"
                 onClick={() => onSelectMaterial(cat.id)}
-                className={`group text-left rounded-xl p-2 transition-all duration-200 border flex items-center gap-2.5 ${
+                aria-pressed={isSelected}
+                className={`text-left rounded-md p-2.5 transition-colors duration-150 border flex items-center gap-3 cursor-pointer ${
                   isSelected
-                    ? "bg-[#173f35] text-white border-[#173f35] shadow-sm ring-1 ring-[#c89b3c]"
-                    : "bg-white text-[#173f35] border-[#e2dcce] hover:border-[#173f35] hover:shadow-xs"
+                    ? "bg-[#173f35] text-white border-[#173f35] shadow-xs"
+                    : "bg-white text-[#173f35] border-[#ded8c4] hover:border-[#173f35]"
                 }`}
               >
-                {/* Visual Thumbnail */}
-                <div className="w-11 h-11 shrink-0 rounded-lg overflow-hidden bg-[#f4f0e2] relative border border-[#e4decb]">
+                <div className="w-12 h-12 shrink-0 rounded-sm overflow-hidden bg-[#ece6d6] relative">
                   <img
                     src={cat.image}
-                    alt={cat.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    alt=""
+                    loading="lazy"
+                    className="w-full h-full object-cover"
                   />
-                  {isSelected && (
-                    <div className="absolute inset-0 bg-[#173f35]/50 flex items-center justify-center text-white text-[11px] font-bold">
-                      ✓
-                    </div>
-                  )}
                 </div>
 
-                {/* Information */}
                 <div className="min-w-0 flex-1">
                   <div
-                    className={`text-xs font-bold truncate leading-tight ${
+                    className={`text-xs font-bold truncate leading-snug ${
                       isSelected ? "text-white" : "text-[#173f35]"
                     }`}
                   >
                     {cat.name}
                   </div>
                   <div
-                    className={`text-[10px] truncate leading-tight mt-0.5 ${
-                      isSelected ? "text-white/70" : "text-[#6d7e76]"
+                    className={`text-[11px] truncate leading-tight mt-0.5 ${
+                      isSelected ? "text-[#dbe7e1]" : "text-[#5c6e66]"
                     }`}
                   >
                     {cat.description}

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import type { Locale } from "@/i18n/config";
 import { useI18n } from "@/i18n/i18n-provider";
 import { AuthGateModal } from "./auth-gate-modal";
 import { PublicFooter } from "./public-footer";
@@ -16,171 +17,8 @@ interface TimelineStage {
   readonly actor: string;
   readonly artifact: string;
   readonly badge: string;
-  readonly operationalDetails: readonly string[];
+  readonly checkpoints: readonly string[];
 }
-
-const MASTER_STAGES: readonly TimelineStage[] = [
-  {
-    id: "stage-01",
-    number: "01",
-    shortName: "SUPPLY INTAKE",
-    title: "Supply Enters the Platform",
-    summary:
-      "Certified European agricultural cooperatives, cultivators, and primary processing mills register verified raw material batches with field parcel GPS coordinates, retting methods, and warehouse tonnage.",
-    actor: "Primary Producers & Cooperatives",
-    artifact: "Harvest Parcel Intake Record",
-    badge: "Origin Verified",
-    operationalDetails: [
-      "GPS parcel mapping & cooperative registry verification",
-      "Retting method: dew-retted, water-retted, or green-harvested",
-      "Estimated gross inventory & initial moisture readings",
-    ],
-  },
-  {
-    id: "stage-02",
-    number: "02",
-    shortName: "LISTING CREATION",
-    title: "Products Are Listed in Catalog",
-    summary:
-      "Raw materials are structured into standardized product formats (bales, scutched fibres, pellets, technical bast fibres) with indicative commercial pricing, origin region, and certified agricultural documents.",
-    actor: "Suppliers & Platform Onboarding",
-    artifact: "Standardized Commodity Listing",
-    badge: "Catalog Ready",
-    operationalDetails: [
-      "Standard product forms: retted straw, scutched, combed, or short fibres",
-      "Available tonnage, minimum order quantities, and pickup readiness",
-      "Sanitized public presentation preserving supplier commercial privacy",
-    ],
-  },
-  {
-    id: "stage-03",
-    number: "03",
-    shortName: "BUYER DISCOVERY",
-    title: "Buyers Discover Supply or Create Demand",
-    summary:
-      "Industrial procurement engineers browse active inventory using multi-dimensional technical filters, or submit a structured Buy Order when exact specifications require custom sourcing.",
-    actor: "Industrial Procurement Teams",
-    artifact: "Public Search / Structured Buy Order",
-    badge: "Discovery & Demand",
-    operationalDetails: [
-      "Path A: Filter existing lots by fineness, origin, and certifications",
-      "Path B: Submit custom Buy Order with target tolerances and delivery dates",
-      "Anonymous discovery with authenticated conversion for commercial actions",
-    ],
-  },
-  {
-    id: "stage-04",
-    number: "04",
-    shortName: "TRADER MATCHING",
-    title: "Trader Matches Demand and Supply",
-    summary:
-      "Specialized commodity operators at the Central Trading Desk evaluate candidate lots against buyer technical thresholds, volume compatibility, delivery geography, and landed cost viability.",
-    actor: "I Do Grow Central Trading Desk",
-    artifact: "Approved Commercial Match",
-    badge: "Human Oversight",
-    operationalDetails: [
-      "Rigorous human matching — explicitly not autonomous algorithmic risk",
-      "Technical compatibility review against manufacturing tolerances",
-      "Logistics feasibility, counterparty vetting, and route validation",
-    ],
-  },
-  {
-    id: "stage-05",
-    number: "05",
-    shortName: "QUOTE & NEGOTIATION",
-    title: "Bilateral Quote & Versioned Negotiation",
-    summary:
-      "The trading desk issues an itemized quotation breaking down raw commodity value, platform commission, lab testing, packing, freight, insurance, and taxes. Counterparties negotiate version-controlled counter-offers.",
-    actor: "Buyer, Supplier & Trading Desk",
-    artifact: "Versioned Quotation Agreement",
-    badge: "Version Controlled",
-    operationalDetails: [
-      "Line-item cost transparency: raw material, logistics, inspection, fees",
-      "Negotiation lifecycle: Draft → Review → Sent → Countered → Accepted",
-      "Full immutable version audit history preventing price misunderstandings",
-    ],
-  },
-  {
-    id: "stage-06",
-    number: "06",
-    shortName: "QUALITY TESTING",
-    title: "Independent Quality Verification Gate",
-    summary:
-      "Commercial agreement alone is not enough — independent laboratories and accredited inspectors extract physical batch samples to verify hygrometric moisture, mechanical fineness, and shive ratio under ISO 17025 standards.",
-    actor: "Independent Accredited Labs",
-    artifact: "ISO 17025 Inspection Certificate",
-    badge: "Quality Gate",
-    operationalDetails: [
-      "Accredited hygrometric testing to prevent degradation during transit",
-      "Quantitative decortication purity, shive content, and fiber tenacity",
-      "Inspection certificate reference cryptographically attached to batch ID",
-    ],
-  },
-  {
-    id: "stage-07",
-    number: "07",
-    shortName: "BINDING CONTRACT",
-    title: "Contract Confirmation & Incoterms",
-    summary:
-      "Upon mutual acceptance and quality clearance, a legally binding digital commodity sales contract is executed. It defines governing law, Incoterms (EXW, FCA, DAP), pickup windows, tolerance margins, and dispute clauses.",
-    actor: "Buyer, Supplier & Central Trading Desk",
-    artifact: "Digital Sales Contract (PDF-1.4)",
-    badge: "Legally Binding",
-    operationalDetails: [
-      "Precise Incoterm definitions: EXW depot pickup, FCA terminal, or DAP factory gate",
-      "Clear risk transfer boundaries, packaging standards, and payment terms",
-      "Standard dispute arbitration clauses and documentary requirements",
-    ],
-  },
-  {
-    id: "stage-08",
-    number: "08",
-    shortName: "LOGISTICS EXECUTION",
-    title: "Freight Dispatch & Multimodal Transit",
-    summary:
-      "Licensed European road and intermodal hauliers quote on shipment requirements. The selected carrier executes pickup, logs border crossings, and uploads signed e-CMR consignment notes upon arrival.",
-    actor: "European Freight Carriers & Logistics",
-    artifact: "e-CMR & Milestone Transit Telemetry",
-    badge: "Physical Movement",
-    operationalDetails: [
-      "Carrier bidding: compare freight rates and transit schedules",
-      "Milestone tracking: depot departure, international border transit, gate arrival",
-      "Operational exception logging: transit delay, damage notice, quantity difference",
-    ],
-  },
-  {
-    id: "stage-09",
-    number: "09",
-    shortName: "SETTLEMENT TRACKING",
-    title: "Administrative Settlement Tracking",
-    summary:
-      "The platform coordinates commercial settlement documentation — tracking supplier invoices, payment instructions, advance deposits, remaining balances, credit notes, and final clearance status without acting as a bank.",
-    actor: "Trading Desk Commercial Administration",
-    artifact: "Settlement Reconciliation Record",
-    badge: "Administrative Clearance",
-    operationalDetails: [
-      "Administrative milestone ledger — zero speculative direct payment execution",
-      "Tracking of invoices, payment due dates, and deposit confirmations",
-      "Audit of broker commissions, claims adjustments, and final balance closing",
-    ],
-  },
-  {
-    id: "stage-10",
-    number: "10",
-    shortName: "DIGITAL PASSPORT",
-    title: "Digital Product Passport Lot Release",
-    summary:
-      "Upon final factory receipt, the complete immutable Digital Product Passport (DPP) is unlocked for the buyer. It aggregates parcel coordinates, harvest batch, certified lab metrics, and freight custody for EU CSRD & ESPR compliance.",
-    actor: "Industrial Buyer & ESG Auditing",
-    artifact: "Digital Product Passport (DPP)",
-    badge: "ESPR / CSRD Compliant",
-    operationalDetails: [
-      "Immutable chronological event ledger from field sowing to factory gate",
-      "Cryptographic audit proof for CSRD sustainability due diligence",
-      "Authorised counterparty access via secure portal and QR validation",
-    ],
-  },
-];
 
 interface ActorRole {
   readonly id: string;
@@ -189,172 +27,1116 @@ interface ActorRole {
   readonly image: string;
   readonly summary: string;
   readonly responsibilities: readonly string[];
-  readonly platformTools: readonly string[];
-  readonly keyOutputs: readonly string[];
+  readonly deliverables: readonly string[];
 }
 
-const ACTOR_ROLES: readonly ActorRole[] = [
-  {
-    id: "supplier",
-    roleName: "PRODUCER & MILL",
-    title: "Primary Cultivator, Cooperative & Scutching Mill",
-    image: "/images/actor_producer_field.png",
-    summary:
-      "European farmers, agricultural cooperatives, and decortication mills who cultivate, harvest, and condition natural raw commodities for industrial conversion.",
-    responsibilities: [
-      "Record agricultural harvest parcels, ret method, and harvest year",
-      "Stage baled inventory in consolidation warehouses with batch tallies",
-      "Receive structured RFQs with forward pricing from verified manufacturers",
-      "Fulfill forward sales contracts without speculative intermediaries",
+interface PillarItem {
+  readonly id: string;
+  readonly number: string;
+  readonly title: string;
+  readonly body: string;
+  readonly meta: string;
+}
+
+interface HowItWorksLocaleCopy {
+  readonly heroPillars: readonly { label: string; value: string }[];
+  readonly heroCaption: string;
+  readonly pathsIntro: string;
+  readonly pathA: {
+    readonly tag: string;
+    readonly title: string;
+    readonly body: string;
+    readonly bullets: readonly string[];
+  };
+  readonly pathB: {
+    readonly tag: string;
+    readonly title: string;
+    readonly body: string;
+    readonly bullets: readonly string[];
+  };
+  readonly timelineLabels: {
+    readonly checkpoints: string;
+    readonly governance: string;
+    readonly actor: string;
+    readonly artifact: string;
+    readonly exploreCta: string;
+  };
+  readonly stages: readonly TimelineStage[];
+  readonly actorLabels: {
+    readonly subtitle: string;
+    readonly profileEyebrow: string;
+    readonly responsibilities: string;
+    readonly deliverables: string;
+  };
+  readonly actors: readonly ActorRole[];
+  readonly pillarsSection: {
+    readonly eyebrow: string;
+    readonly title: string;
+    readonly body: string;
+    readonly items: readonly PillarItem[];
+    readonly dppCard: {
+      readonly badge: string;
+      readonly subtitle: string;
+      readonly f1Label: string;
+      readonly f1Value: string;
+      readonly f2Label: string;
+      readonly f2Value: string;
+      readonly f3Label: string;
+      readonly f3Value: string;
+      readonly f4Label: string;
+      readonly f4Value: string;
+      readonly note: string;
+      readonly cta: string;
+    };
+  };
+}
+
+const COPY_BY_LOCALE: Record<Locale, HowItWorksLocaleCopy> = {
+  fr: {
+    heroPillars: [
+      { label: "Cycle complet", value: "10 étapes reliées" },
+      { label: "Gouvernance", value: "Validation humaine" },
+      { label: "Conformité UE", value: "Prêt ESPR & CSRD" },
     ],
-    platformTools: [
-      "Mobile-friendly producer inventory intake",
-      "Lot classification & documentation manager",
-      "Forward contract delivery scheduling desk",
+    heroCaption: "Inspection et qualification de lots en entrepôt coopératif européen",
+    pathsIntro:
+      "Que vous souhaitiez acquérir un lot immédiatement disponible en stock ou exprimer un besoin industriel sur mesure, I DO GROW structure chaque étape de la transaction.",
+    pathA: {
+      tag: "Parcours A • Stock disponible",
+      title: "Explorer les lots publiés sur la Marketplace",
+      body: "Consultez en accès libre les lots de fibres naturelles publiés par les coopératives et teillages européens. Filtrez par matière, forme, origine, volume, contrôle qualité et disponibilité du Passeport Numérique (DPP).",
+      bullets: [
+        "Consultation publique des fiches techniques sans création de compte préalable",
+        "Volumes disponibles, année de récolte et prix indicatifs par tonne",
+        "Demande de cotation directe sur tout lot vérifié",
+      ],
+    },
+    pathB: {
+      tag: "Parcours B • Demande sur mesure",
+      title: "Émettre un ordre d'achat structuré",
+      body: "Si votre cahier des charges exige un volume spécifique, une finesse particulière ou un cadencement de livraison dédié, soumettez un ordre d'achat structuré à notre desk de négoce.",
+      bullets: [
+        "Définition précise de la matière, de la forme produit et du tonnage cible",
+        "Exigences de certifications (Bio, OEKO-TEX, GOTS, European Flax) et Incoterms",
+        "Sélection et appariement supervisés par les traders I DO GROW",
+      ],
+    },
+    timelineLabels: {
+      checkpoints: "Points de contrôle opérationnels",
+      governance: "Gouvernance de l'étape",
+      actor: "Acteur principal",
+      artifact: "Livrable de référence",
+      exploreCta: "Voir les lots disponibles sur la Marketplace",
+    },
+    stages: [
+      {
+        id: "stage-01",
+        number: "01",
+        shortName: "Offre agricole",
+        title: "Enregistrement du producteur et des lots",
+        summary:
+          "Les coopératives agricoles, producteurs et unités de première transformation enregistrent leur organisation, leurs sites de stockage et les caractéristiques de récolte de leurs lots.",
+        actor: "Producteurs & Coopératives",
+        artifact: "Dossier Fournisseur & Lot",
+        badge: "Origine vérifiée",
+        checkpoints: [
+          "Vérification de l'entité légale, des sites de production et des documents",
+          "Identification de l'origine géographique, de l'année de récolte et du rouissage",
+          "Déclaration des volumes disponibles en balles ou en tonnes",
+        ],
+      },
+      {
+        id: "stage-02",
+        number: "02",
+        shortName: "Catalogue",
+        title: "Publication structurée sur la Marketplace",
+        summary:
+          "Après validation, l'offre est normalisée selon une nomenclature claire (paille rouie, fibre technique, lin teillé, étoupe, chènevotte) et publiée sans exposer les données confidentielles du producteur.",
+        actor: "Fournisseur & Desk I DO GROW",
+        artifact: "Offre Publiée (Listing)",
+        badge: "Standardisé",
+        checkpoints: [
+          "Classification normalisée par famille de fibre et forme produit",
+          "Affichage du prix indicatif ou mode sur cotation",
+          "Protection de la confidentialité commerciale jusqu'à la contractualisation",
+        ],
+      },
+      {
+        id: "stage-03",
+        number: "03",
+        shortName: "Demande",
+        title: "Recherche acheteur ou ordre d'achat",
+        summary:
+          "Les équipes d'achats industrielles filtrent le catalogue public ou déposent un ordre d'achat structuré détaillant leurs spécifications techniques, volumes et délais.",
+        actor: "Acheteurs Industriels",
+        artifact: "Ordre d'achat (Buy Order)",
+        badge: "Sourcing B2B",
+        checkpoints: [
+          "Filtrage multicritère par fibre, origine, certifications et DPP",
+          "Saisie structurée des besoins en volume, qualité et livraison",
+          "Passage sécurisé à l'espace acheteur pour les actions engageantes",
+        ],
+      },
+      {
+        id: "stage-04",
+        number: "04",
+        shortName: "Appariement",
+        title: "Rapprochement supervisé par le Trader",
+        summary:
+          "Le desk de négoce I DO GROW compare les lots candidats aux exigences de l'acheteur (matière, forme, volume, origine, certificats) et valide un appariement commercial unique.",
+        actor: "Trader I DO GROW",
+        artifact: "Match Commercial Approuvé",
+        badge: "Supervision humaine",
+        checkpoints: [
+          "Évaluation déterministe de compatibilité technique et documentaire",
+          "Aucune transaction automatique sans validation humaine explicite",
+          "Sélection d'un lot actif vérifié avant préparation du devis",
+        ],
+      },
+      {
+        id: "stage-05",
+        number: "05",
+        shortName: "Cotation",
+        title: "Devis détaillé en 11 postes & négociation",
+        summary:
+          "Le trader établit une cotation transparente détaillant la valeur matière, l'inspection, le conditionnement, le transport et les frais. Chaque contre-proposition crée une nouvelle version immuable.",
+        actor: "Acheteur & Desk de Négoce",
+        artifact: "Devis Versionné (Quote vN)",
+        badge: "Traçabilité des prix",
+        checkpoints: [
+          "Décomposition complète des coûts (matière, fret, assurance, inspection)",
+          "Cycle de négociation structuré : revue interne, envoi, contre-offre, acceptation",
+          "Historique complet et immuable de chaque version de devis",
+        ],
+      },
+      {
+        id: "stage-06",
+        number: "06",
+        shortName: "Qualité",
+        title: "Inspection indépendante & certificat qualité",
+        summary:
+          "Un inspecteur qualité assigné relève les mesures physiques du lot (taux d'humidité, poids et dimensions des balles, rouissage, pureté) et émet une décision humaine avec certificat PDF.",
+        actor: "Inspecteur Qualité",
+        artifact: "Certificat d'Inspection (QIC)",
+        badge: "Contrôle physique",
+        checkpoints: [
+          "Relevé structuré de 14 paramètres techniques sur le lot",
+          "Dépôt des preuves photographiques et rapports d'analyse",
+          "Émission d'un certificat d'inspection PDF immuable après approbation",
+        ],
+      },
+      {
+        id: "stage-07",
+        number: "07",
+        shortName: "Contrat",
+        title: "Confirmation du contrat commercial & Incoterms",
+        summary:
+          "L'acceptation du devis ouvre l'établissement du contrat de vente structuré reprenant les conditions commerciales figées, les Incoterms et les modalités de livraison.",
+        actor: "Acheteur, Fournisseur & Trader",
+        artifact: "Contrat Commercial (PDF)",
+        badge: "Engagement",
+        checkpoints: [
+          "Reprise exacte du montant, du volume et de la devise acceptés",
+          "Définition claire des Incoterms et des conditions de paiement",
+          "Génération d'un document contractuel PDF horodaté",
+        ],
+      },
+      {
+        id: "stage-08",
+        number: "08",
+        shortName: "Logistique",
+        title: "Consultation fret & suivi d'expédition",
+        summary:
+          "Les partenaires logistiques invités soumettent leurs cotations de transport. Le transporteur retenu exécute l'enlèvement, publie les documents d'expédition et renseigne les jalons de transit.",
+        actor: "Partenaires Logistiques & Trader",
+        artifact: "Dossier d'Expédition & Jalons",
+        badge: "Suivi de garde",
+        checkpoints: [
+          "Mise en concurrence isolée des transporteurs et sélection du fret",
+          "Suivi d'état : enlèvement planifié, en transit, douane, livré",
+          "Gestion documentaire et rapprochement final des coûts logistiques",
+        ],
+      },
+      {
+        id: "stage-09",
+        number: "09",
+        shortName: "Règlement",
+        title: "Suivi administratif du règlement",
+        summary:
+          "La plateforme assure le suivi administratif des factures, acomptes, soldes restants et éventuelles réclamations jusqu'à la clôture comptable du dossier, sans agir comme établissement bancaire.",
+        actor: "Administration Commerciale",
+        artifact: "Registre de Règlement",
+        badge: "Suivi administratif",
+        checkpoints: [
+          "Enregistrement des factures, avoirs et instructions de paiement",
+          "Calcul serveur du solde restant et suivi des échéances",
+          "Résolution structurée des écarts ou réclamations avant clôture",
+        ],
+      },
+      {
+        id: "stage-10",
+        number: "10",
+        shortName: "Passeport DPP",
+        title: "Émission du Passeport Numérique du Produit",
+        summary:
+          "L'ensemble des événements vérifiés (origine du lot, inspection qualité, contrat, transport) est consolidé dans un Passeport Numérique du Produit (DPP) versionné, téléchargeable en PDF et accessible par QR code.",
+        actor: "Acheteur, Fournisseur & Auditeurs",
+        artifact: "Passeport Numérique (DPP)",
+        badge: "Prêt ESPR / CSRD",
+        checkpoints: [
+          "Consolidation chronologique immuable à partir des données réelles",
+          "Protection stricte des marges internes et données bancaires",
+          "Export PDF multi-pages et QR code d'accès authentifié",
+        ],
+      },
     ],
-    keyOutputs: ["Harvest Batch Record", "Warehouse Staging Slip", "Dispatch Consignment"],
+    actorLabels: {
+      subtitle:
+        "Chaque transaction réunit cinq profils complémentaires autour d'un même référentiel de données, avec des droits d'accès strictement cloisonnés.",
+      profileEyebrow: "Rôle opérationnel",
+      responsibilities: "Responsabilités clés dans la chaîne",
+      deliverables: "Livrables sur la plateforme",
+    },
+    actors: [
+      {
+        id: "supplier",
+        roleName: "Producteurs & Coopératives",
+        title: "Coopératives agricoles, cultivateurs et unités de teillage",
+        image: "/images/actor_producer_field.png",
+        summary:
+          "Les producteurs européens qualifient leurs sites, publient leurs lots de fibres naturelles avec leurs caractéristiques techniques et accèdent aux demandes industrielles structurées.",
+        responsibilities: [
+          "Enregistrer l'organisation, les sites de production et les certificats",
+          "Créer des lots détaillant matière, forme, tonnage, récolte et origine",
+          "Fournir les échantillons et informations nécessaires aux contrôles qualité",
+          "Consulter les Passeports Numériques (DPP) liés à leurs propres lots",
+        ],
+        deliverables: ["Profil Producteur Vérifié", "Lots Publiés", "Historique DPP Fournisseur"],
+      },
+      {
+        id: "buyer",
+        roleName: "Acheteurs Industriels",
+        title: "Équipes d'achats, industriels textiles, matériaux biosourcés et papeteries",
+        image: "/images/b2b_team.png",
+        summary:
+          "Les industriels sourcent des matières premières traçables en parcourant le catalogue ou en déposant des ordres d'achat précis, puis négocient et valident leurs devis.",
+        responsibilities: [
+          "Rechercher et filtrer les lots vérifiés selon leurs critères techniques",
+          "Créer des ordres d'achat structurés pour leurs besoins récurrents ou spécifiques",
+          "Examiner les devis détaillés en 11 postes, accepter ou soumettre une contre-offre",
+          "Accéder aux contrats confirmés et aux Passeports Numériques (DPP) de leurs achats",
+        ],
+        deliverables: ["Ordres d'Achat", "Décisions sur Devis", "Accès Passeport DPP"],
+      },
+      {
+        id: "trader",
+        roleName: "Desk de Négoce",
+        title: "Opérateurs commerciaux I DO GROW & supervision des transactions",
+        image: "/images/trader_platform.png",
+        summary:
+          "Au cœur de la plateforme, les traders accompagnent l'onboarding, rapprochent l'offre et la demande, préparent les cotations, coordonnent la qualité, la logistique et le règlement.",
+        responsibilities: [
+          "Vérifier les dossiers fournisseurs et accompagner la mise en ligne des lots",
+          "Évaluer la compatibilité offre/demande et approuver les appariements",
+          "Construire et réviser les devis versionnés et générer les contrats",
+          "Piloter les inspections, les appels d'offres fret, le règlement et les DPP",
+        ],
+        deliverables: ["Match Approuvé", "Devis & Contrat", "Supervision de Bout en Bout"],
+      },
+      {
+        id: "quality",
+        roleName: "Inspecteurs Qualité",
+        title: "Inspecteurs indépendants & contrôle technique des lots",
+        image: "/images/quality_lab.png",
+        summary:
+          "Les inspecteurs qualité interviennent sur mission pour mesurer objectivement les caractéristiques physiques des lots avant expédition et délivrer les certificats d'inspection.",
+        responsibilities: [
+          "Prendre en charge les missions d'inspection assignées dans leur portail dédié",
+          "Saisir les mesures techniques (humidité, poids de balle, rouissage, propreté)",
+          "Joindre les preuves photographiques, rapports labo et constats d'écart",
+          "Rendre la décision qualité humaine et émettre le certificat PDF officiel",
+        ],
+        deliverables: ["Relevé de Mesures", "Évaluation Qualité", "Certificat QIC (PDF)"],
+      },
+      {
+        id: "logistics",
+        roleName: "Partenaires Logistiques",
+        title: "Transporteurs routiers et opérateurs multimodaux européens",
+        image: "/images/freight_port.png",
+        summary:
+          "Les partenaires logistiques répondent aux demandes de cotation fret sur les contrats confirmés et assurent le suivi opérationnel des expéditions qui leur sont confiées.",
+        responsibilities: [
+          "Répondre aux consultations de transport avec prix, devise et délai de transit",
+          "Planifier l'enlèvement et assurer le transport jusqu'au site de livraison",
+          "Mettre à jour les jalons de suivi et déposer les documents de transport",
+          "Signaler tout retard, dommage ou écart de quantité constaté à la livraison",
+        ],
+        deliverables: ["Cotation de Fret", "Jalons de Suivi", "Documents d'Expédition"],
+      },
+    ],
+    pillarsSection: {
+      eyebrow: "Garanties opérationnelles",
+      title: "Quatre engagements structurants à chaque transaction.",
+      body: "Contrairement à un annuaire passif ou à une place de marché automatisée sans contrôle, I DO GROW encadre chaque étape critique par des preuves vérifiables et une validation humaine.",
+      items: [
+        {
+          id: "quote-negotiation",
+          number: "01",
+          title: "Transparence tarifaire en 11 postes",
+          body: "Chaque devis détaille séparément la valeur de la matière, la commission, les frais d'inspection, le conditionnement, le pré-acheminement, le fret international, la douane, l'assurance, le stockage et les taxes.",
+          meta: "Négociation versionnée immuable",
+        },
+        {
+          id: "quality-contract",
+          number: "02",
+          title: "Contrôle qualité indépendant & contrat Incoterms",
+          body: "Les décisions qualité reposent sur des relevés physiques documentés et génèrent un certificat PDF infalsifiable. Le contrat de vente fige les termes commerciaux acceptés.",
+          meta: "Certificat QIC & Contrat PDF",
+        },
+        {
+          id: "logistics-settlement",
+          number: "03",
+          title: "Exécution logistique & suivi administratif du règlement",
+          body: "Du choix du transporteur jusqu'à la réconciliation des coûts finaux et au suivi des factures et acomptes, chaque étape est tracée sans intermédiation bancaire opaque.",
+          meta: "Clôture documentaire contrôlée",
+        },
+        {
+          id: "dpp-governance",
+          number: "04",
+          title: "Passeport Numérique du Produit (DPP) par lot",
+          body: "Chaque lot dispose d'un passeport numérique versionné consolidant son origine, ses inspections, ses certificats et sa chaîne de garde, sans jamais divulguer les marges commerciales.",
+          meta: "Prêt pour ESPR & CSRD",
+        },
+      ],
+      dppCard: {
+        badge: "Passeport Numérique • DPP",
+        subtitle: "Architecture de traçabilité par lot",
+        f1Label: "Identité & Origine",
+        f1Value: "Lot, matière, forme, pays et site producteur",
+        f2Label: "Qualité & Certificats",
+        f2Value: "Mesures d'inspection, statut et référence QIC",
+        f3Label: "Transaction & Logistique",
+        f3Value: "Contrat confirmé, expédition et jalons de garde",
+        f4Label: "Confidentialité B2B",
+        f4Value: "Marges internes et coordonnées bancaires masquées",
+        note: "Exportable en PDF multi-pages et consultable via QR code sécurisé par les contreparties autorisées.",
+        cta: "Parcourir les lots traçables DPP",
+      },
+    },
   },
-  {
-    id: "buyer",
-    roleName: "INDUSTRIAL BUYER",
-    title: "Procurement, Engineering & Materials Management",
-    image: "/images/b2b_team.png",
-    summary:
-      "Automotive lightweighting, bio-based insulation, technical textiles, and sustainable packaging teams requiring stable volume and documented technical thresholds.",
-    responsibilities: [
-      "Discover and filter available natural commodity lots by technical specs",
-      "Create custom Buy Orders when inventory does not match exact production lines",
-      "Review itemized quotation breakdowns and negotiate terms via versioned counter-offers",
-      "Receive immutable Digital Product Passports for European regulatory audits",
+  en: {
+    heroPillars: [
+      { label: "Full Lifecycle", value: "10 connected stages" },
+      { label: "Governance", value: "Human-approved gates" },
+      { label: "EU Compliance", value: "ESPR & CSRD ready" },
     ],
-    platformTools: [
-      "Multi-faceted public & portal search engine",
-      "Structured Buy Order creation wizard",
-      "Versioned RFQ negotiation workspace",
+    heroCaption: "Lot inspection and grading inside a European cooperative warehouse",
+    pathsIntro:
+      "Whether you want to secure immediately available cooperative stock or submit custom manufacturing specifications, I DO GROW structures the entire commercial pathway.",
+    pathA: {
+      tag: "Path A • Available Inventory",
+      title: "Browse Published Marketplace Lots",
+      body: "Explore verified natural fibre lots published by European agricultural cooperatives and primary processing mills. Filter by material, product form, origin, volume, quality approval, and DPP readiness.",
+      bullets: [
+        "Open public technical browsing without mandatory upfront registration",
+        "Available tonnage, harvest year, and indicative price per tonne",
+        "Request a formal quotation directly on any verified lot",
+      ],
+    },
+    pathB: {
+      tag: "Path B • Custom Demand",
+      title: "Submit a Structured Buy Order",
+      body: "When your production line requires specific volume call-offs, technical tolerances, or delivery schedules, submit a structured Buy Order to our trading desk.",
+      bullets: [
+        "Define exact fibre family, product form, and target volume",
+        "Specify required certifications (Organic, OEKO-TEX, GOTS, European Flax) and Incoterms",
+        "Human-controlled candidate matching by I DO GROW traders",
+      ],
+    },
+    timelineLabels: {
+      checkpoints: "Operational verification checkpoints",
+      governance: "Stage governance",
+      actor: "Primary actor",
+      artifact: "Platform record",
+      exploreCta: "Explore available lots on the Marketplace",
+    },
+    stages: [
+      {
+        id: "stage-01",
+        number: "01",
+        shortName: "Supply Intake",
+        title: "Supplier Onboarding & Lot Registration",
+        summary:
+          "European agricultural cooperatives, growers, and primary processing mills register their organisation, storage sites, and harvest lot characteristics.",
+        actor: "Producers & Cooperatives",
+        artifact: "Verified Supplier & Lot Record",
+        badge: "Origin Verified",
+        checkpoints: [
+          "Organisation identity, production sites, and compliance document review",
+          "Capture of origin country, harvest year, and retting method",
+          "Structured declaration of available volume in bales or tonnes",
+        ],
+      },
+      {
+        id: "stage-02",
+        number: "02",
+        shortName: "Catalogue",
+        title: "Standardized Marketplace Publication",
+        summary:
+          "Approved supply is structured into standardized commodity formats (retted straw, technical fibre, scutched flax, tow, hurds) while protecting sensitive supplier details.",
+        actor: "Supplier & I DO GROW Desk",
+        artifact: "Published Marketplace Listing",
+        badge: "Standardized",
+        checkpoints: [
+          "Standardized classification by fibre family and product form",
+          "Clear indicative pricing or quote-on-request terms",
+          "Commercial privacy preserved until formal transaction stages",
+        ],
+      },
+      {
+        id: "stage-03",
+        number: "03",
+        shortName: "Demand",
+        title: "Buyer Discovery or Structured Buy Order",
+        summary:
+          "Industrial procurement teams filter the public catalogue or submit a structured Buy Order specifying their technical parameters, volumes, and delivery terms.",
+        actor: "Industrial Buyers",
+        artifact: "Structured Buy Order",
+        badge: "B2B Sourcing",
+        checkpoints: [
+          "Multi-dimensional filtering by fibre, origin, certifications, and DPP",
+          "Structured capture of volume, quality, and delivery requirements",
+          "Authenticated buyer workspace for binding commercial actions",
+        ],
+      },
+      {
+        id: "stage-04",
+        number: "04",
+        shortName: "Matching",
+        title: "Human-Controlled Trader Matching",
+        summary:
+          "The I DO GROW trading desk evaluates candidate lots against buyer requirements (material, form, quantity, origin, certifications) and approves a single commercial match.",
+        actor: "I DO GROW Trader",
+        artifact: "Approved Commercial Match",
+        badge: "Human Oversight",
+        checkpoints: [
+          "Deterministic technical and documentary compatibility evaluation",
+          "Zero autonomous binding trades — explicit human approval required",
+          "Single active approved match invariant before quotation preparation",
+        ],
+      },
+      {
+        id: "stage-05",
+        number: "05",
+        shortName: "Quotation",
+        title: "11-Line Itemized Quote & Versioned Negotiation",
+        summary:
+          "The trader prepares a transparent quotation breaking down product value, inspection, packaging, freight, and fees. Every counter-offer creates a new immutable version.",
+        actor: "Buyer & Trading Desk",
+        artifact: "Versioned Quote (Quote vN)",
+        badge: "Price Transparency",
+        checkpoints: [
+          "Full 11-line commercial breakdown (product, freight, insurance, inspection)",
+          "Controlled lifecycle: internal review, dispatch, counter-offer, acceptance",
+          "Immutable version history preventing commercial ambiguity",
+        ],
+      },
+      {
+        id: "stage-06",
+        number: "06",
+        shortName: "Quality",
+        title: "Independent Inspection & Quality Certificate",
+        summary:
+          "An assigned Quality Inspector records physical lot measurements (moisture percentage, bale weight and dimensions, retting, purity) and issues a human quality decision with a PDF certificate.",
+        actor: "Quality Inspector",
+        artifact: "Inspection Certificate (QIC)",
+        badge: "Quality Gate",
+        checkpoints: [
+          "Structured capture of 14 source-backed technical measurement fields",
+          "Photo evidence, supporting documents, and lab report uploads",
+          "Immutable PDF Inspection Certificate issued upon human approval",
+        ],
+      },
+      {
+        id: "stage-07",
+        number: "07",
+        shortName: "Contract",
+        title: "Commercial Contract Confirmation & Incoterms",
+        summary:
+          "An accepted quote unlocks a structured sales contract preserving the agreed commercial baseline, Incoterms, and delivery obligations.",
+        actor: "Buyer, Supplier & Trader",
+        artifact: "Confirmed Sales Contract (PDF)",
+        badge: "Binding Terms",
+        checkpoints: [
+          "Immutable preservation of accepted amount, volume, and currency",
+          "Explicit Incoterms and payment terms definition",
+          "Deterministic multi-page PDF contract generation",
+        ],
+      },
+      {
+        id: "stage-08",
+        number: "08",
+        shortName: "Logistics",
+        title: "Freight Quoting & Shipment Execution",
+        summary:
+          "Invited logistics partners submit freight quotations. The selected carrier executes pickup, uploads shipping documents, and records operational transit milestones.",
+        actor: "Logistics Partners & Trader",
+        artifact: "Shipment Record & Milestones",
+        badge: "Custody Tracking",
+        checkpoints: [
+          "Isolated carrier freight bidding and deterministic carrier selection",
+          "Milestone progression: pickup scheduled, in transit, customs, delivered",
+          "Discrepancy logging and final logistics cost reconciliation",
+        ],
+      },
+      {
+        id: "stage-09",
+        number: "09",
+        shortName: "Settlement",
+        title: "Administrative Settlement Tracking",
+        summary:
+          "The platform tracks invoices, payment instructions, deposits, remaining balances, and administrative claims through final settlement without acting as a bank.",
+        actor: "Commercial Administration",
+        artifact: "Settlement Reconciliation Record",
+        badge: "Administrative Ledger",
+        checkpoints: [
+          "Recording of invoices, credit notes, and payment instructions",
+          "Server-calculated remaining balance and due-date tracking",
+          "Structured administrative claim resolution before closure",
+        ],
+      },
+      {
+        id: "stage-10",
+        number: "10",
+        shortName: "DPP Passport",
+        title: "Digital Product Passport Issuance",
+        summary:
+          "Verified lifecycle events (lot origin, quality inspection, contract, shipment) project into a versioned Digital Product Passport (DPP), downloadable as a PDF and accessible via QR code.",
+        actor: "Buyer, Supplier & Auditors",
+        artifact: "Digital Product Passport (DPP)",
+        badge: "ESPR / CSRD Ready",
+        checkpoints: [
+          "Deterministic chronological event ledger from authoritative records",
+          "Strict redaction of internal trader margins and bank details",
+          "Printable human-readable passport, PDF download, and protected QR entry",
+        ],
+      },
     ],
-    keyOutputs: ["Formal RFQ", "Purchase Agreement", "Receiving Gate Clearance"],
+    actorLabels: {
+      subtitle:
+        "Every transaction coordinates five specialized participants around a shared data model with strict role-based isolation.",
+      profileEyebrow: "Operational role",
+      responsibilities: "Core supply chain responsibilities",
+      deliverables: "Platform deliverables",
+    },
+    actors: [
+      {
+        id: "supplier",
+        roleName: "Producers & Cooperatives",
+        title: "Agricultural cooperatives, growers, and primary scutching mills",
+        image: "/images/actor_producer_field.png",
+        summary:
+          "European producers verify their sites, publish natural fibre lots with structured technical attributes, and connect with qualified industrial demand.",
+        responsibilities: [
+          "Register organisation details, production sites, and compliance certificates",
+          "Create structured listings with material, form, volume, harvest year, and origin",
+          "Support physical quality inspections and documentation verification",
+          "Access Digital Product Passports scoped to their own lots",
+        ],
+        deliverables: ["Verified Supplier Profile", "Published Lots", "Supplier DPP Ledger"],
+      },
+      {
+        id: "buyer",
+        roleName: "Industrial Buyers",
+        title: "Procurement teams in textiles, biocomposites, insulation, and paper",
+        image: "/images/b2b_team.png",
+        summary:
+          "Industrial manufacturers source traceable raw materials by browsing published lots or submitting structured Buy Orders, then review and accept versioned quotes.",
+        responsibilities: [
+          "Search and filter verified lots by technical and compliance criteria",
+          "Submit structured Buy Orders for custom or recurring procurement needs",
+          "Review 11-line itemized quotations, accept terms, or submit counter-offers",
+          "Access confirmed contracts and Digital Product Passports for purchased lots",
+        ],
+        deliverables: ["Structured Buy Orders", "Quote Decisions", "Buyer DPP Access"],
+      },
+      {
+        id: "trader",
+        roleName: "Trading Desk",
+        title: "I DO GROW commodity operators & transaction supervision",
+        image: "/images/trader_platform.png",
+        summary:
+          "Operating at the center of the lifecycle, traders review onboarding, match supply and demand, structure quotations, and coordinate quality, contracts, logistics, and settlement.",
+        responsibilities: [
+          "Review supplier onboarding and assist with structured lot publication",
+          "Evaluate supply-demand compatibility and approve commercial matches",
+          "Prepare and revise versioned quotes and confirm sales contracts",
+          "Coordinate quality inspections, freight RFQs, settlement, and DPP issuance",
+        ],
+        deliverables: ["Approved Match", "Versioned Quote & Contract", "Lifecycle Governance"],
+      },
+      {
+        id: "quality",
+        roleName: "Quality Inspectors",
+        title: "Independent inspectors & technical lot verification",
+        image: "/images/quality_lab.png",
+        summary:
+          "Assigned Quality Inspectors record objective physical measurements on lots prior to shipment and issue human-approved inspection certificates.",
+        responsibilities: [
+          "Manage assigned inspection tasks from a dedicated inspector work queue",
+          "Record structured technical measurements (moisture, bale weight, retting, purity)",
+          "Upload photo evidence, lab reports, and non-conformity records",
+          "Record human quality decisions and issue official PDF certificates",
+        ],
+        deliverables: ["Technical Measurements", "Quality Decision", "QIC Certificate (PDF)"],
+      },
+      {
+        id: "logistics",
+        roleName: "Logistics Partners",
+        title: "European road freight and multimodal transport providers",
+        image: "/images/freight_port.png",
+        summary:
+          "Logistics partners respond to freight quotation requests on confirmed contracts and report operational milestones on awarded shipments.",
+        responsibilities: [
+          "Submit freight quotations with amount, currency, and transit duration",
+          "Execute scheduled pickups and cross-border delivery to the buyer site",
+          "Log tracking milestones and upload shipping documentation",
+          "Report transit delays, damage, or quantity discrepancies",
+        ],
+        deliverables: ["Freight Quotation", "Tracking Milestones", "Shipping Documents"],
+      },
+    ],
+    pillarsSection: {
+      eyebrow: "Operational Safeguards",
+      title: "Four structural guarantees behind every trade.",
+      body: "Unlike passive directories or unverified marketplaces, I DO GROW anchors every critical transition in verifiable records and explicit human control.",
+      items: [
+        {
+          id: "quote-negotiation",
+          number: "01",
+          title: "11-line itemized commercial clarity",
+          body: "Every quotation separates raw product value, commission, inspection cost, packaging, inland transport, international freight, customs, insurance, storage, and taxes.",
+          meta: "Immutable quote versioning",
+        },
+        {
+          id: "quality-contract",
+          number: "02",
+          title: "Independent quality gate & Incoterms contracts",
+          body: "Quality approvals rely on documented measurements and issue a verifiable PDF certificate. Confirmed contracts lock the agreed commercial baseline.",
+          meta: "QIC Certificate & PDF Contract",
+        },
+        {
+          id: "logistics-settlement",
+          number: "03",
+          title: "Coordinated logistics & administrative settlement",
+          body: "From carrier selection and milestone tracking to final cost reconciliation and invoice tracking, every step is recorded transparently without speculative banking.",
+          meta: "Auditable operational closure",
+        },
+        {
+          id: "dpp-governance",
+          number: "04",
+          title: "Lot-linked Digital Product Passport (DPP)",
+          body: "Each lot carries a versioned digital passport consolidating origin, inspection results, certificates, and custody events while redacting internal commercial margins.",
+          meta: "EU ESPR & CSRD aligned",
+        },
+      ],
+      dppCard: {
+        badge: "Digital Product Passport • DPP",
+        subtitle: "Lot-level provenance architecture",
+        f1Label: "Identity & Origin",
+        f1Value: "Lot reference, fibre form, country, and producer site",
+        f2Label: "Quality & Certificates",
+        f2Value: "Inspection measurements, approval status, and QIC reference",
+        f3Label: "Trade & Custody",
+        f3Value: "Confirmed contract, shipment milestones, and delivery handoff",
+        f4Label: "Commercial Redaction",
+        f4Value: "Internal margins and bank instructions strictly protected",
+        note: "Downloadable as a deterministic multi-page PDF and accessible via authenticated QR code.",
+        cta: "Browse DPP-traceable lots",
+      },
+    },
   },
-  {
-    id: "trader",
-    roleName: "TRADING DESK",
-    title: "Central Commodity Operations & Transaction Clearance",
-    image: "/images/trader_platform.png",
-    summary:
-      "Experienced commodity professionals who evaluate commercial fit, mitigate counterparty risk, coordinate versioned quotes, and supervise transaction fulfillment.",
-    responsibilities: [
-      "Evaluate buyer demand against candidate cooperative lots",
-      "Execute human-controlled matching based on volume, specs, and logistics cost",
-      "Structure transparent multi-component quotations across Incoterms",
-      "Supervise logistics scheduling, contract compliance, and settlement tracking",
+  nl: {
+    heroPillars: [
+      { label: "Volledige cyclus", value: "10 verbonden stappen" },
+      { label: "Governance", value: "Menselijke goedkeuring" },
+      { label: "EU-compliance", value: "Klaar voor ESPR & CSRD" },
     ],
-    platformTools: [
-      "Bilateral matching cockpit with compatibility scoring",
-      "Versioned quote negotiation console",
-      "Trade clearance & settlement monitoring desk",
+    heroCaption: "Partijcontrole en kwaliteitskeuring in een Europees coöperatiemagazijn",
+    pathsIntro:
+      "Of u nu direct beschikbare voorraad wilt inkopen of specifieke industriële eisen wilt indienen, I DO GROW structureert het volledige handelstraject.",
+    pathA: {
+      tag: "Route A • Beschikbare voorraad",
+      title: "Verken gepubliceerde partijen op de Marketplace",
+      body: "Bekijk vrij toegankelijke natuurvezelpartijen van Europese landbouwcoöperaties en zwingelbedrijven. Filter op materiaal, vorm, herkomst, volume, kwaliteitskeuring en DPP-status.",
+      bullets: [
+        "Openbare technische inzage zonder verplichte registratie vooraf",
+        "Beschikbaar tonnage, oogstjaar en richtprijs per ton",
+        "Vraag direct een formele offerte aan voor elke geverifieerde partij",
+      ],
+    },
+    pathB: {
+      tag: "Route B • Inkoop op maat",
+      title: "Dien een gestructureerde inkooporder in",
+      body: "Wanneer uw productieproces specifieke volumes, kwaliteitsmarges of leveringsschema's vereist, dient u een gestructureerde inkooporder in bij onze tradingdesk.",
+      bullets: [
+        "Definieer exacte vezelfamilie, productvorm en gewenst volume",
+        "Specificeer vereiste certificaten (Biologisch, OEKO-TEX, GOTS, European Flax) en Incoterms",
+        "Menselijk gecontroleerde matching door I DO GROW-handelaren",
+      ],
+    },
+    timelineLabels: {
+      checkpoints: "Operationele controlepunten",
+      governance: "Fase-governance",
+      actor: "Hoofdrolspeler",
+      artifact: "Platformdocument",
+      exploreCta: "Bekijk beschikbare partijen op de Marketplace",
+    },
+    stages: [
+      {
+        id: "stage-01",
+        number: "01",
+        shortName: "Aanbod",
+        title: "Onboarding van producent & partijregistratie",
+        summary:
+          "Europese landbouwcoöperaties, telers en primaire verwerkers registreren hun organisatie, opslaglocaties en oogstgegevens per partij.",
+        actor: "Producenten & Coöperaties",
+        artifact: "Geverifieerd Leveranciers- & Partijdossier",
+        badge: "Herkomst geverifieerd",
+        checkpoints: [
+          "Controle van juridische entiteit, productielocaties en documenten",
+          "Registratie van land van herkomst, oogstjaar en rotingsmethode",
+          "Gestructureerde opgave van beschikbaar volume in balen of tonnen",
+        ],
+      },
+      {
+        id: "stage-02",
+        number: "02",
+        shortName: "Catalogus",
+        title: "Gestandaardiseerde publicatie op de Marketplace",
+        summary:
+          "Goedgekeurd aanbod wordt gestructureerd in standaard productvormen (geroot stro, technische vezel, gezwingeld vlas, lokken, scheven) met behoud van commerciële vertrouwelijkheid.",
+        actor: "Leverancier & I DO GROW Desk",
+        artifact: "Gepubliceerd Aanbod (Listing)",
+        badge: "Gestandaardiseerd",
+        checkpoints: [
+          "Eenduidige classificatie op vezelfamilie en productvorm",
+          "Duidelijke richtprijs of prijs-op-aanvraag",
+          "Bescherming van gevoelige leveranciersgegevens tot contractfase",
+        ],
+      },
+      {
+        id: "stage-03",
+        number: "03",
+        shortName: "Inkoopvraag",
+        title: "Zoeken in catalogus of gestructureerde inkooporder",
+        summary:
+          "Industriële inkoopteams filteren de openbare catalogus of dienen een gestructureerde inkooporder in met hun technische specificaties, volumes en leveringsvoorwaarden.",
+        actor: "Industriële Kopers",
+        artifact: "Gestructureerde Inkooporder",
+        badge: "B2B-sourcing",
+        checkpoints: [
+          "Multidimensionaal filteren op vezel, herkomst, certificaten en DPP",
+          "Gestructureerde invoer van volume-, kwaliteits- en leveringseisen",
+          "Beveiligde kopersomgeving voor bindende commerciële acties",
+        ],
+      },
+      {
+        id: "stage-04",
+        number: "04",
+        shortName: "Matching",
+        title: "Menselijk gecontroleerde matching door de Trader",
+        summary:
+          "De I DO GROW-tradingdesk vergelijkt kandidaat-partijen met de eisen van de koper (materiaal, vorm, volume, herkomst, certificaten) en keurt één actieve commerciële match goed.",
+        actor: "I DO GROW Trader",
+        artifact: "Goedgekeurde Commerciële Match",
+        badge: "Menselijk toezicht",
+        checkpoints: [
+          "Deterministische evaluatie van technische en documentaire aansluiting",
+          "Geen autonome automatische transacties zonder menselijke goedkeuring",
+          "Eén goedgekeurde match per inkooporder vóór offertevoorbereiding",
+        ],
+      },
+      {
+        id: "stage-05",
+        number: "05",
+        shortName: "Offerte",
+        title: "Offerte met 11 kostenposten & versiebeheer",
+        summary:
+          "De trader stelt een transparante offerte op met uitsplitsing van productwaarde, keuring, verpakking, vracht en kosten. Elk tegenbod maakt een nieuwe onveranderlijke versie aan.",
+        actor: "Koper & Tradingdesk",
+        artifact: "Versiebeheerde Offerte (Quote vN)",
+        badge: "Prijstransparantie",
+        checkpoints: [
+          "Volledige uitsplitsing in 11 regels (product, vracht, verzekering, keuring)",
+          "Gecontroleerde statusflow: interne review, verzonden, tegenbod, geaccepteerd",
+          "Onveranderlijke versiehistorie voorkomt onduidelijkheid",
+        ],
+      },
+      {
+        id: "stage-06",
+        number: "06",
+        shortName: "Kwaliteit",
+        title: "Onafhankelijke keuring & kwaliteitscertificaat",
+        summary:
+          "Een toegewezen kwaliteitsinspecteur legt fysieke metingen vast (vochtpercentage, baalgewicht en -afmetingen, roting, zuiverheid) en geeft een menselijk kwaliteitsbesluit met PDF-certificaat af.",
+        actor: "Kwaliteitsinspecteur",
+        artifact: "Keuringscertificaat (QIC)",
+        badge: "Kwaliteitspoort",
+        checkpoints: [
+          "Gestructureerde registratie van 14 technische meetvelden",
+          "Upload van fotobewijs, documenten en laboratoriumrapporten",
+          "Onveranderlijk PDF-keuringscertificaat bij goedkeuring",
+        ],
+      },
+      {
+        id: "stage-07",
+        number: "07",
+        shortName: "Contract",
+        title: "Contractbevestiging & Incoterms",
+        summary:
+          "Na acceptatie van de offerte wordt een gestructureerd verkoopcontract opgesteld waarin de overeengekomen commerciële basis, Incoterms en leveringsvoorwaarden worden vastgelegd.",
+        actor: "Koper, Leverancier & Trader",
+        artifact: "Bevestigd Verkoopcontract (PDF)",
+        badge: "Bindende afspraken",
+        checkpoints: [
+          "Onveranderlijke vastlegging van geaccepteerd bedrag, volume en valuta",
+          "Duidelijke vastlegging van Incoterms en betalingsvoorwaarden",
+          "Deterministische generatie van een meerpagina PDF-contract",
+        ],
+      },
+      {
+        id: "stage-08",
+        number: "08",
+        shortName: "Logistiek",
+        title: "Vrachtoffertes & zendingsuitvoering",
+        summary:
+          "Uitgenodigde logistieke partners dienen vrachtoffertes in. De geselecteerde vervoerder voert de ophaling uit, uploadt transportdocumenten en registreert mijlpalen.",
+        actor: "Logistieke Partners & Trader",
+        artifact: "Zendingsdossier & Mijlpalen",
+        badge: "Transportopvolging",
+        checkpoints: [
+          "Geïsoleerde vrachtoffertes en deterministische vervoerdersselectie",
+          "Statusopvolging: ophaling gepland, onderweg, douane, afgeleverd",
+          "Registratie van afwijkingen en definitieve kostenafstemming",
+        ],
+      },
+      {
+        id: "stage-09",
+        number: "09",
+        shortName: "Afwikkeling",
+        title: "Administratieve betalingsopvolging",
+        summary:
+          "Het platform volgt facturen, betalingsinstructies, aanbetalingen, openstaande saldi en claims administratief op tot de definitieve afsluiting, zonder als bank op te treden.",
+        actor: "Commerciële Administratie",
+        artifact: "Afwikkelingsregister",
+        badge: "Administratief",
+        checkpoints: [
+          "Registratie van facturen, creditnota's en betalingsinstructies",
+          "Door de server berekend restsaldo en opvolging van vervaldata",
+          "Gestructureerde afhandeling van claims vóór dossierafsluiting",
+        ],
+      },
+      {
+        id: "stage-10",
+        number: "10",
+        shortName: "DPP-paspoort",
+        title: "Uitgifte van het Digitaal Productpaspoort",
+        summary:
+          "Geverifieerde gebeurtenissen (herkomst, kwaliteitskeuring, contract, transport) worden samengebracht in een versiebeheerd Digitaal Productpaspoort (DPP), downloadbaar als PDF en toegankelijk via QR-code.",
+        actor: "Koper, Leverancier & Auditors",
+        artifact: "Digitaal Productpaspoort (DPP)",
+        badge: "Klaar voor ESPR / CSRD",
+        checkpoints: [
+          "Chronologisch en onveranderlijk overzicht op basis van brondata",
+          "Strikte afscherming van interne handelsmarges en bankgegevens",
+          "Afdrukbaar paspoort, PDF-export en beveiligde QR-toegang",
+        ],
+      },
     ],
-    keyOutputs: ["Approved Match Status", "Binding Sales Contract", "Settlement Ledger"],
+    actorLabels: {
+      subtitle:
+        "Elke transactie verbindt vijf gespecialiseerde rollen rond één gedeeld datamodel met strikte toegangsscheiding.",
+      profileEyebrow: "Operationele rol",
+      responsibilities: "Kerntaken in de keten",
+      deliverables: "Platformresultaten",
+    },
+    actors: [
+      {
+        id: "supplier",
+        roleName: "Producenten & Coöperaties",
+        title: "Landbouwcoöperaties, telers en zwingelbedrijven",
+        image: "/images/actor_producer_field.png",
+        summary:
+          "Europese producenten registreren hun locaties, publiceren natuurvezelpartijen met gestructureerde specificaties en krijgen toegang tot gekwalificeerde industriële vraag.",
+        responsibilities: [
+          "Organisatie, productielocaties en certificaten registreren",
+          "Partijen aanmaken met materiaal, vorm, volume, oogstjaar en herkomst",
+          "Meewerken aan fysieke kwaliteitskeuringen en documentcontrole",
+          "Digitale Productpaspoorten (DPP) voor hun eigen partijen raadplegen",
+        ],
+        deliverables: ["Geverifieerd Leveranciersprofiel", "Gepubliceerde Partijen", "Leveranciers-DPP"],
+      },
+      {
+        id: "buyer",
+        roleName: "Industriële Kopers",
+        title: "Inkoopteams in textiel, biocomposieten, isolatie en papier",
+        image: "/images/b2b_team.png",
+        summary:
+          "Industriële verwerkers kopen traceerbare grondstoffen in via de catalogus of via gestructureerde inkooporders en beoordelen versiebeheerde offertes.",
+        responsibilities: [
+          "Geverifieerde partijen zoeken en filteren op technische eisen",
+          "Gestructureerde inkooporders indienen voor specifieke behoeften",
+          "Offertes met 11 kostenposten beoordelen, accepteren of tegenbod doen",
+          "Bevestigde contracten en Digitale Productpaspoorten (DPP) inzien",
+        ],
+        deliverables: ["Inkooporders", "Offertebesluiten", "Toegang tot Kopers-DPP"],
+      },
+      {
+        id: "trader",
+        roleName: "Tradingdesk",
+        title: "I DO GROW-handelaren & transactiebegeleiding",
+        image: "/images/trader_platform.png",
+        summary:
+          "Als centraal coördinatiepunt beoordelen traders de onboarding, koppelen zij vraag en aanbod, stellen zij offertes op en begeleiden zij kwaliteit, contracten, logistiek en afwikkeling.",
+        responsibilities: [
+          "Leveranciersonboarding controleren en partijpublicatie ondersteunen",
+          "Compatibiliteit tussen vraag en aanbod beoordelen en matches goedkeuren",
+          "Versiebeheerde offertes opstellen en verkoopcontracten bevestigen",
+          "Kwaliteitskeuringen, vrachtaanvragen, afwikkeling en DPP's coördineren",
+        ],
+        deliverables: ["Goedgekeurde Match", "Offerte & Contract", "Regie over de Cyclus"],
+      },
+      {
+        id: "quality",
+        roleName: "Kwaliteitsinspecteurs",
+        title: "Onafhankelijke inspecteurs & technische partijkeuring",
+        image: "/images/quality_lab.png",
+        summary:
+          "Toegewezen kwaliteitsinspecteurs voeren objectieve fysieke metingen uit vóór verzending en geven door mensen goedgekeurde keuringscertificaten af.",
+        responsibilities: [
+          "Toegewezen inspectietaken beheren in een eigen inspecteursportaal",
+          "Technische metingen vastleggen (vocht, baalgewicht, roting, zuiverheid)",
+          "Fotobewijs, labrapporten en non-conformiteiten uploaden",
+          "Menselijk kwaliteitsbesluit vastleggen en officieel PDF-certificaat uitgeven",
+        ],
+        deliverables: ["Technische Metingen", "Kwaliteitsbesluit", "QIC-certificaat (PDF)"],
+      },
+      {
+        id: "logistics",
+        roleName: "Logistieke Partners",
+        title: "Europese wegvervoerders en multimodale transporteurs",
+        image: "/images/freight_port.png",
+        summary:
+          "Logistieke partners reageren op vrachtaanvragen voor bevestigde contracten en rapporteren mijlpalen voor toegewezen zendingen.",
+        responsibilities: [
+          "Vrachtoffertes indienen met prijs, valuta en transittijd",
+          "Geplande ophalingen en levering aan de fabriekspoort uitvoeren",
+          "Trackingmijlpalen bijwerken en transportdocumenten uploaden",
+          "Vertragingen, schade of hoeveelheidsverschillen melden",
+        ],
+        deliverables: ["Vrachtofferte", "Trackingmijlpalen", "Transportdocumenten"],
+      },
+    ],
+    pillarsSection: {
+      eyebrow: "Operationele waarborgen",
+      title: "Vier structurele garanties bij elke transactie.",
+      body: "In tegenstelling tot passieve gidsen of ongetoetste marktplaatsen verankert I DO GROW elke kritieke stap in verifieerbare gegevens en expliciete menselijke controle.",
+      items: [
+        {
+          id: "quote-negotiation",
+          number: "01",
+          title: "Transparante offerte met 11 kostenposten",
+          body: "Elke offerte splitst grondstofwaarde, commissie, keuringskosten, verpakking, voortransport, internationaal transport, douane, verzekering, opslag en belastingen helder uit.",
+          meta: "Onveranderlijk versiebeheer",
+        },
+        {
+          id: "quality-contract",
+          number: "02",
+          title: "Onafhankelijke kwaliteitskeuring & Incoterms-contract",
+          body: "Kwaliteitsbesluiten zijn gebaseerd op gedocumenteerde metingen en leveren een verifieerbaar PDF-certificaat op. Bevestigde contracten leggen de commerciële basis vast.",
+          meta: "QIC-certificaat & PDF-contract",
+        },
+        {
+          id: "logistics-settlement",
+          number: "03",
+          title: "Gecoördineerde logistiek & administratieve afwikkeling",
+          body: "Van vervoerdersselectie en mijlpaaltracking tot kostenafstemming en factuuropvolging wordt elke stap transparant vastgelegd zonder speculatieve bankrol.",
+          meta: "Controleerbare dossierafsluiting",
+        },
+        {
+          id: "dpp-governance",
+          number: "04",
+          title: "Digitaal Productpaspoort (DPP) per partij",
+          body: "Elke partij krijgt een versiebeheerd digitaal paspoort met herkomst, keuringsresultaten, certificaten en ketenstappen, met strikte afscherming van commerciële marges.",
+          meta: "Klaar voor ESPR & CSRD",
+        },
+      ],
+      dppCard: {
+        badge: "Digitaal Productpaspoort • DPP",
+        subtitle: "Architectuur voor partij-traceerbaarheid",
+        f1Label: "Identiteit & Herkomst",
+        f1Value: "Partijreferentie, vezelvorm, land en productielocatie",
+        f2Label: "Kwaliteit & Certificaten",
+        f2Value: "Inspectiemetingen, keuringsstatus en QIC-referentie",
+        f3Label: "Handel & Keten",
+        f3Value: "Bevestigd contract, zendingsmijlpalen en aflevering",
+        f4Label: "Commerciële afscherming",
+        f4Value: "Interne marges en bankgegevens strikt afgeschermd",
+        note: "Downloadbaar als meerpagina-PDF en toegankelijk via beveiligde QR-code voor geautoriseerde partijen.",
+        cta: "Bekijk DPP-traceerbare partijen",
+      },
+    },
   },
-  {
-    id: "quality",
-    roleName: "QUALITY LAB",
-    title: "Independent Laboratory & Accredited Inspector",
-    image: "/images/quality_lab.png",
-    summary:
-      "Accredited third-party testing facilities providing objective scientific grading under ISO 17025 standards to ensure lots comply before shipping.",
-    responsibilities: [
-      "Extract representative batch samples according to standardized sampling protocols",
-      "Measure moisture content, mechanical fineness, shive ratio, and cleanliness",
-      "Record objective test certificates tied cryptographically to specific lot IDs",
-      "Provide independent measurement arbitration if quality claims arise",
-    ],
-    platformTools: [
-      "Structured inspection measurement logger",
-      "Evidence photo & lab test report uploader",
-      "Certificate generation & digital sealing suite",
-    ],
-    keyOutputs: ["ISO 17025 Test Certificate", "Moisture Analysis Report", "Quality Seal"],
-  },
-  {
-    id: "logistics",
-    roleName: "LOGISTICS CARRIER",
-    title: "European Freight Carrier & Multimodal Operator",
-    image: "/images/freight_port.png",
-    summary:
-      "Licensed European road freight, container, and intermodal carriers transporting baled raw materials across national borders under clear Incoterms.",
-    responsibilities: [
-      "Submit competitive freight quotes for awarded shipment requirements",
-      "Inspect packaging, load security, and moisture protection at collection",
-      "Log digital transit milestones from cooperative warehouse to factory gate",
-      "Upload signed electronic consignment notes (e-CMR) upon delivery",
-    ],
-    platformTools: [
-      "Freight quotation submission portal",
-      "Milestone transit logger & exception reporter",
-      "Consignment document & CMR repository",
-    ],
-    keyOutputs: ["Freight Quote", "Transit Milestone Log", "Signed Delivery Proof (CMR)"],
-  },
-];
+};
 
 export function HowItWorksView() {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
+  const copy = COPY_BY_LOCALE[locale] || COPY_BY_LOCALE.fr;
+
   const [selectedStageId, setSelectedStageId] = useState<string>("stage-01");
   const [selectedActorId, setSelectedActorId] = useState<string>("supplier");
   const [authGateOpen, setAuthGateOpen] = useState(false);
-  const [authGateAction, setAuthGateAction] = useState("Platform Access");
+  const [authGateAction, setAuthGateAction] = useState(t("cta.createAccount"));
 
   const currentStage =
-    MASTER_STAGES.find((s) => s.id === selectedStageId) || MASTER_STAGES[0];
+    copy.stages.find((s) => s.id === selectedStageId) || copy.stages[0];
   const currentActor =
-    ACTOR_ROLES.find((a) => a.id === selectedActorId) || ACTOR_ROLES[0];
+    copy.actors.find((a) => a.id === selectedActorId) || copy.actors[0];
+
+  const openAuthGate = (action?: string) => {
+    setAuthGateAction(action || t("cta.createAccount"));
+    setAuthGateOpen(true);
+  };
 
   return (
     <div className="min-h-screen bg-[#faf8f1] flex flex-col text-[#173f35] selection:bg-[#1e5442] selection:text-white">
-      {/* 1. Header Navigation */}
-      <PublicHeader
-        activeRoute="how-it-works"
-        onOpenAuthGate={(action) => {
-          setAuthGateAction(action || "Platform Access");
-          setAuthGateOpen(true);
-        }}
-      />
+      <PublicHeader activeRoute="how-it-works" onOpenAuthGate={openAuthGate} />
 
       <main className="flex-1">
         {/* ========================================================================= */}
-        {/* SECTION 1 — HERO: Distinct Pedagogical Hero with Lifecycle Diagram        */}
+        {/* SECTION 1 — EDITORIAL HERO                                                */}
         {/* ========================================================================= */}
-        <section className="relative bg-[#112d24] text-white py-16 lg:py-24 border-b border-[#0b1f19] overflow-hidden">
-          {/* Subtle Ambient Radial Glow */}
-          <div
-            className="absolute inset-0 pointer-events-none opacity-30"
-            style={{
-              background:
-                "radial-gradient(circle at 75% 20%, rgba(200, 155, 60, 0.2) 0%, rgba(23, 63, 53, 0.5) 50%, rgba(11, 31, 24, 0.9) 100%)",
-            }}
-          />
-
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <section className="bg-[#0d1d17] text-white border-b border-[#173f35]">
+          <div className="max-w-7xl mx-auto px-5 sm:px-8 py-16 lg:py-24">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-              {/* Left Column: Mission & CTAs */}
-              <div className="lg:col-span-6 space-y-6">
-                <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-[#c89b3c]/35 backdrop-blur-xs text-xs font-semibold text-[#f5ebd2]">
-                  <span className="w-2 h-2 rounded-full bg-[#c89b3c] animate-pulse" />
-                  <span>{t("howItWorks.heroEyebrow")}</span>
-                </div>
+              <div className="lg:col-span-7">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#e2c98c]">
+                  {t("howItWorks.heroEyebrow")}
+                </p>
 
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white leading-[1.12]">
+                <h1 className="mt-5 text-3xl sm:text-5xl lg:text-[3.4rem] font-bold tracking-[-0.03em] text-white leading-[1.06]">
                   {t("howItWorks.heroTitle")}
                 </h1>
 
-                <p className="text-sm sm:text-base text-[#c4dfd4] font-normal leading-relaxed">
+                <p className="mt-6 text-base sm:text-lg text-[#dbe7e1] max-w-2xl leading-relaxed">
                   {t("howItWorks.heroSubtitle")}
                 </p>
 
-                {/* Primary & Secondary CTAs */}
-                <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 max-w-md">
+                <div className="mt-9 flex flex-col sm:flex-row gap-3">
                   <Link
                     href="/marketplace"
-                    className="py-3.5 px-7 bg-[#c89b3c] hover:bg-[#b8860b] text-[#13352c] text-sm font-bold rounded-xl shadow-lg transition-all text-center flex items-center justify-center space-x-2 focus:ring-2 focus:ring-[#c89b3c]"
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-[#c89b3c] px-7 py-4 text-sm font-bold text-[#13352c] transition-colors hover:bg-[#d8ad52]"
                   >
                     <span>{t("cta.exploreMarketplace")}</span>
                     <span aria-hidden="true">&rarr;</span>
@@ -362,109 +1144,133 @@ export function HowItWorksView() {
 
                   <button
                     type="button"
-                    onClick={() => {
-                      setAuthGateAction("Create Buyer Account");
-                      setAuthGateOpen(true);
-                    }}
-                    className="py-3.5 px-6 border border-white/25 bg-black/25 hover:bg-black/40 text-white text-sm font-semibold rounded-xl backdrop-blur-xs transition-colors text-center"
+                    onClick={() => openAuthGate(t("cta.createAccount"))}
+                    className="inline-flex items-center justify-center rounded-full border border-white/40 px-7 py-4 text-sm font-semibold text-white transition-colors hover:bg-white/10 cursor-pointer"
                   >
                     {t("cta.createAccount")}
                   </button>
                 </div>
 
-                {/* Quick Trust Highlights */}
-                <div className="pt-6 border-t border-white/15 grid grid-cols-3 gap-4 text-xs text-[#a9c9bc]">
-                  <div>
-                    <strong className="text-white block font-bold text-sm">10 Stages</strong>
-                    <span>Connected Lifecycle</span>
-                  </div>
-                  <div>
-                    <strong className="text-white block font-bold text-sm">Human Vetted</strong>
-                    <span>Central Trading Desk</span>
-                  </div>
-                  <div>
-                    <strong className="text-white block font-bold text-sm">Audit-Ready</strong>
-                    <span>EU CSRD / DPP</span>
-                  </div>
+                <dl className="mt-12 pt-8 border-t border-white/15 grid grid-cols-3 gap-6">
+                  {copy.heroPillars.map((pillar) => (
+                    <div key={pillar.label}>
+                      <dt className="text-xs uppercase tracking-wider text-[#9fc0b2]">
+                        {pillar.label}
+                      </dt>
+                      <dd className="mt-1 text-sm sm:text-base font-bold text-white">
+                        {pillar.value}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+
+              <div className="lg:col-span-5">
+                <figure className="relative rounded-sm overflow-hidden border border-white/15 bg-[#143a2f]">
+                  <img
+                    src="/images/home-v2/warehouse-inspection.jpg"
+                    alt={copy.heroCaption}
+                    fetchPriority="high"
+                    className="aspect-[4/3] w-full object-cover"
+                  />
+                  <figcaption className="p-4 bg-[#143a2f] border-t border-white/10 text-xs text-[#dbe7e1] flex items-center justify-between gap-3">
+                    <span>{copy.heroCaption}</span>
+                    <span className="px-2 py-0.5 rounded-xs bg-[#c89b3c] text-[#13352c] font-bold text-[10px] uppercase shrink-0">
+                      I DO GROW
+                    </span>
+                  </figcaption>
+                </figure>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ========================================================================= */}
+        {/* SECTION 2 — TWO SOURCING PATHWAYS                                         */}
+        {/* ========================================================================= */}
+        <section id="two-entry-paths" className="py-20 lg:py-28 bg-[#faf8f1] border-b border-[#e4ded0]">
+          <div className="max-w-7xl mx-auto px-5 sm:px-8">
+            <div className="max-w-2xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#8a6a22]">
+                {t("howItWorks.entryPathsTitle")}
+              </p>
+              <h2 className="mt-3 text-3xl sm:text-4xl font-bold tracking-[-0.025em] text-[#173f35] leading-[1.1]">
+                {t("howItWorks.buyOrderTitle")}
+              </h2>
+              <p className="mt-3 text-[15px] text-[#4f625a] leading-relaxed">
+                {copy.pathsIntro}
+              </p>
+            </div>
+
+            <div className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Path A */}
+              <div className="bg-white rounded-md border border-[#ded8c4] p-8 flex flex-col justify-between space-y-6">
+                <div className="space-y-4">
+                  <span className="inline-block text-xs font-semibold uppercase tracking-[0.16em] text-[#8a6a22]">
+                    {copy.pathA.tag}
+                  </span>
+                  <h3 className="text-2xl font-bold tracking-tight text-[#173f35]">
+                    {copy.pathA.title}
+                  </h3>
+                  <p className="text-sm text-[#4f625a] leading-relaxed">
+                    {copy.pathA.body}
+                  </p>
+                  <ul className="space-y-2.5 pt-2 text-xs sm:text-sm text-[#173f35]">
+                    {copy.pathA.bullets.map((bullet) => (
+                      <li key={bullet} className="flex items-start gap-2.5">
+                        <span className="text-[#1e5442] font-bold" aria-hidden="true">
+                          ✓
+                        </span>
+                        <span>{bullet}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="pt-5 border-t border-[#e4ded0]">
+                  <Link
+                    href="/marketplace"
+                    className="inline-flex items-center gap-2 text-sm font-bold text-[#173f35] hover:text-[#1e5442] underline underline-offset-4"
+                  >
+                    <span>{t("cta.findProduct")}</span>
+                    <span aria-hidden="true">&rarr;</span>
+                  </Link>
                 </div>
               </div>
 
-              {/* Right Column: High-Level Interactive Lifecycle Flow Diagram */}
-              <div className="lg:col-span-6">
-                <div className="rounded-3xl bg-[#0d221b] border border-white/15 p-6 sm:p-8 shadow-2xl space-y-6">
-                  <div className="flex items-center justify-between pb-4 border-b border-white/10">
-                    <div className="flex items-center space-x-2.5">
-                      <span className="w-3 h-3 rounded-full bg-[#c89b3c]" />
-                      <span className="text-xs font-bold uppercase tracking-wider text-white">
-                        Transaction Pipeline Architecture
-                      </span>
-                    </div>
-                    <span className="text-[11px] font-semibold text-[#8ebfb0]">
-                      Continuous Custody
-                    </span>
-                  </div>
+              {/* Path B */}
+              <div className="bg-white rounded-md border border-[#ded8c4] p-8 flex flex-col justify-between space-y-6">
+                <div className="space-y-4">
+                  <span className="inline-block text-xs font-semibold uppercase tracking-[0.16em] text-[#8a6a22]">
+                    {copy.pathB.tag}
+                  </span>
+                  <h3 className="text-2xl font-bold tracking-tight text-[#173f35]">
+                    {copy.pathB.title}
+                  </h3>
+                  <p className="text-sm text-[#4f625a] leading-relaxed">
+                    {copy.pathB.body}
+                  </p>
+                  <ul className="space-y-2.5 pt-2 text-xs sm:text-sm text-[#173f35]">
+                    {copy.pathB.bullets.map((bullet) => (
+                      <li key={bullet} className="flex items-start gap-2.5">
+                        <span className="text-[#8a6a22] font-bold" aria-hidden="true">
+                          ✓
+                        </span>
+                        <span>{bullet}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
 
-                  {/* Flow Stages Grid Preview */}
-                  <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#c89b3c]">01 &bull; SUPPLY</span>
-                      <strong className="text-white block text-xs">Cooperative Batches</strong>
-                      <span className="text-[11px] text-[#9fc0b2]">GPS parcel origin &amp; gross tonnage</span>
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#c89b3c]">02 &bull; CATALOG</span>
-                      <strong className="text-white block text-xs">Marketplace Listing</strong>
-                      <span className="text-[11px] text-[#9fc0b2]">Sanitized public discovery specs</span>
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#c89b3c]">03 &bull; DEMAND</span>
-                      <strong className="text-white block text-xs">Buyer RFQ / Order</strong>
-                      <span className="text-[11px] text-[#9fc0b2]">Structured industrial criteria</span>
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#c89b3c]">04 &bull; MATCH</span>
-                      <strong className="text-white block text-xs">Trader Clearance</strong>
-                      <span className="text-[11px] text-[#9fc0b2]">Human-controlled matching desk</span>
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#c89b3c]">05 &bull; NEGOTIATE</span>
-                      <strong className="text-white block text-xs">Versioned Quotes</strong>
-                      <span className="text-[11px] text-[#9fc0b2]">Itemized fee &amp; freight clarity</span>
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#c89b3c]">06 &bull; QUALITY</span>
-                      <strong className="text-white block text-xs">ISO 17025 Lab Test</strong>
-                      <span className="text-[11px] text-[#9fc0b2]">Moisture, shive &amp; fineness gate</span>
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#c89b3c]">07 &bull; CONTRACT</span>
-                      <strong className="text-white block text-xs">Incoterm Agreement</strong>
-                      <span className="text-[11px] text-[#9fc0b2]">EXW, FCA or DAP legal terms</span>
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#c89b3c]">08 &bull; LOGISTICS</span>
-                      <strong className="text-white block text-xs">Carrier Transport</strong>
-                      <span className="text-[11px] text-[#9fc0b2]">Milestone e-CMR custody logging</span>
-                    </div>
-                  </div>
-
-                  {/* Terminal DPP Outcome Banner */}
-                  <div className="p-3.5 rounded-xl bg-[#173f35] border border-[#c89b3c]/30 flex items-center justify-between text-xs">
-                    <div>
-                      <span className="text-[10px] font-bold uppercase text-[#c89b3c] block">09 &bull; SETTLEMENT &rarr; 10 &bull; DPP</span>
-                      <strong className="text-white">Audit-Ready Passport &amp; Custody Handoff</strong>
-                    </div>
-                    <span className="px-2.5 py-1 rounded bg-[#c89b3c] text-[#13352c] font-bold text-[10px] uppercase">
-                      Immutable
-                    </span>
-                  </div>
+                <div className="pt-5 border-t border-[#e4ded0]">
+                  <button
+                    type="button"
+                    onClick={() => openAuthGate(t("cta.createBuyOrder"))}
+                    className="inline-flex items-center gap-2 text-sm font-bold text-[#173f35] hover:text-[#1e5442] underline underline-offset-4 cursor-pointer"
+                  >
+                    <span>{t("cta.createBuyOrder")}</span>
+                    <span aria-hidden="true">&rarr;</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -472,126 +1278,123 @@ export function HowItWorksView() {
         </section>
 
         {/* ========================================================================= */}
-        {/* SECTION 2 — END-TO-END MASTER TIMELINE: 10 Connected Stages               */}
+        {/* SECTION 3 — 10-STAGE TRANSACTION LIFECYCLE                                */}
         {/* ========================================================================= */}
-        <section className="py-20 lg:py-24 bg-[#faf8f1] border-b border-[#ded8c4]" id="master-timeline">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="max-w-3xl mb-12">
-              <span className="text-xs font-bold uppercase tracking-wider text-[#1e5442]">
+        <section id="master-timeline" className="py-20 lg:py-28 bg-[#f2eddf] border-b border-[#e4ded0]">
+          <div className="max-w-7xl mx-auto px-5 sm:px-8">
+            <div className="max-w-2xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#8a6a22]">
                 {t("howItWorks.timelineTitle")}
-              </span>
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-[#173f35] tracking-tight mt-1">
-                From Harvest to Industrial Receiving Gate
+              </p>
+              <h2 className="mt-3 text-3xl sm:text-4xl font-bold tracking-[-0.025em] text-[#173f35] leading-[1.1]">
+                {t("home.steps.title")}
               </h2>
-              <p className="mt-3 text-sm text-[#5c6e66] leading-relaxed">
-                {t("howItWorks.timelineSubtitle")} Select any milestone below to inspect its operational criteria and generated artifacts.
+              <p className="mt-3 text-[15px] text-[#4f625a] leading-relaxed">
+                {t("howItWorks.timelineSubtitle")}
               </p>
             </div>
 
-            {/* Interactive Progress Rail / Step Selector */}
-            <div className="mb-10 overflow-x-auto pb-3">
-              <div className="flex items-center space-x-2 min-w-[820px]">
-                {MASTER_STAGES.map((stage) => {
-                  const isSelected = selectedStageId === stage.id;
-                  return (
-                    <button
-                      key={stage.id}
-                      type="button"
-                      onClick={() => setSelectedStageId(stage.id)}
-                      className={`flex-1 py-3 px-2.5 rounded-xl border text-center transition-all cursor-pointer ${
-                        isSelected
-                          ? "bg-[#173f35] text-white border-[#173f35] shadow-md ring-2 ring-[#c89b3c]"
-                          : "bg-white text-[#5c6e66] border-[#ded8c4] hover:bg-[#eef6f2] hover:text-[#173f35]"
+            {/* Interactive 10-Stage Selector Grid */}
+            <div className="mt-10 grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 gap-2">
+              {copy.stages.map((stage) => {
+                const isSelected = selectedStageId === stage.id;
+                return (
+                  <button
+                    key={stage.id}
+                    type="button"
+                    onClick={() => setSelectedStageId(stage.id)}
+                    aria-pressed={isSelected}
+                    className={`py-3 px-2.5 rounded-sm border text-left transition-colors cursor-pointer ${
+                      isSelected
+                        ? "bg-[#173f35] text-white border-[#173f35]"
+                        : "bg-white text-[#173f35] border-[#ded8c4] hover:border-[#173f35]"
+                    }`}
+                  >
+                    <span
+                      className={`text-[11px] font-bold tabular-nums block ${
+                        isSelected ? "text-[#e2c98c]" : "text-[#8a6a22]"
                       }`}
                     >
-                      <span className="text-[10px] font-black block tracking-widest uppercase">
-                        {stage.number}
-                      </span>
-                      <span className="text-[11px] font-bold truncate block mt-0.5">
-                        {stage.shortName}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+                      {stage.number}
+                    </span>
+                    <span className="text-xs font-semibold truncate block mt-1">
+                      {stage.shortName}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
-            {/* Selected Stage Detail Showcase Card */}
-            <div className="bg-white rounded-3xl border border-[#ded8c4] p-8 lg:p-10 shadow-sm transition-all">
+            {/* Selected Stage Detail Panel */}
+            <div className="mt-6 bg-white rounded-md border border-[#ded8c4] p-7 sm:p-10">
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
-                {/* Left: Stage Title & Narrative */}
                 <div className="lg:col-span-7 space-y-5">
-                  <div className="flex items-center space-x-3">
-                    <span className="w-10 h-10 rounded-xl bg-[#1e5442] text-white flex items-center justify-center font-black text-sm">
+                  <div className="flex items-baseline gap-3">
+                    <span className="text-sm font-bold tabular-nums text-[#8a6a22]">
                       {currentStage.number}
                     </span>
-                    <div>
-                      <span className="text-xs font-bold uppercase tracking-wider text-[#c89b3c] block">
-                        STAGE {currentStage.number} &bull; {currentStage.shortName}
-                      </span>
-                      <h3 className="text-2xl font-extrabold text-[#173f35]">
-                        {currentStage.title}
-                      </h3>
-                    </div>
+                    <h3 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#173f35]">
+                      {currentStage.title}
+                    </h3>
                   </div>
 
-                  <p className="text-sm text-[#4d5f57] leading-relaxed">
+                  <p className="text-[15px] text-[#4f625a] leading-relaxed">
                     {currentStage.summary}
                   </p>
 
-                  {/* Operational Criteria Checkpoints */}
-                  <div className="space-y-2 pt-2">
-                    <span className="text-xs font-bold uppercase tracking-wider text-[#173f35] block">
-                      Execution Checkpoints:
-                    </span>
-                    <ul className="space-y-2 text-xs text-[#5c6e66]">
-                      {currentStage.operationalDetails.map((detail, idx) => (
-                        <li key={idx} className="flex items-start space-x-2.5">
-                          <span className="text-[#c89b3c] font-bold mt-0.5">✓</span>
-                          <span>{detail}</span>
+                  <div className="pt-2">
+                    <h4 className="text-xs font-semibold uppercase tracking-[0.14em] text-[#173f35] mb-3">
+                      {copy.timelineLabels.checkpoints}
+                    </h4>
+                    <ul className="space-y-2.5 text-sm text-[#4f625a]">
+                      {currentStage.checkpoints.map((cp) => (
+                        <li key={cp} className="flex items-start gap-2.5">
+                          <span className="text-[#8a6a22] font-bold" aria-hidden="true">
+                            ✓
+                          </span>
+                          <span>{cp}</span>
                         </li>
                       ))}
                     </ul>
                   </div>
                 </div>
 
-                {/* Right: Operational Governance Snapshot */}
-                <div className="lg:col-span-5 bg-[#faf8f1] rounded-2xl border border-[#ded8c4] p-6 space-y-4">
-                  <div className="flex items-center justify-between pb-3 border-b border-[#e6dfcd]">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#7d8f85]">
-                      Stage Governance
+                <div className="lg:col-span-5 bg-[#faf8f1] rounded-sm border border-[#e4ded0] p-6 space-y-5">
+                  <div className="flex items-center justify-between pb-3 border-b border-[#e4ded0]">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-[#5c6e66]">
+                      {copy.timelineLabels.governance}
                     </span>
-                    <span className="px-2.5 py-0.5 rounded-full bg-[#1e5442] text-white text-[10px] font-bold">
+                    <span className="px-2.5 py-0.5 rounded-xs bg-[#173f35] text-[#e2c98c] text-[11px] font-semibold">
                       {currentStage.badge}
                     </span>
                   </div>
 
-                  <div className="space-y-3 text-xs">
+                  <dl className="space-y-4 text-sm">
                     <div>
-                      <span className="text-[10px] text-[#7d8f85] uppercase block font-semibold">
-                        Primary Counterparty / Actor
-                      </span>
-                      <strong className="text-[#173f35] text-sm font-bold block mt-0.5">
+                      <dt className="text-[11px] uppercase tracking-wider text-[#5c6e66] font-semibold">
+                        {copy.timelineLabels.actor}
+                      </dt>
+                      <dd className="mt-1 font-bold text-[#173f35]">
                         {currentStage.actor}
-                      </strong>
+                      </dd>
                     </div>
-
                     <div>
-                      <span className="text-[10px] text-[#7d8f85] uppercase block font-semibold">
-                        Authoritative Platform Artifact
-                      </span>
-                      <strong className="text-[#1e5442] text-sm font-bold block mt-0.5">
+                      <dt className="text-[11px] uppercase tracking-wider text-[#5c6e66] font-semibold">
+                        {copy.timelineLabels.artifact}
+                      </dt>
+                      <dd className="mt-1 font-bold text-[#1e5442]">
                         {currentStage.artifact}
-                      </strong>
+                      </dd>
                     </div>
-                  </div>
+                  </dl>
 
-                  <div className="pt-3 border-t border-[#e6dfcd]">
+                  <div className="pt-3 border-t border-[#e4ded0]">
                     <Link
                       href="/marketplace"
-                      className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-[#1e5442] hover:text-white border border-[#ded8c4] text-[#173f35] font-bold text-xs text-center block transition-colors shadow-2xs"
+                      className="inline-flex items-center gap-2 text-xs font-bold text-[#173f35] hover:text-[#1e5442] underline underline-offset-4"
                     >
-                      Explore Active Materials in Stage &rarr;
+                      <span>{copy.timelineLabels.exploreCta}</span>
+                      <span aria-hidden="true">&rarr;</span>
                     </Link>
                   </div>
                 </div>
@@ -601,732 +1404,97 @@ export function HowItWorksView() {
         </section>
 
         {/* ========================================================================= */}
-        {/* SECTION 3 — SUPPLY SIDE: Farmers, Cooperatives & Mills                    */}
+        {/* SECTION 4 — FIVE ECOSYSTEM ACTORS                                         */}
         {/* ========================================================================= */}
-        <section className="py-20 lg:py-24 bg-white border-b border-[#e4ded0]" id="supply-side">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-              <div className="lg:col-span-6 space-y-5">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#1e5442]">
-                  {t("howItWorks.supplyTitle")}
-                </span>
-                <h2 className="text-3xl sm:text-4xl font-extrabold text-[#173f35] tracking-tight leading-snug">
-                  How European Agricultural Supply Enters the Platform
-                </h2>
-                <p className="text-sm text-[#5c6e66] leading-relaxed">
-                  For European farmers, agricultural cooperatives, and scutching mills, I Do Grow replaces fragmented broker networks with direct access to industrial procurement. Producers log real inventory with structured harvest parameters:
-                </p>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  <div className="p-3.5 rounded-xl bg-[#faf8f1] border border-[#ded8c4]">
-                    <strong className="text-[#173f35] block font-bold">Parcel Coordinates &amp; Harvest Date:</strong>
-                    <span className="text-[#5c6e66]">GPS polygon mapping of field parcel and retting dates.</span>
-                  </div>
-                  <div className="p-3.5 rounded-xl bg-[#faf8f1] border border-[#ded8c4]">
-                    <strong className="text-[#173f35] block font-bold">Standardized Material Form:</strong>
-                    <span className="text-[#5c6e66]">Retted straw, scutched line, short fibre, or shive pellets.</span>
-                  </div>
-                  <div className="p-3.5 rounded-xl bg-[#faf8f1] border border-[#ded8c4]">
-                    <strong className="text-[#173f35] block font-bold">Inventory Volume &amp; Target Price:</strong>
-                    <span className="text-[#5c6e66]">Certified tonnage tallies and minimum contract volume.</span>
-                  </div>
-                  <div className="p-3.5 rounded-xl bg-[#faf8f1] border border-[#ded8c4]">
-                    <strong className="text-[#173f35] block font-bold">Mobile-First Supplier Onboarding:</strong>
-                    <span className="text-[#5c6e66]">Assisted lot registration designed for cooperative weighbridges.</span>
-                  </div>
-                </div>
-
-                <p className="text-xs text-[#6e8077] italic">
-                  Supplier commercial confidentiality is preserved: parcel GPS and supplier legal entity details remain protected until mutual quote acceptance.
-                </p>
-              </div>
-
-              <div className="lg:col-span-6">
-                <div className="relative rounded-3xl overflow-hidden border border-[#ded8c4] shadow-md bg-[#faf8f1]">
-                  <img
-                    src="/images/actor_producer_field.png"
-                    alt="Agricultural producer in field inspecting harvested hemp crop"
-                    className="w-full h-[380px] object-cover object-center"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
-                  <div className="absolute bottom-4 left-4 right-4 p-4 rounded-xl bg-white/95 backdrop-blur-xs border border-white/40 text-xs text-[#173f35] flex items-center justify-between">
-                    <div>
-                      <span className="font-bold block">European Producer Intake Station</span>
-                      <span className="text-[11px] text-[#5c6e66]">Verified cooperative lot staging</span>
-                    </div>
-                    <span className="px-2.5 py-1 rounded bg-[#1e5442] text-white font-bold text-[10px]">
-                      STAGE 01
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================================= */}
-        {/* SECTION 4 & 5 — PUBLIC DISCOVERY & STRUCTURED BUY ORDER (Two Paths)       */}
-        {/* ========================================================================= */}
-        <section className="py-20 lg:py-24 bg-[#faf8f1] border-b border-[#ded8c4]" id="two-entry-paths">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="max-w-3xl mb-14 text-center mx-auto space-y-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-[#1e5442]">
-                {t("howItWorks.entryPathsTitle")}
-              </span>
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-[#173f35] tracking-tight">
-                Two Ways for Industrial Buyers to Source
-              </h2>
-              <p className="text-sm text-[#5c6e66] max-w-2xl mx-auto leading-relaxed">
-                Whether you wish to purchase immediate inventory from published cooperative lots or issue custom manufacturing specifications, I Do Grow supports both procurement pathways.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* PATH A: Browse Marketplace */}
-              <div className="rounded-3xl border border-[#ded8c4] bg-white p-8 space-y-6 flex flex-col justify-between shadow-xs hover:border-[#1e5442] transition-colors">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between pb-3 border-b border-[#ece6d6]">
-                    <span className="px-3 py-1 rounded-full bg-[#eef6f2] text-[#1e5442] text-xs font-bold uppercase tracking-wider">
-                      PATH A &bull; IMMEDIATE INVENTORY
-                    </span>
-                    <span className="text-xs font-bold text-[#8c6b2d]">Live Catalogue</span>
-                  </div>
-
-                  <h3 className="text-2xl font-bold text-[#173f35]">
-                    Explore Published Marketplace Lots
-                  </h3>
-
-                  <p className="text-xs sm:text-sm text-[#5c6e66] leading-relaxed">
-                    Browse published European agricultural commodities ready for prompt commercial quote. Filter by technical fibre specs, moisture thresholds, harvest year, origin country, and certification standards.
-                  </p>
-
-                  <div className="space-y-2.5 pt-2 text-xs text-[#4d5f57]">
-                    <div className="flex items-start space-x-2">
-                      <span className="text-[#1e5442] font-bold">✓</span>
-                      <span>Public open browsing — no registration needed to inspect technical specs.</span>
-                    </div>
-                    <div className="flex items-start space-x-2">
-                      <span className="text-[#1e5442] font-bold">✓</span>
-                      <span>Indicative volume and price per ton with laboratory grade indicators.</span>
-                    </div>
-                    <div className="flex items-start space-x-2">
-                      <span className="text-[#1e5442] font-bold">✓</span>
-                      <span>Click &quot;Request a Quote&quot; on any listing to begin commercial negotiation.</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-[#f0ebd9]">
-                  <Link
-                    href="/marketplace"
-                    className="w-full py-3 px-6 rounded-xl bg-[#1e5442] hover:bg-[#173f35] text-white font-bold text-xs text-center block transition-colors shadow-sm"
-                  >
-                    {t("cta.findProduct")} &rarr;
-                  </Link>
-                </div>
-              </div>
-
-              {/* PATH B: Structured Buy Order */}
-              <div className="rounded-3xl border border-[#ded8c4] bg-white p-8 space-y-6 flex flex-col justify-between shadow-xs hover:border-[#c89b3c] transition-colors">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between pb-3 border-b border-[#ece6d6]">
-                    <span className="px-3 py-1 rounded-full bg-[#fcf8ee] text-[#8c6b2d] border border-[#e2d8b8] text-xs font-bold uppercase tracking-wider">
-                      PATH B &bull; CUSTOM DEMAND
-                    </span>
-                    <span className="text-xs font-bold text-[#1e5442]">Custom Procurement</span>
-                  </div>
-
-                  <h3 className="text-2xl font-bold text-[#173f35]">
-                    Create a Structured Buy Order
-                  </h3>
-
-                  <p className="text-xs sm:text-sm text-[#5c6e66] leading-relaxed">
-                    Can&apos;t find the exact product or need customized volume call-offs? Submit a formal Buy Order specifying your manufacturing requirements, destination gate, and target price.
-                  </p>
-
-                  <div className="space-y-2.5 pt-2 text-xs text-[#4d5f57]">
-                    <div className="flex items-start space-x-2">
-                      <span className="text-[#c89b3c] font-bold">✓</span>
-                      <span>Specify commodity, quantity tolerances, and required Incoterms (DAP/FCA).</span>
-                    </div>
-                    <div className="flex items-start space-x-2">
-                      <span className="text-[#c89b3c] font-bold">✓</span>
-                      <span>Define required certifications (OEKO-TEX, GOTS, Organic, FSC) and packaging.</span>
-                    </div>
-                    <div className="flex items-start space-x-2">
-                      <span className="text-[#c89b3c] font-bold">✓</span>
-                      <span>Central Trading Desk matches candidate cooperatives and structures supply quotes.</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-[#f0ebd9]">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAuthGateAction("Create Buy Order");
-                      setAuthGateOpen(true);
-                    }}
-                    className="w-full py-3 px-6 rounded-xl bg-[#c89b3c] hover:bg-[#b8860b] text-[#13352c] font-bold text-xs text-center block transition-colors shadow-sm"
-                  >
-                    {t("cta.createBuyOrder")} &rarr;
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================================= */}
-        {/* SECTION 6 — MATCHING / TRADER: Human-Controlled Matching Desk            */}
-        {/* ========================================================================= */}
-        <section className="py-20 lg:py-24 bg-white border-b border-[#e4ded0]" id="trader-matching">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-              <div className="lg:col-span-6 space-y-5">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#1e5442]">
-                  {t("howItWorks.matchingTitle")}
-                </span>
-                <h2 className="text-3xl sm:text-4xl font-extrabold text-[#173f35] tracking-tight leading-snug">
-                  Human-Controlled Trade Matching &amp; Due Diligence
-                </h2>
-                <p className="text-sm text-[#5c6e66] leading-relaxed">
-                  I Do Grow does not rely on opaque or autonomous AI matching. Commercial commodity trade requires experienced human judgment to balance technical tolerances, freight corridors, and counterparty viability.
-                </p>
-
-                <div className="space-y-3 pt-2 text-xs text-[#4d5f57]">
-                  <div className="flex items-start space-x-3">
-                    <span className="w-6 h-6 rounded-lg bg-[#eef6f2] text-[#1e5442] flex items-center justify-center font-bold shrink-0">
-                      01
-                    </span>
-                    <div>
-                      <strong className="text-[#173f35] block font-bold">Demand &amp; Candidate Supply Review:</strong>
-                      <span>Comparing buyer tolerance thresholds directly against certified cooperative lot lab metrics.</span>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-3">
-                    <span className="w-6 h-6 rounded-lg bg-[#eef6f2] text-[#1e5442] flex items-center justify-center font-bold shrink-0">
-                      02
-                    </span>
-                    <div>
-                      <strong className="text-[#173f35] block font-bold">Geographic &amp; Logistics Viability:</strong>
-                      <span>Evaluating freight haul distance, border crossings, and packaging suitability for multimodal transit.</span>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-3">
-                    <span className="w-6 h-6 rounded-lg bg-[#eef6f2] text-[#1e5442] flex items-center justify-center font-bold shrink-0">
-                      03
-                    </span>
-                    <div>
-                      <strong className="text-[#173f35] block font-bold">Match Approval Gate:</strong>
-                      <span>Only verified matches move forward into the formal bilateral quotation workflow.</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-[#faf8f1] border border-[#ded8c4] flex items-center justify-between text-xs">
-                  <div>
-                    <span className="font-bold text-[#173f35] block">Trader Matching Cockpit</span>
-                    <span className="text-[11px] text-[#5c6e66]">Buyer Demand ⇄ Candidate Supply &rarr; Approved Match</span>
-                  </div>
-                  <span className="px-2.5 py-1 rounded bg-[#1e5442] text-white font-bold text-[10px]">
-                    STAGE 04
-                  </span>
-                </div>
-              </div>
-
-              <div className="lg:col-span-6">
-                <div className="relative rounded-3xl overflow-hidden border border-[#ded8c4] shadow-md bg-[#faf8f1]">
-                  <img
-                    src="/images/trader_platform.png"
-                    alt="Commodity trader at platform operations cockpit reviewing supply and demand matching"
-                    className="w-full h-[380px] object-cover object-center"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
-                  <div className="absolute bottom-4 left-4 right-4 p-4 rounded-xl bg-white/95 backdrop-blur-xs border border-white/40 text-xs text-[#173f35] flex items-center justify-between">
-                    <div>
-                      <span className="font-bold block">Central Trading Desk Operations</span>
-                      <span className="text-[11px] text-[#5c6e66]">Active counterparty vetting &amp; clearance</span>
-                    </div>
-                    <span className="px-2.5 py-1 rounded bg-[#1e5442] text-white font-bold text-[10px]">
-                      HUMAN VERIFIED
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================================= */}
-        {/* SECTION 7 — QUOTE & NEGOTIATION: Transparent Breakdown & Versioning       */}
-        {/* ========================================================================= */}
-        <section className="py-20 lg:py-24 bg-[#faf8f1] border-b border-[#ded8c4]" id="quote-negotiation">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="max-w-3xl mb-12">
-              <span className="text-xs font-bold uppercase tracking-wider text-[#1e5442]">
-                {t("howItWorks.quoteTitle")}
-              </span>
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-[#173f35] tracking-tight mt-1">
-                Versioned Negotiation with Itemized Fee Clarity
-              </h2>
-              <p className="mt-3 text-sm text-[#5c6e66] leading-relaxed">
-                Bilateral trade negotiations occur within an audit-controlled quotation workflow. Every price adjustment, Incoterm variation, or delivery adjustment creates a versioned quote record.
-              </p>
-            </div>
-
-            {/* Gamified Negotiation Lifecycle Steps */}
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-10 text-xs">
-              <div className="p-4 rounded-xl bg-white border border-[#ded8c4] space-y-1">
-                <span className="text-[10px] font-bold text-[#8c6b2d] block uppercase">Step 1</span>
-                <strong className="text-[#173f35] block font-bold">Draft Quote</strong>
-                <span className="text-[#5c6e66] text-[11px]">Trader structures preliminary costs</span>
-              </div>
-              <div className="p-4 rounded-xl bg-white border border-[#ded8c4] space-y-1">
-                <span className="text-[10px] font-bold text-[#8c6b2d] block uppercase">Step 2</span>
-                <strong className="text-[#173f35] block font-bold">Internal Review</strong>
-                <span className="text-[#5c6e66] text-[11px]">Margin &amp; supplier validation</span>
-              </div>
-              <div className="p-4 rounded-xl bg-white border border-[#ded8c4] space-y-1">
-                <span className="text-[10px] font-bold text-[#8c6b2d] block uppercase">Step 3</span>
-                <strong className="text-[#173f35] block font-bold">Sent to Buyer</strong>
-                <span className="text-[#5c6e66] text-[11px]">Buyer inspects line-item fees</span>
-              </div>
-              <div className="p-4 rounded-xl bg-white border border-[#ded8c4] space-y-1">
-                <span className="text-[10px] font-bold text-[#8c6b2d] block uppercase">Step 4</span>
-                <strong className="text-[#173f35] block font-bold">Counter-Proposal</strong>
-                <span className="text-[#5c6e66] text-[11px]">Buyer adjusts target price or tonnage</span>
-              </div>
-              <div className="p-4 rounded-xl bg-[#eef6f2] border border-[#cbe6d7] space-y-1">
-                <span className="text-[10px] font-bold text-[#1e5442] block uppercase">Step 5</span>
-                <strong className="text-[#173f35] block font-bold">Mutual Acceptance</strong>
-                <span className="text-[#1e5442] text-[11px]">Contract generation unlocked</span>
-              </div>
-            </div>
-
-            {/* Line-Item Transparency Mockup */}
-            <div className="bg-white rounded-3xl border border-[#ded8c4] p-8 space-y-5 shadow-xs">
-              <div className="flex items-center justify-between pb-4 border-b border-[#ece6d6]">
-                <div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-[#1e5442] block">
-                    Structured Line-Item Transparency
-                  </span>
-                  <span className="text-xs text-[#5c6e66]">Sample Quotation Breakdown (Quote IDG-QT-2026-0814)</span>
-                </div>
-                <span className="px-3 py-1 rounded bg-[#eef6f2] text-[#1e5442] text-xs font-bold">
-                  VERSION 2 &bull; COUNTERED
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
-                <div className="p-3 bg-[#faf8f1] rounded-xl border border-[#ece6d6]">
-                  <span className="text-[10px] text-[#7d8f85] uppercase block">Raw Commodity Value</span>
-                  <strong className="text-[#173f35] font-bold">€1,450 / MT</strong>
-                </div>
-                <div className="p-3 bg-[#faf8f1] rounded-xl border border-[#ece6d6]">
-                  <span className="text-[10px] text-[#7d8f85] uppercase block">Independent Lab Testing</span>
-                  <strong className="text-[#173f35] font-bold">€45 / MT</strong>
-                </div>
-                <div className="p-3 bg-[#faf8f1] rounded-xl border border-[#ece6d6]">
-                  <span className="text-[10px] text-[#7d8f85] uppercase block">Multimodal Freight (DAP)</span>
-                  <strong className="text-[#173f35] font-bold">€180 / MT</strong>
-                </div>
-                <div className="p-3 bg-[#faf8f1] rounded-xl border border-[#ece6d6]">
-                  <span className="text-[10px] text-[#7d8f85] uppercase block">IDG Service &amp; Governance</span>
-                  <strong className="text-[#1e5442] font-bold">Included</strong>
-                </div>
-              </div>
-
-              <p className="text-[11px] text-[#7d8f85] pt-2">
-                No hidden spreads. Quotes include explicit allowances for packaging, freight, insurance, and taxes. Transactions never bind automatically until mutually approved.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================================= */}
-        {/* SECTION 8 & 9 — QUALITY GATE & STRUCTURED CONTRACT                        */}
-        {/* ========================================================================= */}
-        <section className="py-20 lg:py-24 bg-white border-b border-[#e4ded0]" id="quality-contract">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
-            {/* Section 8: Quality Gate */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-              <div className="lg:col-span-6 space-y-5">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#1e5442]">
-                  {t("howItWorks.qualityTitle")}
-                </span>
-                <h2 className="text-3xl sm:text-4xl font-extrabold text-[#173f35] tracking-tight leading-snug">
-                  The Quality Checkpoint Gate
-                </h2>
-                <p className="text-sm text-[#5c6e66] leading-relaxed">
-                  Commercial agreement alone is not enough — physical quality is verified before dispatch. Certified testing laboratories conduct objective ISO 17025 tests, generating immutable certificates tied to batch IDs:
-                </p>
-
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="p-3.5 rounded-xl bg-[#faf8f1] border border-[#ded8c4]">
-                    <strong className="text-[#173f35] block font-bold">Moisture Testing:</strong>
-                    <span className="text-[#5c6e66]">Standardized hygrometry preventing fiber mold in transit.</span>
-                  </div>
-                  <div className="p-3.5 rounded-xl bg-[#faf8f1] border border-[#ded8c4]">
-                    <strong className="text-[#173f35] block font-bold">Fineness &amp; Tenacity:</strong>
-                    <span className="text-[#5c6e66]">Fibre length and diameter distribution analysis.</span>
-                  </div>
-                  <div className="p-3.5 rounded-xl bg-[#faf8f1] border border-[#ded8c4]">
-                    <strong className="text-[#173f35] block font-bold">Shive &amp; Impurities:</strong>
-                    <span className="text-[#5c6e66]">Quantitative decortication purity metrics.</span>
-                  </div>
-                  <div className="p-3.5 rounded-xl bg-[#faf8f1] border border-[#ded8c4]">
-                    <strong className="text-[#173f35] block font-bold">Non-Conformity Gate:</strong>
-                    <span className="text-[#5c6e66]">Failing batches are paused and arbitrated immediately.</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="lg:col-span-6">
-                <div className="relative rounded-3xl overflow-hidden border border-[#ded8c4] shadow-md bg-[#faf8f1]">
-                  <img
-                    src="/images/quality_lab.png"
-                    alt="Quality inspector conducting laboratory test on natural commodity fibers"
-                    className="w-full h-[360px] object-cover object-center"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
-                  <div className="absolute bottom-4 left-4 right-4 p-4 rounded-xl bg-white/95 backdrop-blur-xs border border-white/40 text-xs text-[#173f35] flex items-center justify-between">
-                    <div>
-                      <span className="font-bold block">ISO 17025 Accredited Laboratory</span>
-                      <span className="text-[11px] text-[#5c6e66]">Cryptographic certificate issuance</span>
-                    </div>
-                    <span className="px-2.5 py-1 rounded bg-[#1e5442] text-white font-bold text-[10px]">
-                      STAGE 06
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Section 9: Structured Contract Mockup */}
-            <div className="bg-[#faf8f1] rounded-3xl border border-[#ded8c4] p-8 lg:p-10 space-y-6">
-              <div className="max-w-2xl space-y-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#1e5442]">
-                  {t("howItWorks.contractTitle")}
-                </span>
-                <h3 className="text-2xl font-extrabold text-[#173f35]">
-                  Structured Legal Contracts Under Binding Incoterms
-                </h3>
-                <p className="text-xs sm:text-sm text-[#5c6e66] leading-relaxed">
-                  Upon accepted quote and quality approval, a formal digital sales contract is executed with clear legal demarcation of liabilities:
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
-                <div className="p-4 bg-white rounded-2xl border border-[#ded8c4]">
-                  <span className="text-[10px] text-[#7d8f85] uppercase block font-semibold">Incoterms Definition</span>
-                  <strong className="text-[#173f35] font-bold block mt-1">DAP / FCA / EXW</strong>
-                  <span className="text-[11px] text-[#5c6e66]">Clear risk transfer point</span>
-                </div>
-                <div className="p-4 bg-white rounded-2xl border border-[#ded8c4]">
-                  <span className="text-[10px] text-[#7d8f85] uppercase block font-semibold">Quantity &amp; Tolerance</span>
-                  <strong className="text-[#173f35] font-bold block mt-1">&plusmn;5% Weight Window</strong>
-                  <span className="text-[11px] text-[#5c6e66]">Weighbridge verification</span>
-                </div>
-                <div className="p-4 bg-white rounded-2xl border border-[#ded8c4]">
-                  <span className="text-[10px] text-[#7d8f85] uppercase block font-semibold">Payment Milestones</span>
-                  <strong className="text-[#173f35] font-bold block mt-1">Deposit &amp; Gate Balance</strong>
-                  <span className="text-[11px] text-[#5c6e66]">Clear commercial schedule</span>
-                </div>
-                <div className="p-4 bg-white rounded-2xl border border-[#ded8c4]">
-                  <span className="text-[10px] text-[#7d8f85] uppercase block font-semibold">Governing Law</span>
-                  <strong className="text-[#173f35] font-bold block mt-1">EU Commercial Code</strong>
-                  <span className="text-[11px] text-[#5c6e66]">Arbitration clauses included</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================================= */}
-        {/* SECTION 10 & 11 — LOGISTICS TIMELINE & SETTLEMENT GOVERNANCE              */}
-        {/* ========================================================================= */}
-        <section className="py-20 lg:py-24 bg-[#faf8f1] border-b border-[#ded8c4]" id="logistics-settlement">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
-            {/* Logistics Execution */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-              <div className="lg:col-span-6 order-2 lg:order-1">
-                <div className="relative rounded-3xl overflow-hidden border border-[#ded8c4] shadow-md bg-white">
-                  <img
-                    src="/images/freight_port.png"
-                    alt="Freight transport carrier loading natural raw material commodity shipment"
-                    className="w-full h-[360px] object-cover object-center"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
-                  <div className="absolute bottom-4 left-4 right-4 p-4 rounded-xl bg-white/95 backdrop-blur-xs border border-white/40 text-xs text-[#173f35] flex items-center justify-between">
-                    <div>
-                      <span className="font-bold block">European Logistics Corridor</span>
-                      <span className="text-[11px] text-[#5c6e66]">Milestone-backed e-CMR tracking</span>
-                    </div>
-                    <span className="px-2.5 py-1 rounded bg-[#1e5442] text-white font-bold text-[10px]">
-                      STAGE 08
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="lg:col-span-6 order-1 lg:order-2 space-y-5">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#1e5442]">
-                  {t("howItWorks.logisticsTitle")}
-                </span>
-                <h2 className="text-3xl sm:text-4xl font-extrabold text-[#173f35] tracking-tight leading-snug">
-                  Multimodal Freight Execution &amp; Custody Logging
-                </h2>
-                <p className="text-sm text-[#5c6e66] leading-relaxed">
-                  Logistics providers submit binding freight quotations for confirmed shipments. From cooperative dispatch to industrial factory gate arrival, every custody milestone is documented:
-                </p>
-
-                <div className="space-y-2.5 text-xs text-[#4d5f57]">
-                  <div className="p-3 bg-white rounded-xl border border-[#ded8c4] flex items-center justify-between">
-                    <span>1. Carrier Quoting &amp; Selection</span>
-                    <strong className="text-[#1e5442]">Competitive FTL / Intermodal</strong>
-                  </div>
-                  <div className="p-3 bg-white rounded-xl border border-[#ded8c4] flex items-center justify-between">
-                    <span>2. Depot Pickup &amp; Moisture Check</span>
-                    <strong className="text-[#1e5442]">Load Security Verified</strong>
-                  </div>
-                  <div className="p-3 bg-white rounded-xl border border-[#ded8c4] flex items-center justify-between">
-                    <span>3. Cross-Border Transit &amp; Customs</span>
-                    <strong className="text-[#1e5442]">e-CMR Consignment Note</strong>
-                  </div>
-                  <div className="p-3 bg-white rounded-xl border border-[#ded8c4] flex items-center justify-between">
-                    <span>4. Factory Gate Delivery &amp; Tally</span>
-                    <strong className="text-[#1e5442]">Signed Custody Handoff</strong>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Section 11: Settlement Tracking Disclaimer & Ledger */}
-            <div className="bg-[#173f35] text-white rounded-3xl p-8 lg:p-10 space-y-6 shadow-xl">
-              <div className="max-w-3xl space-y-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#c89b3c]">
-                  {t("howItWorks.settlementTitle")}
-                </span>
-                <h3 className="text-2xl sm:text-3xl font-extrabold text-white">
-                  Administrative Settlement Tracking Only
-                </h3>
-                <p className="text-xs sm:text-sm text-[#c0d6cc] leading-relaxed">
-                  I Do Grow operates as an administrative settlement coordinator — explicitly NOT as a bank, escrow agent, or payment processor. The platform records invoices, payment due dates, advance deposit proofs, credit notes, and final balance closures between verified counterparties.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
-                <div className="p-4 bg-white/10 rounded-2xl border border-white/15">
-                  <span className="text-[10px] text-[#8ebfb0] uppercase block">Invoicing</span>
-                  <strong className="text-white block mt-1">Direct Seller Invoice</strong>
-                  <span className="text-[11px] text-[#a8c6b9]">Cooperative legal billing</span>
-                </div>
-                <div className="p-4 bg-white/10 rounded-2xl border border-white/15">
-                  <span className="text-[10px] text-[#8ebfb0] uppercase block">Deposit Tracking</span>
-                  <strong className="text-white block mt-1">Advance Escrow Record</strong>
-                  <span className="text-[11px] text-[#a8c6b9]">Milestone payment log</span>
-                </div>
-                <div className="p-4 bg-white/10 rounded-2xl border border-white/15">
-                  <span className="text-[10px] text-[#8ebfb0] uppercase block">Credit &amp; Claims</span>
-                  <strong className="text-white block mt-1">Discrepancy Resolution</strong>
-                  <span className="text-[11px] text-[#a8c6b9]">Weight &amp; moisture adjustments</span>
-                </div>
-                <div className="p-4 bg-white/10 rounded-2xl border border-white/15">
-                  <span className="text-[10px] text-[#8ebfb0] uppercase block">Platform Status</span>
-                  <strong className="text-[#c89b3c] block mt-1">Settled &amp; Closed</strong>
-                  <span className="text-[11px] text-[#a8c6b9]">Audit-ready ledger</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================================= */}
-        {/* SECTION 12 — DIGITAL PRODUCT PASSPORT (DPP): Event Lifecycle               */}
-        {/* ========================================================================= */}
-        <section className="py-20 lg:py-24 bg-white border-b border-[#e4ded0]" id="dpp-lifecycle">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-              <div className="lg:col-span-6 space-y-6">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#1e5442]">
-                  {t("howItWorks.dppTitle")}
-                </span>
-                <h2 className="text-3xl sm:text-4xl font-extrabold text-[#173f35] tracking-tight leading-snug">
-                  Full Provenance Captured in an Immutable Digital Passport
-                </h2>
-                <p className="text-sm text-[#5c6e66] leading-relaxed">
-                  Every trade culminates in a transferable Digital Product Passport (DPP). Designed for EU ESPR and CSRD sustainability reporting, the passport links sequential immutable events from field harvest to delivery:
-                </p>
-
-                <div className="space-y-2.5 text-xs text-[#4d5f57]">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-[#1e5442] font-bold">1.</span>
-                    <strong className="text-[#173f35]">Lot Created:</strong>
-                    <span>Field coordinates, harvest year &amp; cooperative parcel ID</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-[#1e5442] font-bold">2.</span>
-                    <strong className="text-[#173f35]">Inspection Event:</strong>
-                    <span>ISO 17025 test parameters, laboratory certificate reference</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-[#1e5442] font-bold">3.</span>
-                    <strong className="text-[#173f35]">Trade &amp; Contract:</strong>
-                    <span>Accepted Incoterms, batch quantity &amp; agreed delivery gate</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-[#1e5442] font-bold">4.</span>
-                    <strong className="text-[#173f35]">Shipment &amp; Delivery:</strong>
-                    <span>Signed e-CMR handoff &amp; final factory receiving timestamp</span>
-                  </div>
-                </div>
-
-                <div className="pt-2">
-                  <Link
-                    href="/marketplace"
-                    className="py-3 px-6 bg-[#173f35] hover:bg-[#1e5442] text-white text-xs font-bold rounded-xl shadow-sm inline-block transition-colors"
-                  >
-                    Browse DPP-Enabled Materials &rarr;
-                  </Link>
-                </div>
-              </div>
-
-              {/* DPP Visual Mockup Card */}
-              <div className="lg:col-span-6">
-                <div className="p-6 sm:p-8 rounded-3xl bg-[#0f2820] text-white border border-white/15 shadow-2xl space-y-5">
-                  <div className="flex items-center justify-between pb-4 border-b border-white/10">
-                    <div className="flex items-center space-x-3">
-                      <span className="w-10 h-10 rounded-xl bg-[#c89b3c] text-[#13352c] flex items-center justify-center font-bold text-xs">
-                        DPP
-                      </span>
-                      <div>
-                        <strong className="text-white text-sm block">Digital Product Passport</strong>
-                        <span className="text-[10px] text-[#8ebfb0]">IDG-FR-2026-DPP-0941 &bull; v1.0</span>
-                      </div>
-                    </div>
-                    <span className="px-2.5 py-1 rounded bg-[#1e5442] text-[#c89b3c] text-[10px] font-bold uppercase">
-                      VERIFIED LOT
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div className="p-3 bg-white/5 rounded-xl border border-white/10">
-                      <span className="text-[10px] text-[#8ebfb0] uppercase block">Material Form</span>
-                      <strong className="text-white">Technical Hemp Fibre</strong>
-                    </div>
-                    <div className="p-3 bg-white/5 rounded-xl border border-white/10">
-                      <span className="text-[10px] text-[#8ebfb0] uppercase block">Origin Parcel</span>
-                      <strong className="text-white">Aube, France (Coop #412)</strong>
-                    </div>
-                    <div className="p-3 bg-white/5 rounded-xl border border-white/10">
-                      <span className="text-[10px] text-[#8ebfb0] uppercase block">Certified Moisture</span>
-                      <strong className="text-[#c89b3c]">11.4% (ISO 17025)</strong>
-                    </div>
-                    <div className="p-3 bg-white/5 rounded-xl border border-white/10">
-                      <span className="text-[10px] text-[#8ebfb0] uppercase block">ESG Compliance</span>
-                      <strong className="text-white">EU ESPR &amp; CSRD Ready</strong>
-                    </div>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-black/30 border border-white/10 text-[11px] text-[#9fc0b2] flex items-center justify-between">
-                    <span>Cryptographic Batch Hash: <code className="text-[#d4af37] font-mono">0x7c9f...a12e</code></span>
-                    <span>Authorised Access Only</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================================= */}
-        {/* SECTION 13 — ACTOR VIEW: Who Does What? (Interactive Role Matrix)         */}
-        {/* ========================================================================= */}
-        <section className="py-20 lg:py-24 bg-[#faf8f1] border-b border-[#ded8c4]" id="actor-view">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="max-w-3xl mb-12">
-              <span className="text-xs font-bold uppercase tracking-wider text-[#1e5442]">
+        <section id="actor-view" className="py-20 lg:py-28 bg-white border-b border-[#e4ded0]">
+          <div className="max-w-7xl mx-auto px-5 sm:px-8">
+            <div className="max-w-2xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#8a6a22]">
                 {t("howItWorks.actorTitle")}
-              </span>
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-[#173f35] tracking-tight mt-1">
-                Five Distinct Ecosystem Responsibilities
+              </p>
+              <h2 className="mt-3 text-3xl sm:text-4xl font-bold tracking-[-0.025em] text-[#173f35] leading-[1.1]">
+                {t("home.audience.title")}
               </h2>
-              <p className="mt-3 text-sm text-[#5c6e66] leading-relaxed">
-                Every transaction aligns five specialized counterparts under standardized data contracts. Click an actor below to inspect their portal tools and artifacts.
+              <p className="mt-3 text-[15px] text-[#4f625a] leading-relaxed">
+                {copy.actorLabels.subtitle}
               </p>
             </div>
 
-            {/* Interactive Role Selector Pills */}
-            <div className="flex flex-wrap gap-2 mb-8">
-              {ACTOR_ROLES.map((actor) => (
-                <button
-                  key={actor.id}
-                  type="button"
-                  onClick={() => setSelectedActorId(actor.id)}
-                  className={`py-2.5 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    selectedActorId === actor.id
-                      ? "bg-[#173f35] text-white shadow-md ring-2 ring-[#c89b3c]"
-                      : "bg-white border border-[#ded8c4] text-[#173f35] hover:bg-[#eef6f2]"
-                  }`}
-                >
-                  {actor.roleName}
-                </button>
-              ))}
+            {/* Role Selector Tabs */}
+            <div className="mt-10 flex flex-wrap gap-2">
+              {copy.actors.map((actor) => {
+                const isSelected = selectedActorId === actor.id;
+                return (
+                  <button
+                    key={actor.id}
+                    type="button"
+                    onClick={() => setSelectedActorId(actor.id)}
+                    aria-pressed={isSelected}
+                    className={`py-2.5 px-4 rounded-sm text-xs font-bold border transition-colors cursor-pointer ${
+                      isSelected
+                        ? "bg-[#173f35] text-white border-[#173f35]"
+                        : "bg-[#faf8f1] border-[#ded8c4] text-[#173f35] hover:border-[#173f35]"
+                    }`}
+                  >
+                    {actor.roleName}
+                  </button>
+                );
+              })}
             </div>
 
-            {/* Selected Actor Detailed Showcase Card */}
-            <div className="bg-white rounded-3xl border border-[#ded8c4] p-8 lg:p-10 shadow-sm">
+            {/* Selected Role Showcase */}
+            <div className="mt-8 bg-[#faf8f1] rounded-md border border-[#ded8c4] p-7 sm:p-10">
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
                 <div className="lg:col-span-5">
-                  <div className="relative rounded-2xl overflow-hidden border border-[#ded8c4] shadow-md bg-[#faf8f1]">
+                  <div className="aspect-[4/3] rounded-sm overflow-hidden bg-[#ece6d6] border border-[#ded8c4]">
                     <img
                       src={currentActor.image}
                       alt={currentActor.title}
-                      className="w-full h-80 object-cover object-center"
+                      loading="lazy"
+                      className="w-full h-full object-cover"
                     />
-                    <div className="absolute top-3 left-3 px-3 py-1 rounded-md bg-[#173f35] text-white text-xs font-bold uppercase tracking-wider">
-                      {currentActor.roleName}
-                    </div>
                   </div>
                 </div>
 
                 <div className="lg:col-span-7 space-y-5">
                   <div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-[#c89b3c]">
-                      Operational Profile
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8a6a22]">
+                      {copy.actorLabels.profileEyebrow} • {currentActor.roleName}
                     </span>
-                    <h3 className="text-2xl font-extrabold text-[#173f35] mt-1">
+                    <h3 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight text-[#173f35]">
                       {currentActor.title}
                     </h3>
-                    <p className="text-xs sm:text-sm text-[#5c6e66] mt-2 leading-relaxed">
+                    <p className="mt-3 text-[15px] text-[#4f625a] leading-relaxed">
                       {currentActor.summary}
                     </p>
                   </div>
 
-                  {/* Core Responsibilities */}
-                  <div className="space-y-2">
-                    <span className="text-xs font-bold uppercase tracking-wider text-[#173f35] block">
-                      Core Supply Chain Responsibilities:
-                    </span>
-                    <ul className="space-y-1.5 text-xs text-[#5c6e66]">
-                      {currentActor.responsibilities.map((r, i) => (
-                        <li key={i} className="flex items-start space-x-2">
-                          <span className="text-[#c89b3c] font-bold">✓</span>
+                  <div>
+                    <h4 className="text-xs font-semibold uppercase tracking-[0.14em] text-[#173f35] mb-2.5">
+                      {copy.actorLabels.responsibilities}
+                    </h4>
+                    <ul className="space-y-2 text-sm text-[#4f625a]">
+                      {currentActor.responsibilities.map((r) => (
+                        <li key={r} className="flex items-start gap-2.5">
+                          <span className="text-[#8a6a22] font-bold" aria-hidden="true">
+                            ✓
+                          </span>
                           <span>{r}</span>
                         </li>
                       ))}
                     </ul>
                   </div>
 
-                  {/* Key Outputs */}
-                  <div className="pt-2 border-t border-[#f0ebd9] flex flex-wrap items-center gap-2 text-xs">
-                    <span className="font-semibold text-[#7d8f85]">Key Deliverables:</span>
-                    {currentActor.keyOutputs.map((output, i) => (
+                  <div className="pt-4 border-t border-[#e4ded0] flex flex-wrap items-center gap-2 text-xs">
+                    <span className="font-semibold text-[#5c6e66] mr-1">
+                      {copy.actorLabels.deliverables}:
+                    </span>
+                    {currentActor.deliverables.map((item) => (
                       <span
-                        key={i}
-                        className="px-2.5 py-0.5 rounded-lg bg-[#eef6f2] text-[#1e5442] font-semibold text-[11px] border border-[#cbe6d7]"
+                        key={item}
+                        className="px-2.5 py-1 rounded-xs bg-white text-[#173f35] font-semibold border border-[#ded8c4]"
                       >
-                        {output}
+                        {item}
                       </span>
                     ))}
                   </div>
@@ -1337,73 +1505,137 @@ export function HowItWorksView() {
         </section>
 
         {/* ========================================================================= */}
-        {/* SECTION 15 — FINAL END-TO-END SUMMARY BANNER                              */}
+        {/* SECTION 5 — GOVERNANCE PILLARS & DIGITAL PRODUCT PASSPORT (DPP)           */}
         {/* ========================================================================= */}
-        <section className="py-16 bg-[#173f35] text-white border-b border-[#0d231d]">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
-            <span className="text-xs font-bold uppercase tracking-widest text-[#c89b3c]">
-              Complete Traceability Pathway
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              One Unified Journey: From Harvest to Factory Receiving Gate
-            </h2>
+        <section id="dpp-lifecycle" className="py-20 lg:py-28 bg-[#faf8f1]">
+          <div className="max-w-7xl mx-auto px-5 sm:px-8 grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
+            {/* Left Column: 4 Architectural Guarantees */}
+            <div className="lg:col-span-7">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#8a6a22]">
+                {copy.pillarsSection.eyebrow}
+              </p>
+              <h2 className="mt-3 text-3xl sm:text-4xl font-bold tracking-[-0.025em] text-[#173f35] leading-[1.1]">
+                {copy.pillarsSection.title}
+              </h2>
+              <p className="mt-3 text-[15px] text-[#4f625a] leading-relaxed">
+                {copy.pillarsSection.body}
+              </p>
 
-            {/* Step-by-Step Chain Visualization */}
-            <div className="flex flex-wrap items-center justify-center gap-2 text-xs font-bold text-white pt-2">
-              <span className="px-3 py-1.5 rounded-lg bg-white/10 border border-white/15">Supplier</span>
-              <span className="text-[#c89b3c]">&rarr;</span>
-              <span className="px-3 py-1.5 rounded-lg bg-white/10 border border-white/15">Listing</span>
-              <span className="text-[#c89b3c]">&rarr;</span>
-              <span className="px-3 py-1.5 rounded-lg bg-white/10 border border-white/15">Buyer RFQ</span>
-              <span className="text-[#c89b3c]">&rarr;</span>
-              <span className="px-3 py-1.5 rounded-lg bg-white/10 border border-white/15">Match</span>
-              <span className="text-[#c89b3c]">&rarr;</span>
-              <span className="px-3 py-1.5 rounded-lg bg-white/10 border border-white/15">Quote</span>
-              <span className="text-[#c89b3c]">&rarr;</span>
-              <span className="px-3 py-1.5 rounded-lg bg-white/10 border border-white/15">Quality Lab</span>
-              <span className="text-[#c89b3c]">&rarr;</span>
-              <span className="px-3 py-1.5 rounded-lg bg-white/10 border border-white/15">Contract</span>
-              <span className="text-[#c89b3c]">&rarr;</span>
-              <span className="px-3 py-1.5 rounded-lg bg-white/10 border border-white/15">Shipment</span>
-              <span className="text-[#c89b3c]">&rarr;</span>
-              <span className="px-3 py-1.5 rounded-lg bg-white/10 border border-white/15">Settlement</span>
-              <span className="text-[#c89b3c]">&rarr;</span>
-              <span className="px-3 py-1.5 rounded-lg bg-[#c89b3c] text-[#13352c] font-black">DPP Handoff</span>
+              <dl className="mt-10 divide-y divide-[#e4ded0] border-y border-[#e4ded0]">
+                {copy.pillarsSection.items.map((item) => (
+                  <div id={item.id} key={item.id} className="py-6 scroll-mt-24">
+                    <div className="flex items-baseline justify-between gap-4">
+                      <dt className="text-lg font-bold tracking-tight text-[#173f35] flex items-baseline gap-3">
+                        <span className="text-xs font-semibold tabular-nums text-[#8a6a22]">
+                          {item.number}
+                        </span>
+                        <span>{item.title}</span>
+                      </dt>
+                      <span className="text-[11px] font-semibold text-[#1e5442] shrink-0 hidden sm:inline">
+                        {item.meta}
+                      </span>
+                    </div>
+                    <dd className="mt-2 text-sm text-[#4f625a] leading-relaxed pl-6">
+                      {item.body}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+
+            {/* Right Column: DPP Architectural Summary Card */}
+            <div className="lg:col-span-5 lg:sticky lg:top-28">
+              <div className="rounded-md bg-[#0d1d17] text-white p-7 sm:p-8 border border-[#173f35] space-y-6">
+                <div className="pb-4 border-b border-white/15 flex items-center justify-between gap-2">
+                  <div>
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[#e2c98c] block">
+                      {copy.pillarsSection.dppCard.badge}
+                    </span>
+                    <h3 className="mt-1 text-xl font-bold text-white">
+                      {copy.pillarsSection.dppCard.subtitle}
+                    </h3>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-xs bg-[#173f35] text-[#e2c98c] text-[10px] font-bold uppercase border border-[#256852]">
+                    DPP v1
+                  </span>
+                </div>
+
+                <dl className="space-y-3.5 text-xs">
+                  <div className="p-3.5 rounded-sm bg-white/5 border border-white/10">
+                    <dt className="text-[10px] uppercase tracking-wider text-[#9fc0b2] font-semibold">
+                      {copy.pillarsSection.dppCard.f1Label}
+                    </dt>
+                    <dd className="mt-1 text-sm font-semibold text-white">
+                      {copy.pillarsSection.dppCard.f1Value}
+                    </dd>
+                  </div>
+                  <div className="p-3.5 rounded-sm bg-white/5 border border-white/10">
+                    <dt className="text-[10px] uppercase tracking-wider text-[#9fc0b2] font-semibold">
+                      {copy.pillarsSection.dppCard.f2Label}
+                    </dt>
+                    <dd className="mt-1 text-sm font-semibold text-white">
+                      {copy.pillarsSection.dppCard.f2Value}
+                    </dd>
+                  </div>
+                  <div className="p-3.5 rounded-sm bg-white/5 border border-white/10">
+                    <dt className="text-[10px] uppercase tracking-wider text-[#9fc0b2] font-semibold">
+                      {copy.pillarsSection.dppCard.f3Label}
+                    </dt>
+                    <dd className="mt-1 text-sm font-semibold text-white">
+                      {copy.pillarsSection.dppCard.f3Value}
+                    </dd>
+                  </div>
+                  <div className="p-3.5 rounded-sm bg-white/5 border border-white/10">
+                    <dt className="text-[10px] uppercase tracking-wider text-[#9fc0b2] font-semibold">
+                      {copy.pillarsSection.dppCard.f4Label}
+                    </dt>
+                    <dd className="mt-1 text-sm font-semibold text-[#e2c98c]">
+                      {copy.pillarsSection.dppCard.f4Value}
+                    </dd>
+                  </div>
+                </dl>
+
+                <p className="text-xs text-[#b8d4c7] leading-relaxed">
+                  {copy.pillarsSection.dppCard.note}
+                </p>
+
+                <div className="pt-2">
+                  <Link
+                    href="/marketplace?hasDpp=true"
+                    className="w-full inline-flex items-center justify-between py-3 px-4 rounded-sm bg-[#c89b3c] hover:bg-[#d8ad52] text-[#13352c] text-xs font-bold transition-colors"
+                  >
+                    <span>{copy.pillarsSection.dppCard.cta}</span>
+                    <span aria-hidden="true">&rarr;</span>
+                  </Link>
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
         {/* ========================================================================= */}
-        {/* SECTION 16 — FINAL CALL TO ACTION (Conversion Gateway)                     */}
+        {/* SECTION 6 — FINAL CALL TO ACTION                                          */}
         {/* ========================================================================= */}
-        <section className="py-20 lg:py-24 bg-[#143a2f] text-white border-b border-[#0d261e]">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
-            <span className="text-xs font-bold uppercase tracking-widest text-[#c89b3c]">
-              Institutional Procurement Ready
-            </span>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight">
+        <section className="bg-[#143a2f] text-white py-24 lg:py-32">
+          <div className="max-w-4xl mx-auto px-5 sm:px-8 text-center">
+            <h2 className="text-3xl sm:text-5xl font-bold leading-[1.08] tracking-[-0.03em] text-white">
               {t("howItWorks.ctaHeadline")}
             </h2>
-            <p className="text-sm sm:text-base text-[#c4dfd4] max-w-2xl mx-auto font-normal leading-relaxed">
+            <p className="mx-auto mt-5 max-w-xl text-base sm:text-lg leading-relaxed text-[#c4dfd4]">
               {t("howItWorks.ctaSubtitle")}
             </p>
-
-            <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className="mt-10 flex flex-col sm:flex-row justify-center gap-3">
               <Link
                 href="/marketplace"
-                className="py-3.5 px-8 bg-[#c89b3c] hover:bg-[#b8860b] text-[#13352c] text-sm font-bold rounded-xl shadow-lg transition-colors flex items-center space-x-2 focus:ring-2 focus:ring-[#c89b3c]"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-[#c89b3c] px-7 py-4 text-sm font-bold text-[#13352c] transition-colors hover:bg-[#d8ad52]"
               >
                 <span>{t("cta.exploreMarketplace")}</span>
                 <span aria-hidden="true">&rarr;</span>
               </Link>
-
               <button
                 type="button"
-                onClick={() => {
-                  setAuthGateAction("Create Buyer Account");
-                  setAuthGateOpen(true);
-                }}
-                className="py-3.5 px-7 border border-white/30 bg-white/10 hover:bg-white/20 text-white text-sm font-semibold rounded-xl transition-colors"
+                onClick={() => openAuthGate(t("cta.createAccount"))}
+                className="inline-flex items-center justify-center rounded-full border border-white/40 px-7 py-4 text-sm font-semibold text-white transition-colors hover:bg-white/10 cursor-pointer"
               >
                 {t("cta.createAccount")}
               </button>
@@ -1412,10 +1644,8 @@ export function HowItWorksView() {
         </section>
       </main>
 
-      {/* Institutional Footer */}
       <PublicFooter />
 
-      {/* Authentication Gate Modal */}
       <AuthGateModal
         isOpen={authGateOpen}
         onClose={() => setAuthGateOpen(false)}

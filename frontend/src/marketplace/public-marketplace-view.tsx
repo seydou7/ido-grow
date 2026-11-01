@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { useI18n } from "@/i18n/i18n-provider";
 import { AllFiltersDrawer } from "./all-filters-drawer";
 import { AuthGateModal } from "./auth-gate-modal";
 import { formatMaterialType, formatOriginCountry, formatProductForm } from "./formatters";
@@ -20,6 +21,7 @@ import { PublicProductCard } from "./public-product-card";
 import { TrustFeatures } from "./trust-features";
 
 export function PublicMarketplaceView() {
+  const { locale, t } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -45,19 +47,17 @@ export function PublicMarketplaceView() {
 
   // Auth gate modal
   const [authGateOpen, setAuthGateOpen] = useState(false);
-  const [authGateAction, setAuthGateAction] = useState("Marketplace Transaction");
+  const [authGateAction, setAuthGateAction] = useState(t("cta.createBuyOrder"));
 
   // Data state
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [collection, setCollection] = useState<PublicMarketplaceListingCollection | null>(null);
 
-  // Synchronize local search input with URL searchParam
   useEffect(() => {
     setSearchInput(searchParam);
   }, [searchParam]);
 
-  // Push new query params to URL
   const updateUrlParams = useCallback(
     (updates: Record<string, string | null>) => {
       const nextParams = new URLSearchParams(searchParams.toString());
@@ -68,7 +68,6 @@ export function PublicMarketplaceView() {
           nextParams.set(key, value);
         }
       }
-      // Reset page to 1 whenever filters change (unless updating page itself)
       if (!("page" in updates)) {
         nextParams.delete("page");
       }
@@ -78,7 +77,6 @@ export function PublicMarketplaceView() {
     [pathname, router, searchParams],
   );
 
-  // Fetch data whenever URL parameters change
   useEffect(() => {
     let isMounted = true;
     setLoading(true);
@@ -98,7 +96,7 @@ export function PublicMarketplaceView() {
       hasCertifications: hasCertsParam || undefined,
       sort: sortParam,
       page: pageParam,
-      pageSize: 15,
+      pageSize: 12,
     };
 
     fetchPublicListings(query)
@@ -110,7 +108,7 @@ export function PublicMarketplaceView() {
       })
       .catch((err: unknown) => {
         if (isMounted) {
-          setError(err instanceof Error ? err.message : "Failed to load listings");
+          setError(err instanceof Error ? err.message : t("state.error"));
           setLoading(false);
         }
       });
@@ -132,6 +130,7 @@ export function PublicMarketplaceView() {
     hasCertsParam,
     sortParam,
     pageParam,
+    t,
   ]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -155,7 +154,11 @@ export function PublicMarketplaceView() {
     }
   };
 
-  // Active filter count calculation
+  const openCustomOrderGate = () => {
+    setAuthGateAction(t("cta.createBuyOrder"));
+    setAuthGateOpen(true);
+  };
+
   let activeFilterCount = 0;
   if (materialParam !== "ALL") activeFilterCount++;
   if (formParam !== "ALL") activeFilterCount++;
@@ -167,21 +170,22 @@ export function PublicMarketplaceView() {
   if (hasCertsParam) activeFilterCount++;
 
   return (
-    <div className="min-h-screen bg-[#faf8f1] flex flex-col text-[#173f35]">
-      {/* 1. Refined Public Header with Far-Right Language Selector */}
+    <div className="min-h-screen bg-[#faf8f1] flex flex-col text-[#173f35] selection:bg-[#1e5442] selection:text-white">
+      {/* 1. Public Header */}
       <PublicHeader
         activeRoute="marketplace"
         onOpenAuthGate={(action) => {
-          setAuthGateAction(action || "Platform Access");
+          setAuthGateAction(action || t("cta.accessPlatform"));
           setAuthGateOpen(true);
         }}
       />
 
-      {/* 2. Compact Marketplace Hero */}
+      {/* 2. Editorial Marketplace Hero */}
       <PremiumHero
         searchInput={searchInput}
         onSearchChange={setSearchInput}
         onSearchSubmit={handleSearchSubmit}
+        onOpenCustomOrder={openCustomOrderGate}
       />
 
       {/* 3. Material Category Discovery */}
@@ -192,7 +196,7 @@ export function PublicMarketplaceView() {
         />
       </div>
 
-      {/* 4. Horizontal Sticky Filter Toolbar (Permanent Left Sidebar Removed) */}
+      {/* 4. Horizontal Sticky Filter Toolbar */}
       <HorizontalFilterToolbar
         selectedMaterial={materialParam}
         selectedForm={formParam}
@@ -212,36 +216,53 @@ export function PublicMarketplaceView() {
         onClearAll={handleClearAllFilters}
       />
 
-      {/* 5. Main Full-Width Catalogue Container */}
-      <main id="catalogue" className="flex-1 max-w-[1650px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 w-full scroll-mt-28">
+      {/* 5. Main Catalogue Container */}
+      <main
+        id="catalogue"
+        className="flex-1 max-w-7xl mx-auto px-5 sm:px-8 py-10 lg:py-14 w-full scroll-mt-28"
+      >
         {/* Results Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#e4decb] gap-3">
-          <div className="flex items-center space-x-3">
-            <h2 className="text-xl sm:text-2xl font-extrabold text-[#173f35] tracking-tight">
-              Available Materials
-            </h2>
-            <span className="px-3 py-1 text-xs font-bold rounded-full bg-[#e2ede7] text-[#1e5442] border border-[#c4ded0]">
-              {collection ? `${collection.total} verified lots` : "Loading..."}
-            </span>
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between pb-5 border-b border-[#e4ded0] gap-3">
+          <div>
+            <div className="flex items-center gap-3">
+              <h2 className="text-2xl sm:text-3xl font-bold text-[#173f35] tracking-[-0.02em]">
+                {t("marketplace.results.title")}
+              </h2>
+              <span className="px-3 py-1 text-xs font-semibold tabular-nums rounded-sm bg-[#e8f0ec] text-[#173f35] border border-[#c8dcd2]">
+                {collection
+                  ? `${collection.total} ${t("marketplace.results.lotsCount")}`
+                  : t("state.loading")}
+              </span>
+            </div>
+            <p className="mt-1 text-xs sm:text-sm text-[#5c6e66]">
+              {t("marketplace.results.subtitle")}
+            </p>
           </div>
 
-          <div className="flex items-center space-x-2 text-xs text-[#5c6e66]">
-            <span>Showing verified European bulk agricultural inventory</span>
-          </div>
+          <button
+            type="button"
+            onClick={openCustomOrderGate}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1e5442] hover:text-[#173f35] underline underline-offset-4 cursor-pointer self-start sm:self-auto"
+          >
+            <span>{t("marketplace.hero.customOrderCta")}</span>
+            <span aria-hidden="true">&rarr;</span>
+          </button>
         </div>
 
         {/* 6. Active Filter Chips Bar */}
         {(activeFilterCount > 0 || searchParam) && (
-          <div className="mt-4 flex flex-wrap items-center gap-2 pt-1 pb-3">
-            <span className="text-xs text-[#6d7e76] font-semibold mr-1">Active filters:</span>
+          <div className="mt-4 flex flex-wrap items-center gap-2 pt-1 pb-2">
+            <span className="text-xs text-[#5c6e66] font-semibold mr-1">
+              {t("marketplace.filter.activeFilters")}
+            </span>
 
             {searchParam && (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-[#eef6f2] text-[#173f35] border border-[#c4ded0]">
-                Search: &ldquo;{searchParam}&rdquo;
+              <span className="inline-flex items-center px-2.5 py-1 rounded-sm text-xs font-semibold bg-[#e8f0ec] text-[#173f35] border border-[#c8dcd2]">
+                &ldquo;{searchParam}&rdquo;
                 <button
                   type="button"
                   onClick={() => updateUrlParams({ search: null })}
-                  className="ml-1.5 text-[#173f35] hover:text-black font-bold"
+                  className="ml-1.5 text-[#173f35] hover:text-black font-bold cursor-pointer"
                   aria-label="Remove search filter"
                 >
                   &times;
@@ -250,12 +271,12 @@ export function PublicMarketplaceView() {
             )}
 
             {materialParam !== "ALL" && (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-[#eef6f2] text-[#173f35] border border-[#c4ded0]">
-                Material: {formatMaterialType(materialParam)}
+              <span className="inline-flex items-center px-2.5 py-1 rounded-sm text-xs font-semibold bg-[#e8f0ec] text-[#173f35] border border-[#c8dcd2]">
+                {t("marketplace.filter.material")}: {formatMaterialType(materialParam, locale)}
                 <button
                   type="button"
                   onClick={() => updateUrlParams({ materialType: null })}
-                  className="ml-1.5 text-[#173f35] hover:text-black font-bold"
+                  className="ml-1.5 text-[#173f35] hover:text-black font-bold cursor-pointer"
                   aria-label="Remove material filter"
                 >
                   &times;
@@ -264,12 +285,12 @@ export function PublicMarketplaceView() {
             )}
 
             {formParam !== "ALL" && (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-[#eef6f2] text-[#173f35] border border-[#c4ded0]">
-                Form: {formatProductForm(formParam)}
+              <span className="inline-flex items-center px-2.5 py-1 rounded-sm text-xs font-semibold bg-[#e8f0ec] text-[#173f35] border border-[#c8dcd2]">
+                {t("marketplace.filter.form")}: {formatProductForm(formParam, locale)}
                 <button
                   type="button"
                   onClick={() => updateUrlParams({ productForm: null })}
-                  className="ml-1.5 text-[#173f35] hover:text-black font-bold"
+                  className="ml-1.5 text-[#173f35] hover:text-black font-bold cursor-pointer"
                   aria-label="Remove form filter"
                 >
                   &times;
@@ -278,12 +299,12 @@ export function PublicMarketplaceView() {
             )}
 
             {countryParam !== "ALL" && (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-[#eef6f2] text-[#173f35] border border-[#c4ded0]">
-                Country: {formatOriginCountry(countryParam)}
+              <span className="inline-flex items-center px-2.5 py-1 rounded-sm text-xs font-semibold bg-[#e8f0ec] text-[#173f35] border border-[#c8dcd2]">
+                {t("marketplace.filter.origin")}: {formatOriginCountry(countryParam, locale)}
                 <button
                   type="button"
                   onClick={() => updateUrlParams({ originCountry: null })}
-                  className="ml-1.5 text-[#173f35] hover:text-black font-bold"
+                  className="ml-1.5 text-[#173f35] hover:text-black font-bold cursor-pointer"
                   aria-label="Remove country filter"
                 >
                   &times;
@@ -292,12 +313,12 @@ export function PublicMarketplaceView() {
             )}
 
             {(minQtyParam || maxQtyParam) && (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-[#eef6f2] text-[#173f35] border border-[#c4ded0]">
-                Volume: {minQtyParam || "0"}–{maxQtyParam || "∞"} tonnes
+              <span className="inline-flex items-center px-2.5 py-1 rounded-sm text-xs font-semibold bg-[#e8f0ec] text-[#173f35] border border-[#c8dcd2]">
+                {t("marketplace.filter.volume")}: {minQtyParam || "0"}–{maxQtyParam || "∞"} t
                 <button
                   type="button"
                   onClick={() => updateUrlParams({ minQuantity: null, maxQuantity: null })}
-                  className="ml-1.5 text-[#173f35] hover:text-black font-bold"
+                  className="ml-1.5 text-[#173f35] hover:text-black font-bold cursor-pointer"
                   aria-label="Remove volume filter"
                 >
                   &times;
@@ -306,12 +327,12 @@ export function PublicMarketplaceView() {
             )}
 
             {(minPriceParam || maxPriceParam) && (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-[#eef6f2] text-[#173f35] border border-[#c4ded0]">
-                Price: €{minPriceParam || "0"}–€{maxPriceParam || "∞"} / t
+              <span className="inline-flex items-center px-2.5 py-1 rounded-sm text-xs font-semibold bg-[#e8f0ec] text-[#173f35] border border-[#c8dcd2]">
+                {t("marketplace.filter.price")}: €{minPriceParam || "0"}–€{maxPriceParam || "∞"}
                 <button
                   type="button"
                   onClick={() => updateUrlParams({ minPrice: null, maxPrice: null })}
-                  className="ml-1.5 text-[#173f35] hover:text-black font-bold"
+                  className="ml-1.5 text-[#173f35] hover:text-black font-bold cursor-pointer"
                   aria-label="Remove price filter"
                 >
                   &times;
@@ -320,12 +341,12 @@ export function PublicMarketplaceView() {
             )}
 
             {hasDppParam && (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-[#eef6f2] text-[#173f35] border border-[#c4ded0]">
-                DPP Traceable
+              <span className="inline-flex items-center px-2.5 py-1 rounded-sm text-xs font-semibold bg-[#e8f0ec] text-[#173f35] border border-[#c8dcd2]">
+                {t("marketplace.filter.dpp")}
                 <button
                   type="button"
                   onClick={() => updateUrlParams({ hasDpp: null })}
-                  className="ml-1.5 text-[#173f35] hover:text-black font-bold"
+                  className="ml-1.5 text-[#173f35] hover:text-black font-bold cursor-pointer"
                   aria-label="Remove DPP filter"
                 >
                   &times;
@@ -334,12 +355,12 @@ export function PublicMarketplaceView() {
             )}
 
             {hasQualityParam && (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-[#eef6f2] text-[#173f35] border border-[#c4ded0]">
-                Quality Verified
+              <span className="inline-flex items-center px-2.5 py-1 rounded-sm text-xs font-semibold bg-[#e8f0ec] text-[#173f35] border border-[#c8dcd2]">
+                {t("marketplace.filter.quality")}
                 <button
                   type="button"
                   onClick={() => updateUrlParams({ hasQualityApproved: null })}
-                  className="ml-1.5 text-[#173f35] hover:text-black font-bold"
+                  className="ml-1.5 text-[#173f35] hover:text-black font-bold cursor-pointer"
                   aria-label="Remove quality filter"
                 >
                   &times;
@@ -348,12 +369,12 @@ export function PublicMarketplaceView() {
             )}
 
             {hasCertsParam && (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-[#eef6f2] text-[#173f35] border border-[#c4ded0]">
-                Certified
+              <span className="inline-flex items-center px-2.5 py-1 rounded-sm text-xs font-semibold bg-[#e8f0ec] text-[#173f35] border border-[#c8dcd2]">
+                {t("marketplace.filter.certifications")}
                 <button
                   type="button"
                   onClick={() => updateUrlParams({ hasCertifications: null })}
-                  className="ml-1.5 text-[#173f35] hover:text-black font-bold"
+                  className="ml-1.5 text-[#173f35] hover:text-black font-bold cursor-pointer"
                   aria-label="Remove certification filter"
                 >
                   &times;
@@ -364,73 +385,73 @@ export function PublicMarketplaceView() {
             <button
               type="button"
               onClick={handleClearAllFilters}
-              className="text-xs text-[#173f35] hover:underline font-bold ml-2 underline underline-offset-2"
+              className="text-xs text-[#173f35] hover:text-[#1e5442] font-bold ml-2 underline underline-offset-4 cursor-pointer"
             >
-              Clear all
+              {t("marketplace.filter.clearAll")}
             </button>
           </div>
         )}
 
-        {/* 7. Full-Width Product Grid — Responsive: 5 cols (>=1600px), 4 cols (~1440px), 3 cols (~1024px), 2 cols (tablet), 1 col (mobile) */}
-        <div className="mt-6 w-full">
+        {/* 7. Product Grid */}
+        <div className="mt-8 w-full">
           {loading ? (
-            /* Loading Skeletons matching full-width grid */
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-5 sm:gap-6 animate-pulse">
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
-                <div key={i} className="bg-white rounded-2xl border border-[#e4decb] p-4 h-96 flex flex-col justify-between">
-                  <div className="aspect-[16/10] bg-[#f0ebe0] rounded-xl w-full mb-3" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-pulse">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                <div
+                  key={i}
+                  className="bg-white rounded-md border border-[#ded8c4] p-4 h-96 flex flex-col justify-between"
+                >
+                  <div className="aspect-[16/10] bg-[#ece6d6] rounded-sm w-full mb-3" />
                   <div className="space-y-2">
-                    <div className="h-4 bg-[#f0ebe0] rounded w-1/3" />
-                    <div className="h-5 bg-[#f0ebe0] rounded w-3/4" />
+                    <div className="h-3.5 bg-[#ece6d6] rounded-xs w-1/3" />
+                    <div className="h-5 bg-[#ece6d6] rounded-xs w-3/4" />
                   </div>
-                  <div className="h-10 bg-[#f0ebe0] rounded-lg w-full mt-4" />
+                  <div className="h-10 bg-[#ece6d6] rounded-sm w-full mt-4" />
                 </div>
               ))}
             </div>
           ) : error ? (
-            /* Error State */
-            <div className="bg-white rounded-2xl border border-red-200 p-8 text-center text-[#173f35] max-w-xl mx-auto my-12">
-              <div className="w-12 h-12 rounded-full bg-red-50 text-red-600 mx-auto flex items-center justify-center mb-3">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              </div>
-              <h3 className="text-base font-bold text-red-900">Failed to load marketplace listings</h3>
+            <div className="bg-white rounded-md border border-red-200 p-8 text-center text-[#173f35] max-w-xl mx-auto my-12">
+              <h3 className="text-base font-bold text-red-900">
+                {t("marketplace.error.title")}
+              </h3>
               <p className="mt-1 text-sm text-[#5c6e66]">{error}</p>
               <button
                 type="button"
                 onClick={() => updateUrlParams({ page: "1" })}
-                className="mt-4 py-2 px-5 bg-[#173f35] hover:bg-[#1e5442] text-white text-xs font-bold rounded-lg shadow-sm"
+                className="mt-4 py-2.5 px-5 bg-[#173f35] hover:bg-[#1e5442] text-white text-xs font-bold rounded-sm cursor-pointer"
               >
-                Retry
+                {t("marketplace.error.retry")}
               </button>
             </div>
           ) : collection && collection.items.length === 0 ? (
-            /* No Results State */
-            <div className="bg-white rounded-2xl border border-[#ded8c4] p-12 text-center text-[#173f35] shadow-xs max-w-2xl mx-auto my-12">
-              <div className="w-14 h-14 rounded-full bg-[#f4f0e2] text-[#6d7e76] mx-auto flex items-center justify-center mb-4">
-                <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-bold text-[#173f35]">No natural materials match these filters</h3>
-              <p className="mt-1 text-sm text-[#5c6e66] max-w-md mx-auto">
-                Try clearing some filter criteria or selecting &ldquo;All Materials&rdquo; to view available European stock.
+            <div className="bg-white rounded-md border border-[#ded8c4] p-12 text-center text-[#173f35] max-w-2xl mx-auto my-12">
+              <h3 className="text-xl font-bold text-[#173f35]">
+                {t("marketplace.empty.title")}
+              </h3>
+              <p className="mt-2 text-sm text-[#5c6e66] max-w-md mx-auto leading-relaxed">
+                {t("marketplace.empty.body")}
               </p>
-              <div className="mt-6 flex justify-center gap-3">
+              <div className="mt-6 flex flex-wrap justify-center gap-3">
                 <button
                   type="button"
                   onClick={handleClearAllFilters}
-                  className="py-2.5 px-6 bg-[#173f35] hover:bg-[#1e5442] text-white text-xs font-bold rounded-lg shadow-sm transition-colors"
+                  className="py-2.5 px-6 bg-[#173f35] hover:bg-[#1e5442] text-white text-xs font-bold rounded-sm transition-colors cursor-pointer"
                 >
-                  Reset All Filters
+                  {t("marketplace.empty.reset")}
+                </button>
+                <button
+                  type="button"
+                  onClick={openCustomOrderGate}
+                  className="py-2.5 px-6 border border-[#173f35] text-[#173f35] hover:bg-[#f2eddf] text-xs font-bold rounded-sm transition-colors cursor-pointer"
+                >
+                  {t("cta.createBuyOrder")}
                 </button>
               </div>
             </div>
           ) : (
-            /* Full-Width Products Grid */
             <div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-5 sm:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {collection?.items.map((listing: PublicMarketplaceListing) => (
                   <PublicProductCard key={listing.id} listing={listing} />
                 ))}
@@ -438,7 +459,7 @@ export function PublicMarketplaceView() {
 
               {/* 8. Pagination */}
               {collection && collection.totalPages > 1 && (
-                <div className="mt-12 flex items-center justify-between border-t border-[#e4decb] pt-6">
+                <div className="mt-12 flex items-center justify-between border-t border-[#e4ded0] pt-6">
                   <button
                     type="button"
                     disabled={collection.page <= 1}
@@ -447,12 +468,13 @@ export function PublicMarketplaceView() {
                       const el = document.getElementById("catalogue");
                       if (el) el.scrollIntoView({ behavior: "smooth" });
                     }}
-                    className="py-2.5 px-4 rounded-lg border border-[#c8c0aa] text-xs font-bold text-[#173f35] hover:bg-white disabled:opacity-40 disabled:hover:bg-transparent shadow-xs"
+                    className="py-2.5 px-4 rounded-sm border border-[#d8d1bd] text-xs font-bold text-[#173f35] hover:bg-white disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer"
                   >
-                    &larr; Previous Page
+                    &larr; {t("marketplace.pagination.prev")}
                   </button>
-                  <span className="text-xs text-[#5c6e66]">
-                    Page <strong className="text-[#173f35]">{collection.page}</strong> of{" "}
+                  <span className="text-xs text-[#5c6e66] tabular-nums">
+                    <strong className="text-[#173f35]">{collection.page}</strong>{" "}
+                    {t("marketplace.pagination.pageOf")}{" "}
                     <strong className="text-[#173f35]">{collection.totalPages}</strong>
                   </span>
                   <button
@@ -463,9 +485,9 @@ export function PublicMarketplaceView() {
                       const el = document.getElementById("catalogue");
                       if (el) el.scrollIntoView({ behavior: "smooth" });
                     }}
-                    className="py-2.5 px-4 rounded-lg border border-[#c8c0aa] text-xs font-bold text-[#173f35] hover:bg-white disabled:opacity-40 disabled:hover:bg-transparent shadow-xs"
+                    className="py-2.5 px-4 rounded-sm border border-[#d8d1bd] text-xs font-bold text-[#173f35] hover:bg-white disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer"
                   >
-                    Next Page &rarr;
+                    {t("marketplace.pagination.next")} &rarr;
                   </button>
                 </div>
               )}
@@ -479,7 +501,7 @@ export function PublicMarketplaceView() {
         <TrustFeatures />
       </div>
 
-      {/* 10. All Filters Slide-Over Drawer (for Desktop & Mobile) */}
+      {/* 10. All Filters Slide-Over Drawer */}
       <AllFiltersDrawer
         isOpen={allFiltersDrawerOpen}
         onClose={() => setAllFiltersDrawerOpen(false)}

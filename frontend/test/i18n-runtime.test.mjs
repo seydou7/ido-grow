@@ -24,9 +24,10 @@ test("locale resolution is deterministic and supports exactly en, nl, and fr", a
   );
 
   assert.deepEqual(SUPPORTED_LOCALES, ["en", "nl", "fr"]);
-  assert.equal(DEFAULT_LOCALE, "en");
-  assert.equal(resolveLocale(undefined), "en");
-  assert.equal(resolveLocale("invalid"), "en");
+  assert.equal(DEFAULT_LOCALE, "fr");
+  assert.equal(resolveLocale(undefined), "fr");
+  assert.equal(resolveLocale("invalid"), "fr");
+  assert.equal(resolveLocale("en"), "en");
   assert.equal(resolveLocale("nl"), "nl");
   assert.equal(resolveLocale("fr"), "fr");
 });

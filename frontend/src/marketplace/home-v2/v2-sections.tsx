@@ -80,7 +80,7 @@ export function V2How() {
 
 /* Live lots as a clean list */
 export function V2Lots({ listings = [] }: { listings?: readonly PublicMarketplaceListing[] }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   return (
     <section className={`bg-white ${v2Section}`}>
       <div className={v2Container}>
@@ -108,15 +108,15 @@ export function V2Lots({ listings = [] }: { listings?: readonly PublicMarketplac
                   <div className="min-w-0">
                     <p className="truncate text-[17px] font-semibold text-[#15211D] group-hover:text-[#1E5442]">{l.title}</p>
                     <p className="mt-0.5 text-[15px] text-[#5A6661]">
-                      {formatMaterialType(l.materialType)}
+                      {formatMaterialType(l.materialType, locale)}
                       {l.supplier.isVerified ? <span className="ml-2 text-[#1E5442]">· {t("home.v2.lots.verified")}</span> : null}
                     </p>
                   </div>
                   <p className="hidden text-[15px] text-[#5A6661] sm:block">
-                    {formatOriginCountry(l.originCountry)} · {formatQuantity(l.quantity, l.quantityUnit)}
+                    {formatOriginCountry(l.originCountry, locale)} · {formatQuantity(l.quantity, l.quantityUnit, locale)}
                   </p>
                   <p className="hidden text-[16px] font-semibold text-[#15211D] sm:block">
-                    {v2Price(l, t("home.v2.onRequest"), formatPriceUnit(l.priceUnit))}
+                    {v2Price(l, t("home.v2.onRequest"), formatPriceUnit(l.priceUnit, locale))}
                   </p>
                   <span className="text-[#5A6661] transition-transform group-hover:translate-x-1 group-hover:text-[#1E5442]" aria-hidden="true">
                     &rarr;

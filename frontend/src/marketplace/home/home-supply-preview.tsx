@@ -22,7 +22,7 @@ export interface HomeSupplyPreviewProps {
 }
 
 export function HomeSupplyPreview({ listings, loading }: HomeSupplyPreviewProps) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
 
   const seeAll = (
     <Link
@@ -52,27 +52,27 @@ export function HomeSupplyPreview({ listings, loading }: HomeSupplyPreviewProps)
               return (
                 <article key={listing.id} className="group">
                   <Link href={href} className="block">
-                    <div className="aspect-[4/3] overflow-hidden rounded-sm bg-[#ece6d6]">
+                    <div className="aspect-[4/3] overflow-hidden rounded-sm bg-[#ece6d6] border border-transparent group-hover:border-[#173f35] transition-colors">
                       <img
                         src={imageUrl}
                         alt={listing.title}
                         loading="lazy"
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                        className="h-full w-full object-cover"
                       />
                     </div>
                     <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6a22]">
-                      {formatMaterialType(listing.materialType)} · {formatOriginCountry(listing.originCountry)}
+                      {formatMaterialType(listing.materialType, locale)} · {formatOriginCountry(listing.originCountry, locale)}
                     </p>
                     <h3 className="mt-2 text-lg font-bold leading-snug tracking-tight text-[#173f35] line-clamp-2 group-hover:text-[#1e5442]">
                       {listing.title}
                     </h3>
                   </Link>
                   <p className="mt-2 text-sm text-[#5c6e66]">
-                    {formatProductForm(listing.productForm)} · {formatQuantity(listing.quantity, listing.quantityUnit)}
+                    {formatProductForm(listing.productForm, locale)} · {formatQuantity(listing.quantity, listing.quantityUnit, locale)}
                   </p>
                   <p className="mt-1 text-sm font-semibold text-[#173f35]">
                     {listing.priceAmount !== null
-                      ? `€${listing.priceAmount.toLocaleString()} ${formatPriceUnit(listing.priceUnit)}`
+                      ? `€${listing.priceAmount.toLocaleString(locale === "fr" ? "fr-FR" : locale === "nl" ? "nl-NL" : "en-GB")} ${formatPriceUnit(listing.priceUnit, locale)}`
                       : t("home.supply.onRequest")}
                   </p>
                 </article>

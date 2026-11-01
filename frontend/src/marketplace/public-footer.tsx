@@ -1,29 +1,39 @@
+"use client";
+
 import Link from "next/link";
+import { useI18n } from "@/i18n/i18n-provider";
 
 export function PublicFooter() {
+  const { t } = useI18n();
+
   return (
-    <footer className="bg-[#102a23] text-[#e8f1ec] border-t border-[#1e5442]/60 pt-16 pb-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-[#1e5442]/50">
+    <footer className="bg-[#0d1d17] text-[#e8f1ec] border-t border-[#1e5442]/40 pt-16 pb-12">
+      <div className="max-w-7xl mx-auto px-5 sm:px-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-white/10">
           {/* Brand & Mission */}
           <div className="lg:col-span-2 space-y-4">
-            <Link href="/" className="inline-block hover:opacity-90 transition-opacity" aria-label="I Do Grow Home">
-              <div className="bg-white/95 px-3 py-1.5 rounded-xl inline-block shadow-xs">
+            <Link
+              href="/"
+              className="inline-block hover:opacity-90 transition-opacity"
+              aria-label="I Do Grow"
+            >
+              <div className="bg-white/95 px-3 py-1.5 rounded-lg inline-block">
                 <img
                   src="/images/Logo IDoGrow principale.png"
                   alt="I Do Grow"
+                  loading="lazy"
                   className="h-8 w-auto object-contain"
                 />
               </div>
             </Link>
-            <p className="text-xs text-[#b8d4c7] max-w-sm leading-relaxed">
-              The premier European B2B commodity trading platform for verified, traceable industrial natural raw materials — empowering agricultural cooperatives, mills, and global procurement teams.
+            <p className="text-sm text-[#b8d4c7] max-w-sm leading-relaxed">
+              {t("footer.tagline")}
             </p>
-            <div className="flex items-center space-x-3 text-xs text-[#9fc0b2] pt-2">
-              <span className="inline-flex items-center px-2.5 py-1 rounded bg-[#173f35] border border-[#256852] text-[11px] font-semibold text-white">
+            <div className="flex items-center gap-2.5 text-xs pt-2">
+              <span className="inline-flex items-center px-2.5 py-1 rounded-sm bg-[#173f35] border border-[#256852] text-[11px] font-semibold text-[#e2c98c]">
                 EU DPP Ready
               </span>
-              <span className="inline-flex items-center px-2.5 py-1 rounded bg-[#173f35] border border-[#256852] text-[11px] font-semibold text-white">
+              <span className="inline-flex items-center px-2.5 py-1 rounded-sm bg-[#173f35] border border-[#256852] text-[11px] font-semibold text-white">
                 CSRD Aligned
               </span>
             </div>
@@ -31,38 +41,53 @@ export function PublicFooter() {
 
           {/* Sourcing & Marketplace */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-white">
-              Marketplace
+            <h4 className="text-xs font-semibold uppercase tracking-[0.16em] text-[#e2c98c]">
+              {t("footer.col.marketplace")}
             </h4>
-            <ul className="space-y-2 text-xs text-[#b8d4c7]">
+            <ul className="space-y-2.5 text-sm text-[#b8d4c7]">
               <li>
                 <Link href="/marketplace" className="hover:text-white transition-colors">
-                  All Natural Materials
+                  {t("footer.link.allMaterials")}
                 </Link>
               </li>
               <li>
-                <Link href="/marketplace?materialType=HEMP" className="hover:text-white transition-colors">
-                  Industrial Hemp
+                <Link
+                  href="/marketplace?materialType=HEMP"
+                  className="hover:text-white transition-colors"
+                >
+                  {t("footer.link.hemp")}
                 </Link>
               </li>
               <li>
-                <Link href="/marketplace?materialType=FLAX" className="hover:text-white transition-colors">
-                  European Flax (Linen)
+                <Link
+                  href="/marketplace?materialType=FLAX"
+                  className="hover:text-white transition-colors"
+                >
+                  {t("footer.link.flax")}
                 </Link>
               </li>
               <li>
-                <Link href="/marketplace?materialType=SISAL" className="hover:text-white transition-colors">
-                  Raw Sisal
+                <Link
+                  href="/marketplace?materialType=SISAL"
+                  className="hover:text-white transition-colors"
+                >
+                  {t("footer.link.sisal")}
                 </Link>
               </li>
               <li>
-                <Link href="/marketplace?materialType=JUTE" className="hover:text-white transition-colors">
-                  Golden Jute
+                <Link
+                  href="/marketplace?materialType=JUTE"
+                  className="hover:text-white transition-colors"
+                >
+                  {t("footer.link.jute")}
                 </Link>
               </li>
               <li>
-                <Link href="/marketplace?materialType=COIR" className="hover:text-white transition-colors">
-                  Coconut Coir
+                <Link
+                  href="/marketplace?materialType=COIR"
+                  className="hover:text-white transition-colors"
+                >
+                  {t("footer.link.coir")}
                 </Link>
               </li>
             </ul>
@@ -70,33 +95,42 @@ export function PublicFooter() {
 
           {/* Platform & Trust */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-white">
-              Platform & Trust
+            <h4 className="text-xs font-semibold uppercase tracking-[0.16em] text-[#e2c98c]">
+              {t("footer.col.platform")}
             </h4>
-            <ul className="space-y-2 text-xs text-[#b8d4c7]">
-              <li>
-                <Link href="/#ecosystem" className="hover:text-white transition-colors">
-                  Ecosystem & Actors
-                </Link>
-              </li>
+            <ul className="space-y-2.5 text-sm text-[#b8d4c7]">
               <li>
                 <Link href="/how-it-works" className="hover:text-white transition-colors">
-                  How It Works
+                  {t("navigation.howItWorks")}
                 </Link>
               </li>
               <li>
-                <Link href="/#traceability" className="hover:text-white transition-colors">
-                  Traceability & DPP
+                <Link
+                  href="/how-it-works#actor-view"
+                  className="hover:text-white transition-colors"
+                >
+                  {t("footer.link.ecosystem")}
                 </Link>
               </li>
               <li>
-                <Link href="/#quality" className="hover:text-white transition-colors">
-                  Quality Standards & Lab
+                <Link
+                  href="/how-it-works#dpp-lifecycle"
+                  className="hover:text-white transition-colors"
+                >
+                  {t("footer.link.traceability")}
                 </Link>
               </li>
               <li>
-                <Link href="/#benefits" className="hover:text-white transition-colors">
-                  Why I Do Grow
+                <Link
+                  href="/how-it-works#quality-contract"
+                  className="hover:text-white transition-colors"
+                >
+                  {t("footer.link.quality")}
+                </Link>
+              </li>
+              <li>
+                <Link href="/#trust" className="hover:text-white transition-colors">
+                  {t("footer.link.benefits")}
                 </Link>
               </li>
             </ul>
@@ -104,33 +138,33 @@ export function PublicFooter() {
 
           {/* Operational Access */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-white">
-              Portals & Operations
+            <h4 className="text-xs font-semibold uppercase tracking-[0.16em] text-[#e2c98c]">
+              {t("footer.col.portals")}
             </h4>
-            <ul className="space-y-2 text-xs text-[#b8d4c7]">
+            <ul className="space-y-2.5 text-sm text-[#b8d4c7]">
               <li>
                 <Link href="/portal" className="hover:text-white transition-colors">
-                  Trade Portal Access
+                  {t("footer.link.portalAccess")}
                 </Link>
               </li>
               <li>
                 <Link href="/portal" className="hover:text-white transition-colors">
-                  Buyer Desk
+                  {t("footer.link.buyerDesk")}
                 </Link>
               </li>
               <li>
                 <Link href="/portal" className="hover:text-white transition-colors">
-                  Producer / Mill Cockpit
+                  {t("footer.link.producerCockpit")}
                 </Link>
               </li>
               <li>
                 <Link href="/portal" className="hover:text-white transition-colors">
-                  Quality Inspector Desk
+                  {t("footer.link.inspectorDesk")}
                 </Link>
               </li>
               <li>
                 <Link href="/portal" className="hover:text-white transition-colors">
-                  Trader Matching Cockpit
+                  {t("footer.link.traderCockpit")}
                 </Link>
               </li>
             </ul>
@@ -139,11 +173,19 @@ export function PublicFooter() {
 
         {/* Bottom Credits & Legal */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-[#8daea0] gap-4">
-          <p>© {new Date().getFullYear()} I Do Grow SAS. All rights reserved. Registered European B2B Commodity Trading Infrastructure.</p>
+          <p>
+            © {new Date().getFullYear()} I Do Grow SAS. {t("footer.rights")}
+          </p>
           <div className="flex items-center space-x-6">
-            <span className="hover:text-white transition-colors cursor-pointer">Terms of Service</span>
-            <span className="hover:text-white transition-colors cursor-pointer">Privacy & Data Governance</span>
-            <span className="hover:text-white transition-colors cursor-pointer">Traceability Policy</span>
+            <span className="hover:text-white transition-colors cursor-pointer">
+              {t("footer.terms")}
+            </span>
+            <span className="hover:text-white transition-colors cursor-pointer">
+              {t("footer.privacy")}
+            </span>
+            <span className="hover:text-white transition-colors cursor-pointer">
+              {t("footer.traceabilityPolicy")}
+            </span>
           </div>
         </div>
       </div>
