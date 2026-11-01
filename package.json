@@ -1,0 +1,22 @@
+{
+  "name": "ido-grow",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "engines": {
+    "node": ">=20.9.0",
+    "npm": ">=11.0.0"
+  },
+  "packageManager": "npm@11.6.2",
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "dev:frontend": "npm run dev --workspace @ido-grow/frontend",
+    "dev:backend": "npm run start:dev --workspace @ido-grow/backend"
+  }
+}

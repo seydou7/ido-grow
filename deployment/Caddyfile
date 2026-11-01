@@ -1,0 +1,13 @@
+{
+    auto_https disable_redirects
+}
+
+{$IDO_GROW_DEMO_DOMAIN:demo.idogrow.com} {
+    handle /api/* {
+        reverse_proxy ido-grow-backend:3001
+    }
+
+    handle {
+        reverse_proxy ido-grow-frontend:3000
+    }
+}

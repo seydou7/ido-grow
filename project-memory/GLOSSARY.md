@@ -1,0 +1,25 @@
+# Glossary
+
+- **Supplier:** A farmer, cooperative, raw-material producer, fermentation plant, or cultivated-production facility that supplies or offers material. A trader may act on the supplier’s behalf.
+- **Buyer:** A processor, factory, wholesaler, retailer, or brand that searches for, requests, or purchases products.
+- **I Do Grow Trader:** An internal trading operator who may onboard parties, create listings or buy orders on their behalf, match supply and demand, negotiate pricing, prepare transactions, approve agent recommendations, and manage relationships.
+- **Listing:** A structured offer of available product created by a supplier, trader, or supported intake channel. It contains commercial, availability, location, document, photo, and known-quality information and may contain multiple lots or batches.
+- **Lot:** A traceable quantity of product associated with a listing and followed through inspection, quality, trade, shipment, and DPP events. Lots may be combined, split, or transformed while preserving provenance.
+- **Buy Order:** A buyer’s structured demand for product, including applicable quality, quantity, delivery, price, origin, certification, packaging, DPP, transport, and payment requirements.
+- **Match:** An explainable recommendation connecting a buy order with one listing or a combination of supplier lots based on the total commercial outcome, not price and quantity alone. In the first release, a match is not automatically binding.
+- **Quote:** A versioned commercial proposal that separates product value and applicable margins, commissions, inspection, packaging, transport, customs, insurance, storage, tax, and service costs. Acceptance may lead to a trade and contract.
+- **Trade:** The structured transaction created from agreed commercial terms between buyer, seller, and the applicable I Do Grow entity; it links product/lot, quote, contract, quality, logistics, and settlement.
+- **Landed Cost:** The transparent total estimated or confirmed cost of delivery. The client’s model includes product, origin transport, loading, inspection, packaging, export, international freight, insurance, duties, import, destination transport, storage, I Do Grow fees, and estimated risk cost, stored as a breakdown.
+- **Quality Inspection:** A remote, AI-assisted, self-reported, locally verified, independent physical, or laboratory-tested check recording structured measurements, evidence, provenance, results, grading, and non-conformities. Final classification initially requires human approval.
+- **Shipment:** The logistics record and workflow covering requirements, freight quotations, carrier selection, pickup, transport events, documents, delivery, exceptions, and cost reconciliation.
+- **Settlement:** Administrative tracking of invoices, payment instructions/status, due dates, deposits, balances, commissions, credit notes, claims, and final settlement amount. Initially, the platform does not act as a regulated payment institution.
+- **Digital Product Passport (DPP):** A versioned, provenance-aware digital record linked to a lot, batch, component, or finished product. It accumulates origin, producer, composition, quality, certification, process, custody, logistics, sustainability, and lifecycle events and is not intended to be only a static PDF.
+- **Platform Agent:** A bounded AI agent that interprets/extracts information, creates proposals, explains results, or executes only allowlisted actions through controlled tools. It must expose confidence/evidence, avoid inventing unknown facts, preserve provenance, and escalate or request human approval where required.
+- **Product:** A defined tradable material or good in a product taxonomy, distinct from a supplier’s listing of available inventory.
+- **Batch:** A traceable grouping associated with a listing or production process; the documents use “lot” and “batch” together but do not fully define their distinction.
+- **Contract:** A structured, versioned record of accepted transaction terms, potentially accompanied in the first release by a generated PDF and requiring human review and signature.
+- **Reservation:** A hold against listing availability, supporting partial or full reservation; its exact commercial effect is not defined.
+- **Quality Grade:** A classification derived from structured evidence and measurements; an AI grade is preliminary until approved by an authorised human.
+- **Grand Exchange model:** The client’s inspiration for central matching of supply and demand, extended beyond price/quantity to quality, landed cost, delivery, reliability, risk, documentation, and sustainability.
+- **DPP Event:** A provenance-bearing event in a product journey, such as harvest, lot creation, inspection, sale, shipment, processing, or creation of a transformed output lot.
+- **Platform:** The shared trading infrastructure used by I Do Grow’s internal traders and external parties across marketplace and transaction operations.

@@ -1,0 +1,41 @@
+import type { AuthenticationSession } from "./contracts";
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+export function parseAuthenticatedSession(
+  value: unknown,
+): AuthenticationSession | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  if (value.status === "unauthenticated") {
+    return { status: "unauthenticated" };
+  }
+
+  if (value.status !== "authenticated" || !isRecord(value.user)) {
+    return null;
+  }
+
+  const { id, email, role } = value.user as { id: unknown; email: unknown; role?: unknown };
+
+  if (
+    typeof id !== "string" ||
+    id.trim() === "" ||
+    typeof email !== "string" ||
+    email.trim() === ""
+  ) {
+    return null;
+  }
+
+  return {
+    status: "authenticated",
+    user: {
+      id,
+      email,
+      ...(typeof role === "string" ? { role } : {}),
+    },
+  };
+}

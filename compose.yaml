@@ -1,0 +1,22 @@
+name: ido-grow
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: ido-grow-postgres-16
+    env_file:
+      - .docker/.env.local
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - ido-grow-postgres-16-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+
+volumes:
+  ido-grow-postgres-16-data:
+    name: ido-grow-postgres-16-data

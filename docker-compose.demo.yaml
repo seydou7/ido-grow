@@ -1,0 +1,95 @@
+name: ido-grow-demo
+
+services:
+  ido-grow-postgres:
+    image: postgres:16-alpine
+    container_name: ido-grow-demo-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ido_grow_demo}
+      POSTGRES_USER: ${POSTGRES_USER:-ido_grow_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ido-grow-demo-postgres-data:/var/lib/postgresql/data
+    networks:
+      - ido-grow-demo-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ido_grow_user} -d ${POSTGRES_DB:-ido_grow_demo}"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  ido-grow-backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: ido-grow-demo-backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ido_grow_user}:${POSTGRES_PASSWORD}@ido-grow-postgres:5432/${POSTGRES_DB:-ido_grow_demo}?schema=public
+      PORT: "3001"
+      NODE_ENV: production
+      IDO_GROW_RUNTIME_ENV: demo
+      IDO_GROW_DEMO_ORIGIN: ${IDO_GROW_DEMO_ORIGIN:-}
+      IDO_GROW_DEMO_SUPPLIER_EMAIL: ${IDO_GROW_DEMO_SUPPLIER_EMAIL:-supplier@demo.idogrow.com}
+      IDO_GROW_DEMO_SUPPLIER_PASSWORD: ${IDO_GROW_DEMO_SUPPLIER_PASSWORD:-}
+      IDO_GROW_DEMO_BUYER_EMAIL: ${IDO_GROW_DEMO_BUYER_EMAIL:-buyer@demo.idogrow.com}
+      IDO_GROW_DEMO_BUYER_PASSWORD: ${IDO_GROW_DEMO_BUYER_PASSWORD:-}
+      IDO_GROW_DEMO_TRADER_EMAIL: ${IDO_GROW_DEMO_TRADER_EMAIL:-trader@demo.idogrow.com}
+      IDO_GROW_DEMO_TRADER_PASSWORD: ${IDO_GROW_DEMO_TRADER_PASSWORD:-}
+    volumes:
+      - ido-grow-demo-compliance-data:/app/backend/.local-storage
+    networks:
+      - ido-grow-demo-net
+    depends_on:
+      ido-grow-postgres:
+        condition: service_healthy
+
+  ido-grow-frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: ido-grow-demo-frontend
+    restart: unless-stopped
+    environment:
+      PORT: "3000"
+      NODE_ENV: production
+      NEXT_PUBLIC_API_BASE_URL: ""
+    networks:
+      - ido-grow-demo-net
+    depends_on:
+      - ido-grow-backend
+
+  ido-grow-proxy:
+    image: caddy:2.9-alpine
+    container_name: ido-grow-demo-proxy
+    restart: unless-stopped
+    ports:
+      - "443:443"
+    environment:
+      IDO_GROW_DEMO_DOMAIN: ${IDO_GROW_DEMO_DOMAIN:-demo.idogrow.com}
+    volumes:
+      - ./deployment/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ido-grow-demo-caddy-data:/data
+      - ido-grow-demo-caddy-config:/config
+    networks:
+      - ido-grow-demo-net
+    depends_on:
+      - ido-grow-frontend
+      - ido-grow-backend
+
+networks:
+  ido-grow-demo-net:
+    name: ido-grow-demo-net
+    driver: bridge
+
+volumes:
+  ido-grow-demo-postgres-data:
+    name: ido-grow-demo-postgres-data
+  ido-grow-demo-compliance-data:
+    name: ido-grow-demo-compliance-data
+  ido-grow-demo-caddy-data:
+    name: ido-grow-demo-caddy-data
+  ido-grow-demo-caddy-config:
+    name: ido-grow-demo-caddy-config

@@ -1,0 +1,1166 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String       @id @default(uuid()) @db.Uuid
+  email        String       @unique @db.VarChar(320)
+  passwordHash String       @db.VarChar(255)
+  isActive     Boolean      @default(true)
+  createdAt    DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime     @updatedAt @db.Timestamptz(6)
+  sessions     Session[]
+  memberships  Membership[]
+  auditEvents  AuditEvent[]
+  buyOrders    BuyOrder[]
+  matchesCreated Match[]    @relation("MatchCreatedByUser")
+  quotesCreated  Quote[]    @relation("QuoteCreatedByUser")
+  quoteVersionsCreated QuoteVersion[] @relation("QuoteVersionCreatedByUser")
+  sentQuotes           Quote[]        @relation("QuoteSentByUser")
+  acceptedQuotes       Quote[]        @relation("QuoteAcceptedByUser")
+  rejectedQuotes       Quote[]        @relation("QuoteRejectedByUser")
+  quoteCounterOffers   QuoteCounterOffer[] @relation("QuoteCounterOfferCreatedByUser")
+  tradesCreated        Trade[]             @relation("TradeCreatedByUser")
+  role                 String?             @default("STANDARD") @db.VarChar(50)
+  inspectionsCreated   Inspection[]        @relation("InspectionCreatedByUser")
+  inspectionsAssigned  Inspection[]        @relation("InspectionAssignedToUser")
+  inspectionEvidenceUploaded InspectionEvidence[] @relation("InspectionEvidenceUploadedByUser")
+  inspectionsAssessed        Inspection[]        @relation("InspectionAssessedByUser")
+  nonConformitiesReported    NonConformity[]     @relation("NonConformityReportedByUser")
+  nonConformitiesResolved    NonConformity[]     @relation("NonConformityResolvedByUser")
+  qualityResultsDecided      QualityResult[]     @relation("QualityResultDecidedByUser")
+  certificatesIssued         InspectionCertificate[] @relation("InspectionCertificateIssuedByUser")
+  contractsCreated           Contract[]          @relation("ContractCreatedByUser")
+  contractsConfirmed         Contract[]          @relation("ContractConfirmedByUser")
+  shipmentsCreated           Shipment[]          @relation("ShipmentCreatedByUser")
+  shipmentsClosed            Shipment[]          @relation("ShipmentClosedByUser")
+  shipmentTrackingEvents     ShipmentTrackingEvent[] @relation("ShipmentTrackingEventActor")
+  shipmentDocumentsUploaded  ShipmentDocument[]  @relation("ShipmentDocumentUploadedByUser")
+  shipmentDiscrepanciesReported ShipmentDiscrepancy[] @relation("ShipmentDiscrepancyReportedByUser")
+  shipmentCostsReconciled    ShipmentCostReconciliation[] @relation("ShipmentCostReconciledByUser")
+  settlementsCreated         Settlement[]        @relation("SettlementCreatedByUser")
+  settlementDocumentsUploaded SettlementDocument[] @relation("SettlementDocumentUploadedByUser")
+  settlementClaimsRecorded   SettlementClaim[]   @relation("SettlementClaimRecordedByUser")
+  settlementClaimsResolved   SettlementClaim[]   @relation("SettlementClaimResolvedByUser")
+  logisticsRequestsAsProvider LogisticsRequest[] @relation("LogisticsRequestTargetProvider")
+  logisticsRequestsAsRequester LogisticsRequest[] @relation("LogisticsRequestRequester")
+  freightQuotationsAsProvider FreightQuotation[] @relation("FreightQuotationProvider")
+  freightQuotationsSubmitted FreightQuotation[]  @relation("FreightQuotationSubmittedBy")
+  createdLots                TraceableLot[]      @relation("TraceableLotCreatedByUser")
+  createdDpps                DigitalProductPassport[] @relation("DPPCreatedByUser")
+  createdDppVersions         DPPVersion[]        @relation("DPPVersionCreatedByUser")
+  responsibleDppEvents       DPPEvent[]          @relation("DPPEventResponsibleUser")
+  initiatedAiRuns            AgentRun[]          @relation("AgentRunInitiatedByUser")
+  decidedAiApprovals         ApprovalRequest[]   @relation("ApprovalRequestDecidedByUser")
+}
+
+model AuditEvent {
+  id            String   @id @default(uuid()) @db.Uuid
+  eventType     String   @db.VarChar(100)
+  outcome       String   @db.VarChar(32)
+  actorType     String   @db.VarChar(32)
+  actorUserId   String?  @db.Uuid
+  targetType    String   @db.VarChar(100)
+  targetId      String?  @db.VarChar(128)
+  correlationId String   @db.Uuid
+  occurredAt    DateTime @db.Timestamptz(6)
+  metadata      Json     @default("{}") @db.JsonB
+  actorUser     User?    @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([actorUserId, occurredAt])
+  @@index([eventType, occurredAt])
+  @@index([correlationId])
+  @@index([targetType, targetId])
+}
+
+model Organisation {
+  id                 String       @id @default(uuid()) @db.Uuid
+  name               String       @db.VarChar(200)
+  legalName          String?      @db.VarChar(200)
+  organisationType   String       @default("SUPPLIER") @db.VarChar(50)
+  businessType       String?      @db.VarChar(50)
+  registrationNumber String?      @db.VarChar(100)
+  vatNumber          String?      @db.VarChar(100)
+  address            String?      @db.VarChar(255)
+  city               String?      @db.VarChar(100)
+  postalCode         String?      @db.VarChar(32)
+  country            String?      @db.VarChar(100)
+  contactName        String?      @db.VarChar(150)
+  contactEmail       String?      @db.VarChar(320)
+  contactPhone       String?      @db.VarChar(50)
+  verificationStatus String       @default("PENDING") @db.VarChar(50)
+  createdAt          DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime     @updatedAt @db.Timestamptz(6)
+  sites              Site[]
+  memberships        Membership[]
+  complianceDocuments ComplianceDocument[]
+  listings           Listing[]
+  buyOrders          BuyOrder[]
+  buyerMatches       Match[]      @relation("MatchBuyerOrganisation")
+  supplierMatches    Match[]      @relation("MatchSupplierOrganisation")
+  buyerQuotes        Quote[]      @relation("QuoteBuyerOrganisation")
+  supplierQuotes     Quote[]      @relation("QuoteSupplierOrganisation")
+  quoteCounterOffers QuoteCounterOffer[] @relation("QuoteCounterOfferBuyerOrganisation")
+  buyerTrades        Trade[]             @relation("TradeBuyerOrganisation")
+  supplierTrades     Trade[]             @relation("TradeSupplierOrganisation")
+  buyerInspections   Inspection[]        @relation("InspectionBuyerOrganisation")
+  supplierInspections Inspection[]       @relation("InspectionSupplierOrganisation")
+  buyerContracts     Contract[]          @relation("ContractBuyerOrganisation")
+  supplierContracts  Contract[]          @relation("ContractSupplierOrganisation")
+  buyerShipments     Shipment[]          @relation("ShipmentBuyerOrganisation")
+  supplierShipments  Shipment[]          @relation("ShipmentSupplierOrganisation")
+  buyerSettlements   Settlement[]        @relation("SettlementBuyerOrganisation")
+  supplierSettlements Settlement[]       @relation("SettlementSupplierOrganisation")
+  supplierLots       TraceableLot[]      @relation("TraceableLotSupplierOrganisation")
+  responsibleDppEvents DPPEvent[]        @relation("DPPEventResponsibleOrganisation")
+  custodyFromRecords DPPCustodyRecord[]  @relation("DPPCustodyFromOrganisation")
+  custodyToRecords   DPPCustodyRecord[]  @relation("DPPCustodyToOrganisation")
+  aiRuns             AgentRun[]          @relation("AgentRunOrganisation")
+}
+
+model ComplianceDocument {
+  id               String       @id @default(uuid()) @db.Uuid
+  organisationId   String       @db.Uuid
+  documentType     String       @db.VarChar(50)
+  originalFilename String       @db.VarChar(255)
+  storageKey       String       @unique @db.VarChar(255)
+  mimeType         String       @db.VarChar(100)
+  fileSize         Int
+  status           String       @default("PENDING_REVIEW") @db.VarChar(50)
+  createdAt        DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime     @updatedAt @db.Timestamptz(6)
+  organisation     Organisation @relation(fields: [organisationId], references: [id], onDelete: Restrict)
+
+  @@index([organisationId])
+  @@index([documentType])
+  @@index([status])
+}
+
+model Site {
+  id               String       @id @default(uuid()) @db.Uuid
+  organisationId   String       @db.Uuid
+  name             String       @db.VarChar(200)
+  facilityType     String?      @db.VarChar(50)
+  address          String?      @db.VarChar(255)
+  city             String?      @db.VarChar(100)
+  postalCode       String?      @db.VarChar(32)
+  country          String?      @db.VarChar(100)
+  latitude         Float?
+  longitude        Float?
+  landAreaHectares Float?
+  createdAt        DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime     @updatedAt @db.Timestamptz(6)
+  organisation     Organisation @relation(fields: [organisationId], references: [id], onDelete: Restrict)
+  listings         Listing[]
+  lots             TraceableLot[]
+
+  @@index([organisationId])
+}
+
+model Listing {
+  id               String       @id @default(uuid()) @db.Uuid
+  organisationId   String       @db.Uuid
+  siteId           String?      @db.Uuid
+  title            String       @db.VarChar(200)
+  description      String?      @db.Text
+  materialType     String       @db.VarChar(50)
+  productForm      String?      @db.VarChar(50)
+  quantity         Float
+  quantityUnit     String       @default("TONNES") @db.VarChar(30)
+  priceAmount      Float?
+  currency         String       @default("EUR") @db.VarChar(10)
+  priceUnit        String       @default("PER_TONNE") @db.VarChar(30)
+  originCountry    String?      @db.VarChar(100)
+  harvestYear      Int?
+  status           String       @default("DRAFT") @db.VarChar(50)
+  createdAt        DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime     @updatedAt @db.Timestamptz(6)
+  organisation     Organisation @relation(fields: [organisationId], references: [id], onDelete: Restrict)
+  site             Site?        @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  matches          Match[]
+  quotes           Quote[]
+  trades           Trade[]
+  inspections      Inspection[]
+  lots             TraceableLot[]
+
+  @@index([organisationId])
+  @@index([materialType])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Membership {
+  id             String       @id @default(uuid()) @db.Uuid
+  userId         String       @db.Uuid
+  organisationId String       @db.Uuid
+  createdAt      DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime     @updatedAt @db.Timestamptz(6)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, organisationId])
+  @@index([organisationId])
+}
+
+model Session {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @unique @db.VarChar(64)
+  expiresAt DateTime  @db.Timestamptz(6)
+  revokedAt DateTime? @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model BuyOrder {
+  id                        String       @id @default(uuid()) @db.Uuid
+  buyerOrganisationId       String       @db.Uuid
+  createdByUserId           String?      @db.Uuid
+  materialType              String       @db.VarChar(50)
+  productForm               String?      @db.VarChar(50)
+  quantity                  Float
+  quantityUnit              String       @default("TONNES") @db.VarChar(30)
+  deliveryCountry           String?      @db.VarChar(100)
+  deliveryDestination       String?      @db.VarChar(255)
+  requestedDeliveryDate     DateTime?    @db.Timestamptz(6)
+  targetPriceAmount         Float?
+  currency                  String       @default("EUR") @db.VarChar(10)
+  targetPriceUnit           String       @default("PER_TONNE") @db.VarChar(30)
+  acceptableOriginCountries String?      @db.VarChar(255)
+  qualityRequirements       String?      @db.Text
+  packagingRequirements     String?      @db.Text
+  certificationRequirements String?      @db.Text
+  transportPreferences      String?      @db.Text
+  paymentTerms              String?      @db.Text
+  status                    String       @default("DRAFT") @db.VarChar(50)
+  createdAt                 DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt                 DateTime     @updatedAt @db.Timestamptz(6)
+  buyerOrganisation         Organisation @relation(fields: [buyerOrganisationId], references: [id], onDelete: Restrict)
+  createdByUser             User?        @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  matches                   Match[]
+  quotes                    Quote[]
+  trades                    Trade[]
+
+  @@index([buyerOrganisationId])
+  @@index([status])
+  @@index([materialType])
+  @@index([createdAt])
+}
+
+model Match {
+  id                     String        @id @default(uuid()) @db.Uuid
+  buyOrderId             String        @db.Uuid
+  listingId              String        @db.Uuid
+  buyerOrganisationId    String?       @db.Uuid
+  supplierOrganisationId String?       @db.Uuid
+  createdByUserId        String?       @db.Uuid
+  status                 String        @default("DRAFT") @db.VarChar(50)
+  traderNotes            String?       @db.Text
+  approvedAt             DateTime?     @db.Timestamptz(6)
+  createdAt              DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt              DateTime      @updatedAt @db.Timestamptz(6)
+  buyOrder               BuyOrder      @relation(fields: [buyOrderId], references: [id], onDelete: Cascade)
+  listing                Listing       @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  buyerOrganisation      Organisation? @relation("MatchBuyerOrganisation", fields: [buyerOrganisationId], references: [id], onDelete: SetNull)
+  supplierOrganisation   Organisation? @relation("MatchSupplierOrganisation", fields: [supplierOrganisationId], references: [id], onDelete: SetNull)
+  createdByUser          User?         @relation("MatchCreatedByUser", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  quote                  Quote?
+  trades                 Trade[]
+
+  @@index([buyOrderId])
+  @@index([listingId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Quote {
+  id                     String        @id @default(uuid()) @db.Uuid
+  quoteNumber            String        @unique @db.VarChar(50)
+  matchId                String        @unique @db.Uuid
+  buyOrderId             String        @db.Uuid
+  listingId              String        @db.Uuid
+  buyerOrganisationId    String        @db.Uuid
+  supplierOrganisationId String        @db.Uuid
+  createdByUserId        String        @db.Uuid
+  status                 String        @default("DRAFT") @db.VarChar(50)
+  currency               String        @db.VarChar(10)
+  currentVersionNumber   Int           @default(1)
+  sentAt                 DateTime?     @db.Timestamptz(6)
+  sentByUserId           String?       @db.Uuid
+  sentVersionNumber      Int?
+  acceptedAt             DateTime?     @db.Timestamptz(6)
+  acceptedByUserId       String?       @db.Uuid
+  acceptedVersionNumber  Int?
+  rejectedAt             DateTime?     @db.Timestamptz(6)
+  rejectedByUserId       String?       @db.Uuid
+  rejectionReason        String?       @db.Text
+  createdAt              DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt              DateTime      @updatedAt @db.Timestamptz(6)
+
+  match                  Match         @relation(fields: [matchId], references: [id], onDelete: Restrict)
+  buyOrder               BuyOrder      @relation(fields: [buyOrderId], references: [id], onDelete: Restrict)
+  listing                Listing       @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  buyerOrganisation      Organisation  @relation("QuoteBuyerOrganisation", fields: [buyerOrganisationId], references: [id], onDelete: Restrict)
+  supplierOrganisation   Organisation  @relation("QuoteSupplierOrganisation", fields: [supplierOrganisationId], references: [id], onDelete: Restrict)
+  createdByUser          User          @relation("QuoteCreatedByUser", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  sentByUser             User?         @relation("QuoteSentByUser", fields: [sentByUserId], references: [id], onDelete: Restrict)
+  acceptedByUser         User?         @relation("QuoteAcceptedByUser", fields: [acceptedByUserId], references: [id], onDelete: Restrict)
+  rejectedByUser         User?         @relation("QuoteRejectedByUser", fields: [rejectedByUserId], references: [id], onDelete: Restrict)
+  versions               QuoteVersion[]
+  counterOffers          QuoteCounterOffer[]
+  trade                  Trade?
+
+  @@index([matchId])
+  @@index([buyOrderId])
+  @@index([listingId])
+  @@index([buyerOrganisationId])
+  @@index([supplierOrganisationId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model QuoteCounterOffer {
+  id                   String       @id @default(uuid()) @db.Uuid
+  quoteId              String       @db.Uuid
+  sourceVersionNumber  Int
+  buyerOrganisationId String       @db.Uuid
+  createdByUserId      String       @db.Uuid
+  proposedProductValue Float?
+  proposedTotalAmount  Float?
+  proposedIncoterm     String?      @db.VarChar(10)
+  proposedPaymentTerms String?      @db.VarChar(100)
+  buyerNote            String       @db.Text
+  createdAt            DateTime     @default(now()) @db.Timestamptz(6)
+
+  quote                Quote        @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  buyerOrganisation    Organisation @relation("QuoteCounterOfferBuyerOrganisation", fields: [buyerOrganisationId], references: [id], onDelete: Restrict)
+  createdByUser        User         @relation("QuoteCounterOfferCreatedByUser", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([quoteId])
+  @@index([buyerOrganisationId])
+  @@index([createdAt])
+}
+
+model QuoteVersion {
+  id                       String    @id @default(uuid()) @db.Uuid
+  quoteId                  String    @db.Uuid
+  versionNumber            Int
+  productValue             Float
+  idoGrowMarginCommission  Float     @default(0)
+  inspectionCost           Float     @default(0)
+  packagingCost            Float     @default(0)
+  inlandTransportCost      Float     @default(0)
+  internationalFreightCost Float     @default(0)
+  customsCost              Float     @default(0)
+  insuranceCost            Float     @default(0)
+  storageCost              Float     @default(0)
+  taxAmount                Float     @default(0)
+  otherServiceFees         Float     @default(0)
+  totalAmount              Float
+  currency                 String    @db.VarChar(10)
+  incoterm                 String?   @db.VarChar(10)
+  paymentTerms             String?   @db.VarChar(100)
+  validUntil               DateTime? @db.Timestamptz(6)
+  commercialNotes          String?   @db.Text
+  createdByUserId          String    @db.Uuid
+  createdAt                DateTime  @default(now()) @db.Timestamptz(6)
+
+  quote                    Quote     @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  createdByUser            User      @relation("QuoteVersionCreatedByUser", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  contracts                Contract[]
+
+  @@unique([quoteId, versionNumber])
+  @@index([quoteId])
+  @@index([createdAt])
+}
+
+model Trade {
+  id                         String        @id @default(uuid()) @db.Uuid
+  tradeNumber                String        @unique @db.VarChar(50)
+  quoteId                    String        @unique @db.Uuid
+  acceptedQuoteVersionNumber Int
+  matchId                    String        @db.Uuid
+  buyOrderId                 String        @db.Uuid
+  listingId                  String        @db.Uuid
+  buyerOrganisationId        String        @db.Uuid
+  supplierOrganisationId     String        @db.Uuid
+  createdByUserId            String        @db.Uuid
+  materialType               String        @db.VarChar(100)
+  productForm                String?       @db.VarChar(100)
+  quantity                   Float
+  quantityUnit               String        @db.VarChar(50)
+  currency                   String        @db.VarChar(10)
+  acceptedTotalAmount        Float
+  incoterm                   String?       @db.VarChar(10)
+  paymentTerms               String?       @db.VarChar(100)
+  acceptedAt                 DateTime      @db.Timestamptz(6)
+  createdAt                  DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt                  DateTime      @updatedAt @db.Timestamptz(6)
+
+  quote                      Quote         @relation(fields: [quoteId], references: [id], onDelete: Restrict)
+  match                      Match         @relation(fields: [matchId], references: [id], onDelete: Restrict)
+  buyOrder                   BuyOrder      @relation(fields: [buyOrderId], references: [id], onDelete: Restrict)
+  listing                    Listing       @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  buyerOrganisation          Organisation  @relation("TradeBuyerOrganisation", fields: [buyerOrganisationId], references: [id], onDelete: Restrict)
+  supplierOrganisation       Organisation  @relation("TradeSupplierOrganisation", fields: [supplierOrganisationId], references: [id], onDelete: Restrict)
+  createdByUser              User          @relation("TradeCreatedByUser", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  inspections                Inspection[]
+  contract                   Contract?
+  settlement                 Settlement?
+
+  @@index([quoteId])
+  @@index([matchId])
+  @@index([buyOrderId])
+  @@index([listingId])
+  @@index([buyerOrganisationId])
+  @@index([supplierOrganisationId])
+  @@index([createdAt])
+}
+
+model InspectionTemplate {
+  id               String       @id @default(uuid()) @db.Uuid
+  templateKey      String       @db.VarChar(50)
+  name             String       @db.VarChar(200)
+  materialType     String       @db.VarChar(50)
+  productForm      String?      @db.VarChar(50)
+  supportedMethods String       @db.VarChar(255)
+  version          Int          @default(1)
+  status           String       @default("ACTIVE") @db.VarChar(50)
+  fields           Json         @default("[]") @db.JsonB
+  photoInstructions String?     @db.Text
+  createdAt        DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime     @updatedAt @db.Timestamptz(6)
+  inspections      Inspection[]
+
+  @@unique([templateKey, version])
+  @@index([materialType])
+  @@index([status])
+}
+
+model Inspection {
+  id                      String              @id @default(uuid()) @db.Uuid
+  inspectionReference     String              @unique @db.VarChar(50)
+  templateId              String              @db.Uuid
+  templateVersion         Int
+  tradeId                 String?             @db.Uuid
+  listingId               String?             @db.Uuid
+  externalLotReference    String?             @db.VarChar(100)
+  buyerOrganisationId     String?             @db.Uuid
+  supplierOrganisationId  String              @db.Uuid
+  assignedInspectorUserId String?             @db.Uuid
+  inspectionMethod        String              @db.VarChar(50)
+  status                  String              @default("DRAFT") @db.VarChar(50)
+  scheduledAt             DateTime?           @db.Timestamptz(6)
+  startedAt               DateTime?           @db.Timestamptz(6)
+  completedAt             DateTime?           @db.Timestamptz(6)
+  latitude                Float?
+  longitude               Float?
+  measurementMethod       String?             @db.VarChar(100)
+  equipmentUsed           String?             @db.VarChar(200)
+  inspectorNotes          String?             @db.Text
+  measurements            Json                @default("{}") @db.JsonB
+  createdByUserId         String              @db.Uuid
+  createdAt               DateTime            @default(now()) @db.Timestamptz(6)
+  updatedAt               DateTime            @updatedAt @db.Timestamptz(6)
+
+  template                InspectionTemplate  @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  trade                   Trade?              @relation(fields: [tradeId], references: [id], onDelete: Restrict)
+  listing                 Listing?            @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  buyerOrganisation       Organisation?       @relation("InspectionBuyerOrganisation", fields: [buyerOrganisationId], references: [id], onDelete: Restrict)
+  supplierOrganisation    Organisation        @relation("InspectionSupplierOrganisation", fields: [supplierOrganisationId], references: [id], onDelete: Restrict)
+  assignedInspectorUser   User?               @relation("InspectionAssignedToUser", fields: [assignedInspectorUserId], references: [id], onDelete: SetNull)
+  createdByUser           User                @relation("InspectionCreatedByUser", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  assessmentStatus           String              @default("NOT_ASSESSED") @db.VarChar(50)
+  assessmentSummary          String?             @db.Text
+  observedIssues             String?             @db.Text
+  recommendedFollowUp        String?             @db.Text
+  assessedAt                 DateTime?           @db.Timestamptz(6)
+  assessedByUserId           String?             @db.Uuid
+  physicalInspectionRequired Boolean             @default(false)
+  physicalInspectionReason   String?             @db.Text
+
+  assessedByUser          User?               @relation("InspectionAssessedByUser", fields: [assessedByUserId], references: [id], onDelete: SetNull)
+  evidence                InspectionEvidence[]
+  nonConformities         NonConformity[]
+  qualityResult           QualityResult?
+  certificate             InspectionCertificate?
+
+  @@index([templateId])
+  @@index([tradeId])
+  @@index([listingId])
+  @@index([assignedInspectorUserId])
+  @@index([supplierOrganisationId])
+  @@index([buyerOrganisationId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model InspectionEvidence {
+  id               String       @id @default(uuid()) @db.Uuid
+  inspectionId     String       @db.Uuid
+  evidenceType     String       @db.VarChar(50)
+  originalFilename String       @db.VarChar(255)
+  storageKey       String       @unique @db.VarChar(255)
+  mimeType         String       @db.VarChar(100)
+  fileSize         Int
+  caption          String?      @db.VarChar(255)
+  capturedAt       DateTime?    @db.Timestamptz(6)
+  uploadedByUserId String       @db.Uuid
+  createdAt        DateTime     @default(now()) @db.Timestamptz(6)
+
+  inspection       Inspection   @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  uploadedByUser   User         @relation("InspectionEvidenceUploadedByUser", fields: [uploadedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([inspectionId])
+  @@index([evidenceType])
+  @@index([createdAt])
+}
+
+
+model NonConformity {
+  id               String      @id @default(uuid()) @db.Uuid
+  inspectionId     String      @db.Uuid
+  reportedByUserId String      @db.Uuid
+  category         String      @db.VarChar(100)
+  description      String      @db.Text
+  status           String      @default("OPEN") @db.VarChar(50)
+  resolutionNotes  String?     @db.Text
+  resolvedAt       DateTime?   @db.Timestamptz(6)
+  resolvedByUserId String?     @db.Uuid
+  createdAt        DateTime    @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime    @updatedAt @db.Timestamptz(6)
+
+  inspection       Inspection  @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  reportedByUser   User        @relation("NonConformityReportedByUser", fields: [reportedByUserId], references: [id], onDelete: Restrict)
+  resolvedByUser   User?       @relation("NonConformityResolvedByUser", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([inspectionId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model QualityResult {
+  id                  String                 @id @default(uuid()) @db.Uuid
+  inspectionId        String                 @unique @db.Uuid
+  tradeId             String?                @db.Uuid
+  decision            String                 @db.VarChar(50)
+  classificationLabel String                 @db.VarChar(255)
+  decisionNotes       String?                @db.Text
+  decidedByUserId     String                 @db.Uuid
+  decidedAt           DateTime               @db.Timestamptz(6)
+  createdAt           DateTime               @default(now()) @db.Timestamptz(6)
+  updatedAt           DateTime               @updatedAt @db.Timestamptz(6)
+
+  inspection          Inspection             @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  decidedByUser       User                   @relation("QualityResultDecidedByUser", fields: [decidedByUserId], references: [id], onDelete: Restrict)
+  certificate         InspectionCertificate?
+
+  @@index([tradeId])
+  @@index([decision])
+  @@index([decidedByUserId])
+}
+
+model InspectionCertificate {
+  id                String        @id @default(uuid()) @db.Uuid
+  certificateNumber String        @unique @db.VarChar(100)
+  inspectionId      String        @unique @db.Uuid
+  qualityResultId   String        @unique @db.Uuid
+  tradeId           String?       @db.Uuid
+  storageKey        String?       @db.VarChar(255)
+  snapshotData      Json          @db.JsonB
+  issuedByUserId    String        @db.Uuid
+  issuedAt          DateTime      @db.Timestamptz(6)
+  createdAt         DateTime      @default(now()) @db.Timestamptz(6)
+
+  inspection        Inspection    @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  qualityResult     QualityResult @relation(fields: [qualityResultId], references: [id], onDelete: Cascade)
+  issuedByUser      User          @relation("InspectionCertificateIssuedByUser", fields: [issuedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([tradeId])
+  @@index([issuedByUserId])
+}
+
+model Contract {
+  id                         String        @id @default(uuid()) @db.Uuid
+  contractNumber             String        @unique @db.VarChar(50)
+  tradeId                    String        @unique @db.Uuid
+  acceptedQuoteVersionId     String        @db.Uuid
+  buyerOrganisationId        String        @db.Uuid
+  supplierOrganisationId     String        @db.Uuid
+  createdByUserId            String        @db.Uuid
+
+  materialType               String        @db.VarChar(100)
+  productForm                String?       @db.VarChar(100)
+  quantity                   Float
+  quantityUnit               String        @db.VarChar(50)
+  currency                   String        @db.VarChar(10)
+  acceptedCommercialAmount   Float
+
+  acceptedTolerance          String?       @db.VarChar(100)
+  incoterm                   String?       @db.VarChar(50)
+  qualityConditions          String?       @db.Text
+  inspectionMethod           String?       @db.VarChar(100)
+  pickupDate                 DateTime?     @db.Timestamptz(6)
+  deliveryDate               DateTime?     @db.Timestamptz(6)
+  paymentTerms               String?       @db.Text
+  claimsProcess              String?       @db.Text
+  requiredDocuments          String?       @db.Text
+  cancellationConditions     String?       @db.Text
+  governingLaw               String?       @db.VarChar(100)
+
+  status                     String        @default("DRAFT") @db.VarChar(50)
+  confirmedAt                DateTime?     @db.Timestamptz(6)
+  confirmedByUserId          String?       @db.Uuid
+
+  storageKey                 String?       @unique @db.VarChar(255)
+  documentGeneratedAt        DateTime?     @db.Timestamptz(6)
+
+  buyerSignatureStatus       String        @default("UNSIGNED") @db.VarChar(50)
+  supplierSignatureStatus    String        @default("UNSIGNED") @db.VarChar(50)
+
+  createdAt                  DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt                  DateTime      @updatedAt @db.Timestamptz(6)
+
+  trade                      Trade         @relation(fields: [tradeId], references: [id], onDelete: Restrict)
+  acceptedQuoteVersion       QuoteVersion  @relation(fields: [acceptedQuoteVersionId], references: [id], onDelete: Restrict)
+  buyerOrganisation          Organisation  @relation("ContractBuyerOrganisation", fields: [buyerOrganisationId], references: [id], onDelete: Restrict)
+  supplierOrganisation       Organisation  @relation("ContractSupplierOrganisation", fields: [supplierOrganisationId], references: [id], onDelete: Restrict)
+  createdByUser              User          @relation("ContractCreatedByUser", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  confirmedByUser            User?         @relation("ContractConfirmedByUser", fields: [confirmedByUserId], references: [id], onDelete: Restrict)
+  shipments                  Shipment[]
+
+  @@index([tradeId])
+  @@index([buyerOrganisationId])
+  @@index([supplierOrganisationId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Shipment {
+  id                         String              @id @default(uuid()) @db.Uuid
+  shipmentNumber             String              @unique @db.VarChar(50)
+  contractId                 String              @db.Uuid
+  createdByUserId            String              @db.Uuid
+  buyerOrganisationId        String              @db.Uuid
+  supplierOrganisationId     String              @db.Uuid
+  origin                     String?             @db.VarChar(255)
+  destination                String?             @db.VarChar(255)
+  shipmentQuantity           Float
+  quantityUnit               String              @db.VarChar(50)
+  requestedPickupDate        DateTime?           @db.Timestamptz(6)
+  requestedDeliveryDate      DateTime?           @db.Timestamptz(6)
+  transportRequirements      String?             @db.Text
+  packagingRequirements      String?             @db.Text
+  specialHandlingRequirements String?            @db.Text
+  notes                      String?             @db.Text
+  selectedFreightQuotationId String?             @db.Uuid
+  status                     String              @default("PLANNING") @db.VarChar(50)
+
+  scheduledPickupAt          DateTime?           @db.Timestamptz(6)
+  actualPickupAt             DateTime?           @db.Timestamptz(6)
+  deliveredAt                DateTime?           @db.Timestamptz(6)
+  deliveredLocation          String?             @db.VarChar(255)
+  deliveryNotes              String?             @db.Text
+  previousStatus             String?             @db.VarChar(50)
+  delayReason                String?             @db.Text
+  delayReportedAt            DateTime?           @db.Timestamptz(6)
+  revisedExpectedDeliveryDate DateTime?          @db.Timestamptz(6)
+  disputeReason              String?             @db.Text
+  disputeReportedAt          DateTime?           @db.Timestamptz(6)
+  disputeResolvedAt          DateTime?           @db.Timestamptz(6)
+  disputeResolutionNotes     String?             @db.Text
+  closedAt                   DateTime?           @db.Timestamptz(6)
+  closedByUserId             String?             @db.Uuid
+
+  createdAt                  DateTime            @default(now()) @db.Timestamptz(6)
+  updatedAt                  DateTime            @updatedAt @db.Timestamptz(6)
+
+  contract                   Contract            @relation(fields: [contractId], references: [id], onDelete: Restrict)
+  createdByUser              User                @relation("ShipmentCreatedByUser", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  closedByUser               User?               @relation("ShipmentClosedByUser", fields: [closedByUserId], references: [id], onDelete: SetNull)
+  buyerOrganisation          Organisation        @relation("ShipmentBuyerOrganisation", fields: [buyerOrganisationId], references: [id], onDelete: Restrict)
+  supplierOrganisation       Organisation        @relation("ShipmentSupplierOrganisation", fields: [supplierOrganisationId], references: [id], onDelete: Restrict)
+  selectedFreightQuotation   FreightQuotation?   @relation("ShipmentSelectedQuotation", fields: [selectedFreightQuotationId], references: [id], onDelete: SetNull)
+  logisticsRequests          LogisticsRequest[]
+  freightQuotations          FreightQuotation[]  @relation("ShipmentFreightQuotations")
+  trackingEvents             ShipmentTrackingEvent[]
+  documents                  ShipmentDocument[]
+  discrepancies              ShipmentDiscrepancy[]
+  costReconciliation         ShipmentCostReconciliation?
+  settlements                Settlement[]
+
+  @@index([contractId])
+  @@index([buyerOrganisationId])
+  @@index([supplierOrganisationId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model LogisticsRequest {
+  id                    String              @id @default(uuid()) @db.Uuid
+  shipmentId            String              @db.Uuid
+  targetProviderUserId  String              @db.Uuid
+  requesterUserId       String              @db.Uuid
+  status                String              @default("REQUESTED") @db.VarChar(50)
+  requestedAt           DateTime            @default(now()) @db.Timestamptz(6)
+  cancelledAt           DateTime?           @db.Timestamptz(6)
+  createdAt             DateTime            @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime            @updatedAt @db.Timestamptz(6)
+
+  shipment              Shipment            @relation(fields: [shipmentId], references: [id], onDelete: Restrict)
+  targetProviderUser    User                @relation("LogisticsRequestTargetProvider", fields: [targetProviderUserId], references: [id], onDelete: Restrict)
+  requesterUser         User                @relation("LogisticsRequestRequester", fields: [requesterUserId], references: [id], onDelete: Restrict)
+  freightQuotations     FreightQuotation[]
+
+  @@unique([shipmentId, targetProviderUserId])
+  @@index([shipmentId])
+  @@index([targetProviderUserId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model FreightQuotation {
+  id                       String            @id @default(uuid()) @db.Uuid
+  logisticsRequestId       String            @db.Uuid
+  shipmentId               String            @db.Uuid
+  providerUserId           String            @db.Uuid
+  submittedByUserId        String            @db.Uuid
+  submittedByRole          String            @db.VarChar(50)
+  enteredOnBehalfOfProvider Boolean          @default(false)
+  currency                 String            @db.VarChar(10)
+  freightAmount            Float
+  validUntil               DateTime?         @db.Timestamptz(6)
+  proposedPickupDate       DateTime?         @db.Timestamptz(6)
+  estimatedDeliveryDate    DateTime?         @db.Timestamptz(6)
+  notes                    String?           @db.Text
+  status                   String            @default("ACTIVE") @db.VarChar(50)
+  submittedAt              DateTime          @default(now()) @db.Timestamptz(6)
+  createdAt                DateTime          @default(now()) @db.Timestamptz(6)
+  updatedAt                DateTime          @updatedAt @db.Timestamptz(6)
+
+  logisticsRequest         LogisticsRequest  @relation(fields: [logisticsRequestId], references: [id], onDelete: Restrict)
+  shipment                 Shipment          @relation("ShipmentFreightQuotations", fields: [shipmentId], references: [id], onDelete: Restrict)
+  providerUser             User              @relation("FreightQuotationProvider", fields: [providerUserId], references: [id], onDelete: Restrict)
+  submittedByUser          User              @relation("FreightQuotationSubmittedBy", fields: [submittedByUserId], references: [id], onDelete: Restrict)
+  selectedByShipments      Shipment[]        @relation("ShipmentSelectedQuotation")
+  costReconciliations      ShipmentCostReconciliation[]
+
+  @@index([logisticsRequestId])
+  @@index([shipmentId])
+  @@index([providerUserId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ShipmentTrackingEvent {
+  id              String    @id @default(uuid()) @db.Uuid
+  shipmentId      String    @db.Uuid
+  previousStatus  String    @db.VarChar(50)
+  resultingStatus String    @db.VarChar(50)
+  actorUserId     String    @db.Uuid
+  actorRole       String    @db.VarChar(50)
+  location        String?   @db.VarChar(255)
+  notes           String?   @db.Text
+  metadata        Json      @default("{}") @db.JsonB
+  occurredAt      DateTime  @default(now()) @db.Timestamptz(6)
+  recordedAt      DateTime  @default(now()) @db.Timestamptz(6)
+
+  shipment        Shipment  @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  actorUser       User      @relation("ShipmentTrackingEventActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([shipmentId])
+  @@index([actorUserId])
+  @@index([resultingStatus])
+  @@index([occurredAt])
+}
+
+model ShipmentDocument {
+  id                String    @id @default(uuid()) @db.Uuid
+  shipmentId        String    @db.Uuid
+  uploadedByUserId  String    @db.Uuid
+  label             String    @db.VarChar(100)
+  documentReference String?   @db.VarChar(100)
+  storageKey        String    @unique @db.VarChar(255)
+  originalFilename  String    @db.VarChar(255)
+  mimeType          String    @db.VarChar(100)
+  sizeBytes         Int
+  uploadedAt        DateTime  @default(now()) @db.Timestamptz(6)
+
+  shipment          Shipment  @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  uploadedByUser    User      @relation("ShipmentDocumentUploadedByUser", fields: [uploadedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([shipmentId])
+  @@index([uploadedByUserId])
+  @@index([uploadedAt])
+}
+
+model ShipmentDiscrepancy {
+  id                 String            @id @default(uuid()) @db.Uuid
+  shipmentId         String            @db.Uuid
+  reportedByUserId   String            @db.Uuid
+  type               String            @db.VarChar(50)
+  description        String            @db.Text
+  expectedQuantity   Float?
+  deliveredQuantity  Float?
+  quantityUnit       String?           @db.VarChar(50)
+  differenceQuantity Float?
+  recordedAt         DateTime          @default(now()) @db.Timestamptz(6)
+
+  shipment           Shipment          @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  reportedByUser     User              @relation("ShipmentDiscrepancyReportedByUser", fields: [reportedByUserId], references: [id], onDelete: Restrict)
+  claims             SettlementClaim[]
+
+  @@index([shipmentId])
+  @@index([reportedByUserId])
+  @@index([type])
+  @@index([recordedAt])
+}
+
+model ShipmentCostReconciliation {
+  id                         String            @id @default(uuid()) @db.Uuid
+  shipmentId                 String            @unique @db.Uuid
+  selectedFreightQuotationId String            @db.Uuid
+  quotedAmount               Float
+  quotedCurrency             String            @db.VarChar(10)
+  finalAmount                Float
+  finalCurrency              String            @db.VarChar(10)
+  differenceAmount           Float
+  notes                      String?           @db.Text
+  reconciledByUserId         String            @db.Uuid
+  reconciledAt               DateTime          @default(now()) @db.Timestamptz(6)
+
+  shipment                   Shipment          @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  selectedFreightQuotation   FreightQuotation  @relation(fields: [selectedFreightQuotationId], references: [id], onDelete: Restrict)
+  reconciledByUser           User              @relation("ShipmentCostReconciledByUser", fields: [reconciledByUserId], references: [id], onDelete: Restrict)
+
+  @@index([selectedFreightQuotationId])
+  @@index([reconciledByUserId])
+}
+
+model Settlement {
+  id                    String              @id @default(uuid()) @db.Uuid
+  tradeId               String              @unique @db.Uuid
+  shipmentId            String?             @db.Uuid
+  buyerOrganisationId   String              @db.Uuid
+  supplierOrganisationId String             @db.Uuid
+  currency              String              @db.VarChar(10)
+  totalCommercialAmount Float
+  depositAmount         Float               @default(0)
+  remainingBalance      Float
+  commissionAmount      Float               @default(0)
+  finalSettlementAmount Float
+  paymentStatus         String              @default("PENDING") @db.VarChar(50)
+  paymentDueDate        DateTime?           @db.Timestamptz(6)
+  paymentInstructions   String?             @db.Text
+  notes                 String?             @db.Text
+  createdByUserId       String              @db.Uuid
+  createdAt             DateTime            @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime            @updatedAt @db.Timestamptz(6)
+
+  trade                 Trade               @relation(fields: [tradeId], references: [id], onDelete: Restrict)
+  shipment              Shipment?           @relation(fields: [shipmentId], references: [id], onDelete: SetNull)
+  buyerOrganisation     Organisation        @relation("SettlementBuyerOrganisation", fields: [buyerOrganisationId], references: [id], onDelete: Restrict)
+  supplierOrganisation  Organisation        @relation("SettlementSupplierOrganisation", fields: [supplierOrganisationId], references: [id], onDelete: Restrict)
+  createdByUser         User                @relation("SettlementCreatedByUser", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  documents             SettlementDocument[]
+  claims                SettlementClaim[]
+
+  @@index([shipmentId])
+  @@index([buyerOrganisationId])
+  @@index([supplierOrganisationId])
+  @@index([paymentStatus])
+  @@index([createdAt])
+}
+
+model SettlementDocument {
+  id                String      @id @default(uuid()) @db.Uuid
+  settlementId      String      @db.Uuid
+  uploadedByUserId  String      @db.Uuid
+  documentType      String      @db.VarChar(50)
+  documentReference String?     @db.VarChar(100)
+  storageKey        String      @unique @db.VarChar(255)
+  originalFilename  String      @db.VarChar(255)
+  mimeType          String      @db.VarChar(100)
+  sizeBytes         Int
+  uploadedAt        DateTime    @default(now()) @db.Timestamptz(6)
+
+  settlement        Settlement  @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+  uploadedByUser    User        @relation("SettlementDocumentUploadedByUser", fields: [uploadedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([settlementId])
+  @@index([documentType])
+  @@index([uploadedByUserId])
+  @@index([uploadedAt])
+}
+
+model SettlementClaim {
+  id                String                @id @default(uuid()) @db.Uuid
+  settlementId      String                @db.Uuid
+  discrepancyId     String?               @db.Uuid
+  description       String                @db.Text
+  amount            Float?
+  currency          String?               @db.VarChar(10)
+  status            String                @default("OPEN") @db.VarChar(50)
+  resolutionNotes   String?               @db.Text
+  resolvedAt        DateTime?             @db.Timestamptz(6)
+  resolvedByUserId  String?               @db.Uuid
+  recordedByUserId  String                @db.Uuid
+  recordedAt        DateTime              @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime              @updatedAt @db.Timestamptz(6)
+
+  settlement        Settlement            @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+  discrepancy       ShipmentDiscrepancy?  @relation(fields: [discrepancyId], references: [id], onDelete: SetNull)
+  recordedByUser    User                  @relation("SettlementClaimRecordedByUser", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  resolvedByUser    User?                 @relation("SettlementClaimResolvedByUser", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([settlementId])
+  @@index([discrepancyId])
+  @@index([status])
+  @@index([recordedByUserId])
+}
+
+model TraceableLot {
+  id                     String                  @id @default(uuid()) @db.Uuid
+  lotNumber              String                  @unique @db.VarChar(50)
+  listingId              String                  @db.Uuid
+  supplierOrganisationId String                  @db.Uuid
+  productionSiteId       String?                 @db.Uuid
+  materialType           String                  @db.VarChar(50)
+  productForm            String?                 @db.VarChar(50)
+  quantity               Float
+  quantityUnit           String                  @default("TONNES") @db.VarChar(30)
+  countryOfOrigin        String?                 @db.VarChar(100)
+  regionOfOrigin         String?                 @db.VarChar(100)
+  productionDate         DateTime?               @db.Timestamptz(6)
+  batchReference         String?                 @db.VarChar(100)
+  notes                  String?                 @db.Text
+  createdAt              DateTime                @default(now()) @db.Timestamptz(6)
+  updatedAt              DateTime                @default(now()) @updatedAt @db.Timestamptz(6)
+  createdByUserId        String                  @db.Uuid
+
+  listing                Listing                 @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  supplierOrganisation   Organisation            @relation("TraceableLotSupplierOrganisation", fields: [supplierOrganisationId], references: [id], onDelete: Restrict)
+  productionSite         Site?                   @relation(fields: [productionSiteId], references: [id], onDelete: SetNull)
+  createdByUser          User                    @relation("TraceableLotCreatedByUser", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  dpp                    DigitalProductPassport?
+  events                 DPPEvent[]
+  custodyRecords         DPPCustodyRecord[]
+
+  @@index([listingId])
+  @@index([supplierOrganisationId])
+  @@index([productionSiteId])
+  @@index([materialType])
+  @@index([createdAt])
+}
+
+model DigitalProductPassport {
+  id                   String             @id @default(uuid()) @db.Uuid
+  passportNumber       String             @unique @db.VarChar(50)
+  lotId                String             @unique @db.Uuid
+  status               String             @default("ACTIVE") @db.VarChar(50)
+  currentVersionNumber Int                @default(1)
+  currentVersionId     String?            @db.Uuid
+  createdAt            DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt            DateTime           @default(now()) @updatedAt @db.Timestamptz(6)
+  createdByUserId      String             @db.Uuid
+
+  lot                  TraceableLot       @relation(fields: [lotId], references: [id], onDelete: Restrict)
+  createdByUser        User               @relation("DPPCreatedByUser", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  versions             DPPVersion[]
+  events               DPPEvent[]
+  custodyRecords       DPPCustodyRecord[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model DPPVersion {
+  id                String                 @id @default(uuid()) @db.Uuid
+  dppId             String                 @db.Uuid
+  versionNumber     Int
+  snapshot          Json                   @db.JsonB
+  previousVersionId String?                @db.Uuid
+  changeReason      String?                @db.Text
+  createdAt         DateTime               @default(now()) @db.Timestamptz(6)
+  createdByUserId   String                 @db.Uuid
+
+  dpp               DigitalProductPassport @relation(fields: [dppId], references: [id], onDelete: Cascade)
+  createdByUser     User                   @relation("DPPVersionCreatedByUser", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([dppId, versionNumber])
+  @@index([dppId])
+  @@index([versionNumber])
+  @@index([createdAt])
+}
+
+model DPPEvent {
+  id                         String                 @id @default(uuid()) @db.Uuid
+  dppId                      String                 @db.Uuid
+  lotId                      String                 @db.Uuid
+  eventType                  String                 @db.VarChar(50)
+  occurredAt                 DateTime               @db.Timestamptz(6)
+  recordedAt                 DateTime               @default(now()) @db.Timestamptz(6)
+  location                   String?                @db.VarChar(255)
+  responsibleOrganisationId  String?                @db.Uuid
+  responsibleUserId          String?                @db.Uuid
+  sourceType                 String                 @db.VarChar(50)
+  sourceId                   String                 @db.VarChar(100)
+  verificationStatus         String                 @default("RECORDED") @db.VarChar(50)
+  metadata                   Json?                  @default("{}") @db.JsonB
+
+  dpp                        DigitalProductPassport @relation(fields: [dppId], references: [id], onDelete: Cascade)
+  lot                        TraceableLot           @relation(fields: [lotId], references: [id], onDelete: Restrict)
+  responsibleOrganisation    Organisation?          @relation("DPPEventResponsibleOrganisation", fields: [responsibleOrganisationId], references: [id], onDelete: SetNull)
+  responsibleUser            User?                  @relation("DPPEventResponsibleUser", fields: [responsibleUserId], references: [id], onDelete: SetNull)
+
+  @@unique([dppId, sourceType, sourceId, eventType])
+  @@index([dppId])
+  @@index([lotId])
+  @@index([eventType])
+  @@index([occurredAt])
+  @@index([verificationStatus])
+}
+
+model DPPCustodyRecord {
+  id                   String                 @id @default(uuid()) @db.Uuid
+  dppId                String                 @db.Uuid
+  lotId                String                 @db.Uuid
+  milestone            String                 @db.VarChar(50)
+  fromOrganisationId   String?                @db.Uuid
+  toOrganisationId     String?                @db.Uuid
+  sourceType           String                 @db.VarChar(50)
+  sourceId             String                 @db.VarChar(100)
+  occurredAt           DateTime               @db.Timestamptz(6)
+  recordedAt           DateTime               @default(now()) @db.Timestamptz(6)
+  location             String?                @db.VarChar(255)
+  notes                String?                @db.Text
+
+  dpp                  DigitalProductPassport @relation(fields: [dppId], references: [id], onDelete: Cascade)
+  lot                  TraceableLot           @relation(fields: [lotId], references: [id], onDelete: Restrict)
+  fromOrganisation     Organisation?          @relation("DPPCustodyFromOrganisation", fields: [fromOrganisationId], references: [id], onDelete: SetNull)
+  toOrganisation       Organisation?          @relation("DPPCustodyToOrganisation", fields: [toOrganisationId], references: [id], onDelete: SetNull)
+
+  @@unique([dppId, sourceType, sourceId, milestone])
+  @@index([dppId])
+  @@index([lotId])
+  @@index([milestone])
+  @@index([occurredAt])
+}
+
+// =========================================================================
+// Sprint 10: AI Platform Foundation Models
+// =========================================================================
+
+model AgentRun {
+  id                    String             @id @default(uuid()) @db.Uuid
+  agentKey              String             @db.VarChar(100)
+  promptVersion         String             @db.VarChar(50)
+  initiatedByUserId     String             @db.Uuid
+  initiatedByRole       String             @db.VarChar(50)
+  organisationContextId String?            @db.Uuid
+  provider              String             @db.VarChar(100)
+  model                 String             @db.VarChar(100)
+  status                String             @default("RUNNING") @db.VarChar(50)
+  targetResourceType    String?            @db.VarChar(100)
+  targetResourceId      String?            @db.VarChar(128)
+  summary               String?            @db.Text
+  confidence            Float?
+  structuredOutput      Json?              @db.JsonB
+  failureCategory       String?            @db.VarChar(100)
+  failureReason         String?            @db.Text
+  startedAt             DateTime           @default(now()) @db.Timestamptz(6)
+  completedAt           DateTime?          @db.Timestamptz(6)
+  createdAt             DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime           @updatedAt @db.Timestamptz(6)
+
+  initiatedByUser       User               @relation("AgentRunInitiatedByUser", fields: [initiatedByUserId], references: [id], onDelete: Restrict)
+  organisation          Organisation?      @relation("AgentRunOrganisation", fields: [organisationContextId], references: [id], onDelete: SetNull)
+  proposals             AgentProposal[]
+  toolExecutions        ToolExecutionLog[]
+
+  @@index([agentKey])
+  @@index([status])
+  @@index([initiatedByUserId])
+  @@index([targetResourceType, targetResourceId])
+  @@index([createdAt])
+}
+
+model AgentProposal {
+  id                String             @id @default(uuid()) @db.Uuid
+  runId             String             @db.Uuid
+  proposalType      String             @db.VarChar(100)
+  toolKey           String             @db.VarChar(100)
+  structuredPayload Json               @db.JsonB
+  confidence        Float
+  status            String             @default("PROPOSED") @db.VarChar(50)
+  createdAt         DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime           @updatedAt @db.Timestamptz(6)
+
+  run               AgentRun           @relation(fields: [runId], references: [id], onDelete: Cascade)
+  approvalRequests  ApprovalRequest[]
+  toolExecutions    ToolExecutionLog[]
+
+  @@index([runId])
+  @@index([status])
+  @@index([toolKey])
+  @@index([createdAt])
+}
+
+model ApprovalRequest {
+  id              String         @id @default(uuid()) @db.Uuid
+  proposalId      String         @db.Uuid
+  runId           String         @db.Uuid
+  requestedAt     DateTime       @default(now()) @db.Timestamptz(6)
+  requiredRole    String         @default("TRADER") @db.VarChar(50)
+  status          String         @default("PENDING") @db.VarChar(50)
+  decidedByUserId String?        @db.Uuid
+  decidedAt       DateTime?      @db.Timestamptz(6)
+  decisionNote    String?        @db.Text
+  createdAt       DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime       @updatedAt @db.Timestamptz(6)
+
+  proposal        AgentProposal  @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  decidedByUser   User?          @relation("ApprovalRequestDecidedByUser", fields: [decidedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([proposalId])
+  @@index([runId])
+  @@index([status])
+  @@index([requiredRole])
+  @@index([createdAt])
+}
+
+model ToolExecutionLog {
+  id                  String         @id @default(uuid()) @db.Uuid
+  runId               String         @db.Uuid
+  proposalId          String?        @db.Uuid
+  approvalId          String?        @db.Uuid
+  toolKey             String         @db.VarChar(100)
+  actorRole           String         @db.VarChar(50)
+  actorUserId         String?        @db.Uuid
+  safeInputSummary    Json           @db.JsonB
+  status              String         @db.VarChar(50)
+  startedAt           DateTime       @default(now()) @db.Timestamptz(6)
+  completedAt         DateTime?      @db.Timestamptz(6)
+  safeResultReference Json?          @db.JsonB
+  failureCategory     String?        @db.VarChar(100)
+  failureReason       String?        @db.Text
+  createdAt           DateTime       @default(now()) @db.Timestamptz(6)
+
+  run                 AgentRun       @relation(fields: [runId], references: [id], onDelete: Cascade)
+  proposal            AgentProposal? @relation(fields: [proposalId], references: [id], onDelete: SetNull)
+
+  @@index([runId])
+  @@index([proposalId])
+  @@index([toolKey])
+  @@index([status])
+  @@index([createdAt])
+}
+
