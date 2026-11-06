@@ -1,7 +1,13 @@
 const LOCAL_API_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
 export function getLocalApiBaseUrl(configuredValue: string | undefined): string {
-  if (configuredValue === "" || (process.env.NODE_ENV === "production" && configuredValue === undefined)) {
+  if (
+    configuredValue === "" ||
+    (process.env.NODE_ENV === "production" &&
+      (configuredValue === undefined ||
+        configuredValue.includes("localhost") ||
+        configuredValue.includes("127.0.0.1")))
+  ) {
     return "";
   }
 

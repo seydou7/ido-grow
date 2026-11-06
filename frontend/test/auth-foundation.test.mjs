@@ -36,6 +36,22 @@ test("local API configuration accepts only the exact local backend", async () =>
   }
 });
 
+test("production environment strictly enforces same-origin empty string for API base URL", async () => {
+  const previousEnv = process.env.NODE_ENV;
+  process.env.NODE_ENV = "production";
+
+  try {
+    const { getLocalApiBaseUrl } = await importTypeScript("../src/auth/config.ts");
+
+    assert.equal(getLocalApiBaseUrl(""), "");
+    assert.equal(getLocalApiBaseUrl(undefined), "");
+    assert.equal(getLocalApiBaseUrl("http://localhost:3001"), "");
+    assert.equal(getLocalApiBaseUrl("http://127.0.0.1:3001"), "");
+  } finally {
+    process.env.NODE_ENV = previousEnv;
+  }
+});
+
 test("authenticated session parsing exposes only safe user identity fields", async () => {
   const { parseAuthenticatedSession } = await importTypeScript("../src/auth/responses.ts");
 
